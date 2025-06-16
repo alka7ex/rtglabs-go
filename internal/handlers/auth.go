@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"rtglabs-go/dto"
 	"rtglabs-go/ent"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -21,17 +22,6 @@ type AuthHandler struct {
 
 func NewAuthHandler(client *ent.Client) *AuthHandler {
 	return &AuthHandler{Client: client}
-}
-
-type RegisterRequest struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 // ValidateToken checks if the token is valid and not expired.
@@ -55,7 +45,7 @@ func (h *AuthHandler) ValidateToken(token string) (uuid.UUID, error) {
 }
 
 func (h *AuthHandler) Register(c echo.Context) error {
-	var req RegisterRequest
+	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid input")
 	}
@@ -76,7 +66,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 }
 
 func (h *AuthHandler) Login(c echo.Context) error {
-	var req LoginRequest
+	var req dto.LoginRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid input")
 	}
