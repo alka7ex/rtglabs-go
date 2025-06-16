@@ -7,6 +7,10 @@ import (
 	"time"
 
 	"rtglabs-go/cmd/web"
+	"rtglabs-go/internal/handlers"
+	"rtglabs-go/internal/validators"
+
+	"rtglabs-go/internal/database" // your db service
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
@@ -56,6 +60,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	logger := NewPrettyLogger()
 
+	e.Validator = validators.NewValidator()
+	// SQLite Ent client
+	entClient := database.NewEntClient()
+	// Store reference if you want to call `Close()` elsewhere
+	s.db = database.New() // Implements Health()
+
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
 		LogStatus: true,
@@ -91,6 +101,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.POST("/hello", echo.WrapHandler(http.HandlerFunc(web.HelloWebHandler)))
 	e.GET("/", s.HelloWorldHandler)
 	e.GET("/health", s.healthHandler)
+
+	h := handlers.NewBodyweightHandler(entClient)
+	e.POST("/bodyweights", h.CreateBodyweight)
 
 	// PRIVATE ROUTE
 	g := e.Group("/admin")

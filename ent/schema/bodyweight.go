@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 
 	"github.com/google/uuid"
@@ -43,12 +44,12 @@ func (Bodyweight) Fields() []ent.Field {
 }
 
 // Edges of the Bodyweight.
-// func (Bodyweight) Edges() []ent.Edge {
-// 	return []ent.Edge{
-// 		edge.From("user", User.Type).
-// 			Ref("bodyweights").
-// 			Field("user_id").
-// 			Unique().
-// 			Required(),
-// 	}
-// }
+func (Bodyweight) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("user", User.Type).
+			Ref("bodyweights").
+			Field("user_id").
+			Unique().
+			Required(),
+	}
+}

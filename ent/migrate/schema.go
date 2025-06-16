@@ -11,18 +11,26 @@ var (
 	// BodyweightsColumns holds the columns for the "bodyweights" table.
 	BodyweightsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "user_id", Type: field.TypeUUID},
 		{Name: "weight", Type: field.TypeFloat64},
 		{Name: "unit", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "user_id", Type: field.TypeUUID},
 	}
 	// BodyweightsTable holds the schema information for the "bodyweights" table.
 	BodyweightsTable = &schema.Table{
 		Name:       "bodyweights",
 		Columns:    BodyweightsColumns,
 		PrimaryKey: []*schema.Column{BodyweightsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "bodyweights_users_bodyweights",
+				Columns:    []*schema.Column{BodyweightsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 	}
 	// ExercisesColumns holds the columns for the "exercises" table.
 	ExercisesColumns = []*schema.Column{
@@ -37,6 +45,27 @@ var (
 		Name:       "exercises",
 		Columns:    ExercisesColumns,
 		PrimaryKey: []*schema.Column{ExercisesColumns[0]},
+	}
+	// SessionsColumns holds the columns for the "sessions" table.
+	SessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "token", Type: field.TypeUUID, Unique: true},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "user_sessions", Type: field.TypeUUID},
+	}
+	// SessionsTable holds the schema information for the "sessions" table.
+	SessionsTable = &schema.Table{
+		Name:       "sessions",
+		Columns:    SessionsColumns,
+		PrimaryKey: []*schema.Column{SessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sessions_users_sessions",
+				Columns:    []*schema.Column{SessionsColumns[3]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
@@ -91,6 +120,7 @@ var (
 	Tables = []*schema.Table{
 		BodyweightsTable,
 		ExercisesTable,
+		SessionsTable,
 		UsersTable,
 		WorkoutsTable,
 		WorkoutExercisesTable,
@@ -98,4 +128,6 @@ var (
 )
 
 func init() {
+	BodyweightsTable.ForeignKeys[0].RefTable = UsersTable
+	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 }

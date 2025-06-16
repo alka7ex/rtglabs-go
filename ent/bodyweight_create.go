@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"rtglabs-go/ent/bodyweight"
+	"rtglabs-go/ent/user"
 	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -95,6 +96,11 @@ func (bc *BodyweightCreate) SetNillableID(u *uuid.UUID) *BodyweightCreate {
 	return bc
 }
 
+// SetUser sets the "user" edge to the User entity.
+func (bc *BodyweightCreate) SetUser(u *User) *BodyweightCreate {
+	return bc.SetUserID(u.ID)
+}
+
 // Mutation returns the BodyweightMutation object of the builder.
 func (bc *BodyweightCreate) Mutation() *BodyweightMutation {
 	return bc.mutation
@@ -171,6 +177,9 @@ func (bc *BodyweightCreate) check() error {
 	if _, ok := bc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Bodyweight.updated_at"`)}
 	}
+	if len(bc.mutation.UserIDs()) == 0 {
+		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Bodyweight.user"`)}
+	}
 	return nil
 }
 
@@ -206,10 +215,6 @@ func (bc *BodyweightCreate) createSpec() (*Bodyweight, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := bc.mutation.UserID(); ok {
-		_spec.SetField(bodyweight.FieldUserID, field.TypeUUID, value)
-		_node.UserID = value
-	}
 	if value, ok := bc.mutation.Weight(); ok {
 		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
 		_node.Weight = value
@@ -229,6 +234,23 @@ func (bc *BodyweightCreate) createSpec() (*Bodyweight, *sqlgraph.CreateSpec) {
 	if value, ok := bc.mutation.DeletedAt(); ok {
 		_spec.SetField(bodyweight.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if nodes := bc.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   bodyweight.UserTable,
+			Columns: []string{bodyweight.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.UserID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
