@@ -55,6 +55,9 @@ func NewServer() *http.Server {
 func (s *Server) setupMiddleware() {
 	s.echo.Validator = validators.NewValidator() // Set custom validator
 
+	// Remove trailing slash
+	s.echo.Pre(middleware.RemoveTrailingSlash())
+
 	// Request Logger Middleware
 	s.echo.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
@@ -90,6 +93,7 @@ func (s *Server) setupMiddleware() {
 func (s *Server) RegisterRoutes() {
 	s.registerPublicRoutes()
 	s.registerPrivateRoutes()
+
 }
 
 // HelloWorldHandler is a simple handler for the "/" route.
@@ -104,3 +108,4 @@ func (s *Server) HelloWorldHandler(c echo.Context) error {
 func (s *Server) healthHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, s.db.Health())
 }
+
