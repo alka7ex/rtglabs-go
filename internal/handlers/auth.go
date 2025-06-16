@@ -1,14 +1,18 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"time"
+
+	"rtglabs-go/ent"
+	"rtglabs-go/ent/session"
+	"rtglabs-go/ent/user"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
-	"rtglabs-go/ent"
-	"rtglabs-go/ent/user"
 )
 
 type AuthHandler struct {
@@ -28,6 +32,26 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// ValidateToken checks if the token is valid and not expired.
+// Returns the user ID if valid, or error if invalid/expired.
+func (h *AuthHandler) ValidateToken(token string) (uuid.UUID, error) {
+	ctx := context.Background()
+
+	session, err := h.Client.Session.
+		Query().
+		Where(
+			session.TokenEQ(token),
+			session.ExpiresAtGTE(time.Now()),
+		).
+		Only(ctx)
+
+	if err != nil {
+		return uuid.Nil, errors.New("invalid or expired session token")
+	}
+
+	return session.ID, nil
 }
 
 func (h *AuthHandler) Register(c echo.Context) error {

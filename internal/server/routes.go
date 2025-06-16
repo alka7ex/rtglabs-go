@@ -105,31 +105,36 @@ func (s *Server) RegisterRoutes() http.Handler {
 	h := handlers.NewBodyweightHandler(entClient)
 
 	a := handlers.NewAuthHandler(entClient)
+
 	Register := a.Register
 	Login := a.Login
 
-	e.POST("/bodyweights", h.CreateBodyweight)
 	e.POST("/auth/register", Register)
 	e.POST("/auth/login", Login)
 
-	// PRIVATE ROUTE
+	// Protected routes
 	g := e.Group("/admin")
-	g.Use(middleware.KeyAuth(func(key string, c echo.Context) (bool, error) {
-		return key == "valid-key", nil
-	}))
 
 	g.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Extract the credentials from HTTP request header and perform a security
-			// check
+			auth := c.Request().Header.Get("Authorization")
+			if auth == "" || len(auth) < 8 || auth[:7] != "Bearer " {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Missing or invalid Authorization header")
+			}
 
-			// For invalid credentials
-			return echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials")
+			token := auth[7:]
+			userID, err := a.ValidateToken(token)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid or expired token")
+			}
 
-			// For valid credentials call next
-			// return next(c)
+			c.Set("userID", userID)
+			return next(c)
 		}
 	})
+
+	// Now /admin/bodyweights is protected
+	g.POST("/bodyweights", h.CreateBodyweight)
 
 	return e
 }
