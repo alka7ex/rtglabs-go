@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"entgo.io/ent"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -38,15 +37,15 @@ func (Exercise) Fields() []ent.Field {
 }
 
 // Edges of the Exercise.
-func (Exercise) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.To("workout_exercises", WorkoutExercise.Type).
-			Ref("exercise"),
-
-		edge.From("workout", Workout.Type).
-			Ref("workout_exercises").
-			Field("workout_id").
-			Required().
-			Unique(),
-	}
-}
+// func (Exercise) Edges() []ent.Edge {
+// 	return []ent.Edge{
+// 		edge.To("workout_exercises", WorkoutExercise.Type).
+// 			Ref("exercise"),
+//
+// 		edge.From("workout", Workout.Type).
+// 			Ref("workout_exercises").
+// 			Field("workout_id").
+// 			Required().
+// 			Unique(),
+// 	}
+// }

@@ -2,7 +2,6 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -37,10 +36,10 @@ func (User) Fields() []ent.Field {
 }
 
 // Edges of the User.
-func (User) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.To("workouts", Workout.Type),
-		edge.To("bodyweights", Bodyweight.Type),
-	}
-}
-
+// func (User) Edges() []ent.Edge {
+// 	return []ent.Edge{
+// 		edge.To("workouts", Workout.Type),
+// 		edge.To("bodyweights", Bodyweight.Type),
+// 	}
+// }
+//
