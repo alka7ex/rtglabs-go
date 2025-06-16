@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/exercise"
-	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
@@ -80,7 +79,6 @@ func checkColumn(table, column string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			bodyweight.Table:      bodyweight.ValidColumn,
 			exercise.Table:        exercise.ValidColumn,
-			session.Table:         session.ValidColumn,
 			user.Table:            user.ValidColumn,
 			workout.Table:         workout.ValidColumn,
 			workoutexercise.Table: workoutexercise.ValidColumn,

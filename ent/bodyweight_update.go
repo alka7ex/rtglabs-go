@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/predicate"
-	"rtglabs-go/ent/user"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -119,20 +118,9 @@ func (bu *BodyweightUpdate) ClearDeletedAt() *BodyweightUpdate {
 	return bu
 }
 
-// SetUser sets the "user" edge to the User entity.
-func (bu *BodyweightUpdate) SetUser(u *User) *BodyweightUpdate {
-	return bu.SetUserID(u.ID)
-}
-
 // Mutation returns the BodyweightMutation object of the builder.
 func (bu *BodyweightUpdate) Mutation() *BodyweightMutation {
 	return bu.mutation
-}
-
-// ClearUser clears the "user" edge to the User entity.
-func (bu *BodyweightUpdate) ClearUser() *BodyweightUpdate {
-	bu.mutation.ClearUser()
-	return bu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -183,9 +171,6 @@ func (bu *BodyweightUpdate) check() error {
 			return &ValidationError{Name: "unit", err: fmt.Errorf(`ent: validator failed for field "Bodyweight.unit": %w`, err)}
 		}
 	}
-	if bu.mutation.UserCleared() && len(bu.mutation.UserIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Bodyweight.user"`)
-	}
 	return nil
 }
 
@@ -200,6 +185,9 @@ func (bu *BodyweightUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := bu.mutation.UserID(); ok {
+		_spec.SetField(bodyweight.FieldUserID, field.TypeUUID, value)
 	}
 	if value, ok := bu.mutation.Weight(); ok {
 		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
@@ -221,35 +209,6 @@ func (bu *BodyweightUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if bu.mutation.DeletedAtCleared() {
 		_spec.ClearField(bodyweight.FieldDeletedAt, field.TypeTime)
-	}
-	if bu.mutation.UserCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   bodyweight.UserTable,
-			Columns: []string{bodyweight.UserColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := bu.mutation.UserIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   bodyweight.UserTable,
-			Columns: []string{bodyweight.UserColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -360,20 +319,9 @@ func (buo *BodyweightUpdateOne) ClearDeletedAt() *BodyweightUpdateOne {
 	return buo
 }
 
-// SetUser sets the "user" edge to the User entity.
-func (buo *BodyweightUpdateOne) SetUser(u *User) *BodyweightUpdateOne {
-	return buo.SetUserID(u.ID)
-}
-
 // Mutation returns the BodyweightMutation object of the builder.
 func (buo *BodyweightUpdateOne) Mutation() *BodyweightMutation {
 	return buo.mutation
-}
-
-// ClearUser clears the "user" edge to the User entity.
-func (buo *BodyweightUpdateOne) ClearUser() *BodyweightUpdateOne {
-	buo.mutation.ClearUser()
-	return buo
 }
 
 // Where appends a list predicates to the BodyweightUpdate builder.
@@ -437,9 +385,6 @@ func (buo *BodyweightUpdateOne) check() error {
 			return &ValidationError{Name: "unit", err: fmt.Errorf(`ent: validator failed for field "Bodyweight.unit": %w`, err)}
 		}
 	}
-	if buo.mutation.UserCleared() && len(buo.mutation.UserIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Bodyweight.user"`)
-	}
 	return nil
 }
 
@@ -472,6 +417,9 @@ func (buo *BodyweightUpdateOne) sqlSave(ctx context.Context) (_node *Bodyweight,
 			}
 		}
 	}
+	if value, ok := buo.mutation.UserID(); ok {
+		_spec.SetField(bodyweight.FieldUserID, field.TypeUUID, value)
+	}
 	if value, ok := buo.mutation.Weight(); ok {
 		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
 	}
@@ -492,35 +440,6 @@ func (buo *BodyweightUpdateOne) sqlSave(ctx context.Context) (_node *Bodyweight,
 	}
 	if buo.mutation.DeletedAtCleared() {
 		_spec.ClearField(bodyweight.FieldDeletedAt, field.TypeTime)
-	}
-	if buo.mutation.UserCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   bodyweight.UserTable,
-			Columns: []string{bodyweight.UserColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := buo.mutation.UserIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   bodyweight.UserTable,
-			Columns: []string{bodyweight.UserColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Bodyweight{config: buo.config}
 	_spec.Assign = _node.assignValues

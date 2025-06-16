@@ -8,7 +8,6 @@ import (
 	"math"
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/predicate"
-	"rtglabs-go/ent/user"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -24,7 +23,6 @@ type BodyweightQuery struct {
 	order      []bodyweight.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Bodyweight
-	withUser   *UserQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -59,28 +57,6 @@ func (bq *BodyweightQuery) Unique(unique bool) *BodyweightQuery {
 func (bq *BodyweightQuery) Order(o ...bodyweight.OrderOption) *BodyweightQuery {
 	bq.order = append(bq.order, o...)
 	return bq
-}
-
-// QueryUser chains the current query on the "user" edge.
-func (bq *BodyweightQuery) QueryUser() *UserQuery {
-	query := (&UserClient{config: bq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := bq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := bq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(bodyweight.Table, bodyweight.FieldID, selector),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, bodyweight.UserTable, bodyweight.UserColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(bq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // First returns the first Bodyweight entity from the query.
@@ -275,22 +251,10 @@ func (bq *BodyweightQuery) Clone() *BodyweightQuery {
 		order:      append([]bodyweight.OrderOption{}, bq.order...),
 		inters:     append([]Interceptor{}, bq.inters...),
 		predicates: append([]predicate.Bodyweight{}, bq.predicates...),
-		withUser:   bq.withUser.Clone(),
 		// clone intermediate query.
 		sql:  bq.sql.Clone(),
 		path: bq.path,
 	}
-}
-
-// WithUser tells the query-builder to eager-load the nodes that are connected to
-// the "user" edge. The optional arguments are used to configure the query builder of the edge.
-func (bq *BodyweightQuery) WithUser(opts ...func(*UserQuery)) *BodyweightQuery {
-	query := (&UserClient{config: bq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	bq.withUser = query
-	return bq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -369,11 +333,8 @@ func (bq *BodyweightQuery) prepareQuery(ctx context.Context) error {
 
 func (bq *BodyweightQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Bodyweight, error) {
 	var (
-		nodes       = []*Bodyweight{}
-		_spec       = bq.querySpec()
-		loadedTypes = [1]bool{
-			bq.withUser != nil,
-		}
+		nodes = []*Bodyweight{}
+		_spec = bq.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Bodyweight).scanValues(nil, columns)
@@ -381,7 +342,6 @@ func (bq *BodyweightQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*B
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Bodyweight{config: bq.config}
 		nodes = append(nodes, node)
-		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -393,43 +353,7 @@ func (bq *BodyweightQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*B
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := bq.withUser; query != nil {
-		if err := bq.loadUser(ctx, query, nodes, nil,
-			func(n *Bodyweight, e *User) { n.Edges.User = e }); err != nil {
-			return nil, err
-		}
-	}
 	return nodes, nil
-}
-
-func (bq *BodyweightQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*Bodyweight, init func(*Bodyweight), assign func(*Bodyweight, *User)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*Bodyweight)
-	for i := range nodes {
-		fk := nodes[i].UserID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(user.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
 }
 
 func (bq *BodyweightQuery) sqlCount(ctx context.Context) (int, error) {
@@ -456,9 +380,6 @@ func (bq *BodyweightQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != bodyweight.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if bq.withUser != nil {
-			_spec.Node.AddColumnOnce(bodyweight.FieldUserID)
 		}
 	}
 	if ps := bq.predicates; len(ps) > 0 {
