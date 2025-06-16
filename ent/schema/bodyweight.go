@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 
 	"github.com/google/uuid"
@@ -20,22 +21,16 @@ func (Bodyweight) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).
 			Default(uuid.New).
 			Unique(),
-
 		field.UUID("user_id", uuid.UUID{}),
-
 		field.Float("weight").
 			Positive(),
-
 		field.String("unit").
 			NotEmpty(),
-
 		field.Time("created_at").
-			Default(time.Now),
-
+			Default(time.Now).Nillable(),
 		field.Time("updated_at").
 			Default(time.Now).
-			UpdateDefault(time.Now),
-
+			UpdateDefault(time.Now).Nillable(),
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
@@ -45,10 +40,10 @@ func (Bodyweight) Fields() []ent.Field {
 // Edges of the Bodyweight.
 func (Bodyweight) Edges() []ent.Edge {
 	return []ent.Edge{
-		// edge.From("user", User.Type).
-		// 	Ref("bodyweights").
-		// 	Field("user_id").
-		// 	Unique().
-		// 	Required(),
+		edge.From("user", User.Type).
+			Ref("bodyweights").
+			Field("user_id").
+			Unique().
+			Required(),
 	}
 }

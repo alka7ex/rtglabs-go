@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"rtglabs-go/ent/bodyweight"
+	"rtglabs-go/ent/user"
 	"strings"
 	"time"
 
@@ -25,12 +26,35 @@ type Bodyweight struct {
 	// Unit holds the value of the "unit" field.
 	Unit string `json:"unit,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
-	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the BodyweightQuery when eager-loading is set.
+	Edges        BodyweightEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// BodyweightEdges holds the relations/edges for other nodes in the graph.
+type BodyweightEdges struct {
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BodyweightEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
+		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "user"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -89,13 +113,15 @@ func (b *Bodyweight) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				b.CreatedAt = value.Time
+				b.CreatedAt = new(time.Time)
+				*b.CreatedAt = value.Time
 			}
 		case bodyweight.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				b.UpdatedAt = value.Time
+				b.UpdatedAt = new(time.Time)
+				*b.UpdatedAt = value.Time
 			}
 		case bodyweight.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -115,6 +141,11 @@ func (b *Bodyweight) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (b *Bodyweight) Value(name string) (ent.Value, error) {
 	return b.selectValues.Get(name)
+}
+
+// QueryUser queries the "user" edge of the Bodyweight entity.
+func (b *Bodyweight) QueryUser() *UserQuery {
+	return NewBodyweightClient(b.config).QueryUser(b)
 }
 
 // Update returns a builder for updating this Bodyweight.
@@ -149,11 +180,15 @@ func (b *Bodyweight) String() string {
 	builder.WriteString("unit=")
 	builder.WriteString(b.Unit)
 	builder.WriteString(", ")
-	builder.WriteString("created_at=")
-	builder.WriteString(b.CreatedAt.Format(time.ANSIC))
+	if v := b.CreatedAt; v != nil {
+		builder.WriteString("created_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(b.UpdatedAt.Format(time.ANSIC))
+	if v := b.UpdatedAt; v != nil {
+		builder.WriteString("updated_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := b.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")

@@ -22,14 +22,11 @@ func (Exercise) Fields() []ent.Field {
 
 		field.String("name").
 			NotEmpty(),
-
 		field.Time("created_at").
-			Default(time.Now),
-
+			Default(time.Now).Nillable(),
 		field.Time("updated_at").
 			Default(time.Now).
-			UpdateDefault(time.Now),
-
+			UpdateDefault(time.Now).Nillable(),
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),

@@ -103,7 +103,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.GET("/health", s.healthHandler)
 
 	h := handlers.NewBodyweightHandler(entClient)
+
+	a := handlers.NewAuthHandler(entClient)
+	Register := a.Register
+	Login := a.Login
+
 	e.POST("/bodyweights", h.CreateBodyweight)
+	e.POST("/auth/register", Register)
+	e.POST("/auth/login", Login)
 
 	// PRIVATE ROUTE
 	g := e.Group("/admin")

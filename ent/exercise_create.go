@@ -189,11 +189,11 @@ func (ec *ExerciseCreate) createSpec() (*Exercise, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := ec.mutation.CreatedAt(); ok {
 		_spec.SetField(exercise.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
+		_node.CreatedAt = &value
 	}
 	if value, ok := ec.mutation.UpdatedAt(); ok {
 		_spec.SetField(exercise.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
+		_node.UpdatedAt = &value
 	}
 	if value, ok := ec.mutation.DeletedAt(); ok {
 		_spec.SetField(exercise.FieldDeletedAt, field.TypeTime, value)
