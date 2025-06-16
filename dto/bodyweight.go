@@ -7,3 +7,8 @@ type CreateBodyweightRequest struct {
 	Weight float64   `json:"weight" validate:"required,gt=0"`
 	Unit   string    `json:"unit" validate:"required"`
 }
+
+type UpdateBodyweightRequest struct {
+	Weight float64 `json:"weight" validate:"required,gt=0"`
+	Unit   string  `json:"unit" validate:"required"`
+}
