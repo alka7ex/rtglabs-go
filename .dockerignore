@@ -1,0 +1,28 @@
+
+# Binaries
+main
+tailwindcss
+
+# Build artifacts
+*.exe
+*.out
+*.test
+
+# Go module cache
+vendor/
+
+# Node modules
+node_modules/
+
+# OS / Editor stuff
+.DS_Store
+.env
+*.log
+*.swp
+
+# Vite / Next / Webpack output (if ever added)
+dist/
+build/
+
+# Temporary files
+tmp/

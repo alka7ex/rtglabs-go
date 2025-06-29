@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"rtglabs-go/dto"
 	"rtglabs-go/ent"
+	"strconv" // Import for string to int conversion
 	"time"
 
-	bodyweight "rtglabs-go/ent/bodyweight" // <- import this package
+	bodyweight "rtglabs-go/ent/bodyweight"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
@@ -54,27 +56,69 @@ func (h *BodyweightHandler) CreateBodyweight(c echo.Context) error {
 func (h *BodyweightHandler) ListBodyweights(c echo.Context) error {
 	userID := c.QueryParam("user_id")
 
+	// --- Pagination Parameters ---
+	pageStr := c.QueryParam("page")
+	limitStr := c.QueryParam("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1 // Default to first page
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 25 // Default limit per page
+	}
+	if limit > 100 { // Cap the limit to prevent excessively large requests
+		limit = 100
+	}
+
+	offset := (page - 1) * limit
+	// --- End Pagination Parameters ---
+
+	// Base query builder
 	query := h.Client.Bodyweight.
 		Query().
-		Where(bodyweight.DeletedAtIsNil()).
-		Order(bodyweight.ByCreatedAt(sql.OrderDesc()))
+		Where(bodyweight.DeletedAtIsNil())
 
+	// Apply UserID filter if present
 	if userID != "" {
 		uid, err := uuid.Parse(userID)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "Invalid user_id")
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid user_id format")
 		}
 		query = query.Where(bodyweight.UserIDEQ(uid))
 	}
 
-	bodyweights, err := query.All(c.Request().Context())
+	// Get total count BEFORE applying limit and offset
+	totalCount, err := query.Count(c.Request().Context())
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to count bodyweights: %v", err))
 	}
+
+	// Apply sorting, limit, and offset for pagination
+	bodyweights, err := query.
+		Order(bodyweight.ByCreatedAt(sql.OrderDesc())). // Always order for consistent pagination
+		Limit(limit).
+		Offset(offset).
+		All(c.Request().Context())
+
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to list bodyweights: %v", err))
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + limit - 1) / limit
 
 	return c.JSON(http.StatusOK, echo.Map{
 		"status": "success",
 		"data":   bodyweights,
+		"pagination": echo.Map{
+			"total_items":  totalCount,
+			"total_pages":  totalPages,
+			"current_page": page,
+			"per_page":     limit,
+		},
 	})
 }
 
@@ -139,7 +183,7 @@ func (h *BodyweightHandler) DeleteBodyweight(c echo.Context) error {
 
 	_, err = h.Client.Bodyweight.
 		UpdateOneID(id).
-		SetDeletedAt(now). // ← Not pointer
+		SetDeletedAt(now).
 		Save(c.Request().Context())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -154,3 +198,4 @@ func (h *BodyweightHandler) DeleteBodyweight(c echo.Context) error {
 func timePtr(t time.Time) *time.Time {
 	return &t
 }
+
