@@ -46,6 +46,33 @@ var (
 		Columns:    ExercisesColumns,
 		PrimaryKey: []*schema.Column{ExercisesColumns[0]},
 	}
+	// ProfilesColumns holds the columns for the "profiles" table.
+	ProfilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "units", Type: field.TypeInt},
+		{Name: "age", Type: field.TypeInt},
+		{Name: "height", Type: field.TypeFloat64, SchemaType: map[string]string{"mysql": "decimal(10, 2)", "postgres": "numeric(10, 2)", "sqlite": "numeric"}},
+		{Name: "gender", Type: field.TypeInt},
+		{Name: "weight", Type: field.TypeFloat64, SchemaType: map[string]string{"mysql": "decimal(10, 2)", "postgres": "numeric(10, 2)", "sqlite": "numeric"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "user_id", Type: field.TypeUUID, Unique: true, Nullable: true},
+	}
+	// ProfilesTable holds the schema information for the "profiles" table.
+	ProfilesTable = &schema.Table{
+		Name:       "profiles",
+		Columns:    ProfilesColumns,
+		PrimaryKey: []*schema.Column{ProfilesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "profiles_users_profile",
+				Columns:    []*schema.Column{ProfilesColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// SessionsColumns holds the columns for the "sessions" table.
 	SessionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
@@ -124,6 +151,7 @@ var (
 	Tables = []*schema.Table{
 		BodyweightsTable,
 		ExercisesTable,
+		ProfilesTable,
 		SessionsTable,
 		UsersTable,
 		WorkoutsTable,
@@ -133,5 +161,6 @@ var (
 
 func init() {
 	BodyweightsTable.ForeignKeys[0].RefTable = UsersTable
+	ProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 }

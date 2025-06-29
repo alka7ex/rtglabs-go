@@ -88,11 +88,23 @@ func (s *Server) setupMiddleware() {
 		MaxAge:           300,
 	}))
 }
+func (s *Server) PrintRoutes() {
+	s.logger.Info("--------------------------------------------------")
+	s.logger.Info("  Registered Routes:")
+	s.logger.Info("--------------------------------------------------")
+	for _, route := range s.echo.Routes() {
+		// You can customize the format here
+		s.logger.Info(fmt.Sprintf("%-10s %-30s -> %s", route.Method, route.Path, route.Name))
+	}
+	s.logger.Info("--------------------------------------------------")
+}
 
 // RegisterRoutes registers all public and private routes.
 func (s *Server) RegisterRoutes() {
 	s.registerPublicRoutes()
 	s.registerPrivateRoutes()
+
+	// s.PrintRoutes()
 
 }
 
@@ -108,4 +120,3 @@ func (s *Server) HelloWorldHandler(c echo.Context) error {
 func (s *Server) healthHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, s.db.Health())
 }
-

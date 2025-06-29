@@ -9,6 +9,7 @@ import (
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/predicate"
+	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
@@ -32,6 +33,7 @@ const (
 	// Node types.
 	TypeBodyweight      = "Bodyweight"
 	TypeExercise        = "Exercise"
+	TypeProfile         = "Profile"
 	TypeSession         = "Session"
 	TypeUser            = "User"
 	TypeWorkout         = "Workout"
@@ -1268,6 +1270,1033 @@ func (m *ExerciseMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Exercise edge %s", name)
 }
 
+// ProfileMutation represents an operation that mutates the Profile nodes in the graph.
+type ProfileMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	units         *int
+	addunits      *int
+	age           *int
+	addage        *int
+	height        *float64
+	addheight     *float64
+	gender        *int
+	addgender     *int
+	weight        *float64
+	addweight     *float64
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	clearedFields map[string]struct{}
+	user          *uuid.UUID
+	cleareduser   bool
+	done          bool
+	oldValue      func(context.Context) (*Profile, error)
+	predicates    []predicate.Profile
+}
+
+var _ ent.Mutation = (*ProfileMutation)(nil)
+
+// profileOption allows management of the mutation configuration using functional options.
+type profileOption func(*ProfileMutation)
+
+// newProfileMutation creates new mutation for the Profile entity.
+func newProfileMutation(c config, op Op, opts ...profileOption) *ProfileMutation {
+	m := &ProfileMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProfile,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProfileID sets the ID field of the mutation.
+func withProfileID(id uuid.UUID) profileOption {
+	return func(m *ProfileMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Profile
+		)
+		m.oldValue = func(ctx context.Context) (*Profile, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Profile.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProfile sets the old Profile of the mutation.
+func withProfile(node *Profile) profileOption {
+	return func(m *ProfileMutation) {
+		m.oldValue = func(context.Context) (*Profile, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProfileMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProfileMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Profile entities.
+func (m *ProfileMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProfileMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProfileMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Profile.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUnits sets the "units" field.
+func (m *ProfileMutation) SetUnits(i int) {
+	m.units = &i
+	m.addunits = nil
+}
+
+// Units returns the value of the "units" field in the mutation.
+func (m *ProfileMutation) Units() (r int, exists bool) {
+	v := m.units
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnits returns the old "units" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldUnits(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnits is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnits requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnits: %w", err)
+	}
+	return oldValue.Units, nil
+}
+
+// AddUnits adds i to the "units" field.
+func (m *ProfileMutation) AddUnits(i int) {
+	if m.addunits != nil {
+		*m.addunits += i
+	} else {
+		m.addunits = &i
+	}
+}
+
+// AddedUnits returns the value that was added to the "units" field in this mutation.
+func (m *ProfileMutation) AddedUnits() (r int, exists bool) {
+	v := m.addunits
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUnits resets all changes to the "units" field.
+func (m *ProfileMutation) ResetUnits() {
+	m.units = nil
+	m.addunits = nil
+}
+
+// SetAge sets the "age" field.
+func (m *ProfileMutation) SetAge(i int) {
+	m.age = &i
+	m.addage = nil
+}
+
+// Age returns the value of the "age" field in the mutation.
+func (m *ProfileMutation) Age() (r int, exists bool) {
+	v := m.age
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAge returns the old "age" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldAge(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAge is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAge requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAge: %w", err)
+	}
+	return oldValue.Age, nil
+}
+
+// AddAge adds i to the "age" field.
+func (m *ProfileMutation) AddAge(i int) {
+	if m.addage != nil {
+		*m.addage += i
+	} else {
+		m.addage = &i
+	}
+}
+
+// AddedAge returns the value that was added to the "age" field in this mutation.
+func (m *ProfileMutation) AddedAge() (r int, exists bool) {
+	v := m.addage
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAge resets all changes to the "age" field.
+func (m *ProfileMutation) ResetAge() {
+	m.age = nil
+	m.addage = nil
+}
+
+// SetHeight sets the "height" field.
+func (m *ProfileMutation) SetHeight(f float64) {
+	m.height = &f
+	m.addheight = nil
+}
+
+// Height returns the value of the "height" field in the mutation.
+func (m *ProfileMutation) Height() (r float64, exists bool) {
+	v := m.height
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHeight returns the old "height" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldHeight(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHeight is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHeight requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHeight: %w", err)
+	}
+	return oldValue.Height, nil
+}
+
+// AddHeight adds f to the "height" field.
+func (m *ProfileMutation) AddHeight(f float64) {
+	if m.addheight != nil {
+		*m.addheight += f
+	} else {
+		m.addheight = &f
+	}
+}
+
+// AddedHeight returns the value that was added to the "height" field in this mutation.
+func (m *ProfileMutation) AddedHeight() (r float64, exists bool) {
+	v := m.addheight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetHeight resets all changes to the "height" field.
+func (m *ProfileMutation) ResetHeight() {
+	m.height = nil
+	m.addheight = nil
+}
+
+// SetGender sets the "gender" field.
+func (m *ProfileMutation) SetGender(i int) {
+	m.gender = &i
+	m.addgender = nil
+}
+
+// Gender returns the value of the "gender" field in the mutation.
+func (m *ProfileMutation) Gender() (r int, exists bool) {
+	v := m.gender
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGender returns the old "gender" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldGender(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGender is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGender requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGender: %w", err)
+	}
+	return oldValue.Gender, nil
+}
+
+// AddGender adds i to the "gender" field.
+func (m *ProfileMutation) AddGender(i int) {
+	if m.addgender != nil {
+		*m.addgender += i
+	} else {
+		m.addgender = &i
+	}
+}
+
+// AddedGender returns the value that was added to the "gender" field in this mutation.
+func (m *ProfileMutation) AddedGender() (r int, exists bool) {
+	v := m.addgender
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGender resets all changes to the "gender" field.
+func (m *ProfileMutation) ResetGender() {
+	m.gender = nil
+	m.addgender = nil
+}
+
+// SetWeight sets the "weight" field.
+func (m *ProfileMutation) SetWeight(f float64) {
+	m.weight = &f
+	m.addweight = nil
+}
+
+// Weight returns the value of the "weight" field in the mutation.
+func (m *ProfileMutation) Weight() (r float64, exists bool) {
+	v := m.weight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWeight returns the old "weight" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldWeight(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWeight is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWeight requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWeight: %w", err)
+	}
+	return oldValue.Weight, nil
+}
+
+// AddWeight adds f to the "weight" field.
+func (m *ProfileMutation) AddWeight(f float64) {
+	if m.addweight != nil {
+		*m.addweight += f
+	} else {
+		m.addweight = &f
+	}
+}
+
+// AddedWeight returns the value that was added to the "weight" field in this mutation.
+func (m *ProfileMutation) AddedWeight() (r float64, exists bool) {
+	v := m.addweight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWeight resets all changes to the "weight" field.
+func (m *ProfileMutation) ResetWeight() {
+	m.weight = nil
+	m.addweight = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *ProfileMutation) SetUserID(u uuid.UUID) {
+	m.user = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *ProfileMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldUserID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (m *ProfileMutation) ClearUserID() {
+	m.user = nil
+	m.clearedFields[profile.FieldUserID] = struct{}{}
+}
+
+// UserIDCleared returns if the "user_id" field was cleared in this mutation.
+func (m *ProfileMutation) UserIDCleared() bool {
+	_, ok := m.clearedFields[profile.FieldUserID]
+	return ok
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *ProfileMutation) ResetUserID() {
+	m.user = nil
+	delete(m.clearedFields, profile.FieldUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProfileMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProfileMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldCreatedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProfileMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProfileMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProfileMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldUpdatedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProfileMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ProfileMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ProfileMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ProfileMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[profile.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ProfileMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[profile.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ProfileMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, profile.FieldDeletedAt)
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *ProfileMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[profile.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *ProfileMutation) UserCleared() bool {
+	return m.UserIDCleared() || m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *ProfileMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *ProfileMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// Where appends a list predicates to the ProfileMutation builder.
+func (m *ProfileMutation) Where(ps ...predicate.Profile) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProfileMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProfileMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Profile, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProfileMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProfileMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Profile).
+func (m *ProfileMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProfileMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.units != nil {
+		fields = append(fields, profile.FieldUnits)
+	}
+	if m.age != nil {
+		fields = append(fields, profile.FieldAge)
+	}
+	if m.height != nil {
+		fields = append(fields, profile.FieldHeight)
+	}
+	if m.gender != nil {
+		fields = append(fields, profile.FieldGender)
+	}
+	if m.weight != nil {
+		fields = append(fields, profile.FieldWeight)
+	}
+	if m.user != nil {
+		fields = append(fields, profile.FieldUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, profile.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, profile.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, profile.FieldDeletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProfileMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case profile.FieldUnits:
+		return m.Units()
+	case profile.FieldAge:
+		return m.Age()
+	case profile.FieldHeight:
+		return m.Height()
+	case profile.FieldGender:
+		return m.Gender()
+	case profile.FieldWeight:
+		return m.Weight()
+	case profile.FieldUserID:
+		return m.UserID()
+	case profile.FieldCreatedAt:
+		return m.CreatedAt()
+	case profile.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case profile.FieldDeletedAt:
+		return m.DeletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case profile.FieldUnits:
+		return m.OldUnits(ctx)
+	case profile.FieldAge:
+		return m.OldAge(ctx)
+	case profile.FieldHeight:
+		return m.OldHeight(ctx)
+	case profile.FieldGender:
+		return m.OldGender(ctx)
+	case profile.FieldWeight:
+		return m.OldWeight(ctx)
+	case profile.FieldUserID:
+		return m.OldUserID(ctx)
+	case profile.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case profile.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case profile.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Profile field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProfileMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case profile.FieldUnits:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnits(v)
+		return nil
+	case profile.FieldAge:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAge(v)
+		return nil
+	case profile.FieldHeight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHeight(v)
+		return nil
+	case profile.FieldGender:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGender(v)
+		return nil
+	case profile.FieldWeight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWeight(v)
+		return nil
+	case profile.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case profile.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case profile.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case profile.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Profile field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProfileMutation) AddedFields() []string {
+	var fields []string
+	if m.addunits != nil {
+		fields = append(fields, profile.FieldUnits)
+	}
+	if m.addage != nil {
+		fields = append(fields, profile.FieldAge)
+	}
+	if m.addheight != nil {
+		fields = append(fields, profile.FieldHeight)
+	}
+	if m.addgender != nil {
+		fields = append(fields, profile.FieldGender)
+	}
+	if m.addweight != nil {
+		fields = append(fields, profile.FieldWeight)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProfileMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case profile.FieldUnits:
+		return m.AddedUnits()
+	case profile.FieldAge:
+		return m.AddedAge()
+	case profile.FieldHeight:
+		return m.AddedHeight()
+	case profile.FieldGender:
+		return m.AddedGender()
+	case profile.FieldWeight:
+		return m.AddedWeight()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProfileMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case profile.FieldUnits:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUnits(v)
+		return nil
+	case profile.FieldAge:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAge(v)
+		return nil
+	case profile.FieldHeight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddHeight(v)
+		return nil
+	case profile.FieldGender:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGender(v)
+		return nil
+	case profile.FieldWeight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWeight(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Profile numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProfileMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(profile.FieldUserID) {
+		fields = append(fields, profile.FieldUserID)
+	}
+	if m.FieldCleared(profile.FieldDeletedAt) {
+		fields = append(fields, profile.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProfileMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProfileMutation) ClearField(name string) error {
+	switch name {
+	case profile.FieldUserID:
+		m.ClearUserID()
+		return nil
+	case profile.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Profile nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProfileMutation) ResetField(name string) error {
+	switch name {
+	case profile.FieldUnits:
+		m.ResetUnits()
+		return nil
+	case profile.FieldAge:
+		m.ResetAge()
+		return nil
+	case profile.FieldHeight:
+		m.ResetHeight()
+		return nil
+	case profile.FieldGender:
+		m.ResetGender()
+		return nil
+	case profile.FieldWeight:
+		m.ResetWeight()
+		return nil
+	case profile.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case profile.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case profile.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case profile.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Profile field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProfileMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.user != nil {
+		edges = append(edges, profile.EdgeUser)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProfileMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case profile.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProfileMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProfileMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProfileMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareduser {
+		edges = append(edges, profile.EdgeUser)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProfileMutation) EdgeCleared(name string) bool {
+	switch name {
+	case profile.EdgeUser:
+		return m.cleareduser
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProfileMutation) ClearEdge(name string) error {
+	switch name {
+	case profile.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown Profile unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProfileMutation) ResetEdge(name string) error {
+	switch name {
+	case profile.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown Profile edge %s", name)
+}
+
 // SessionMutation represents an operation that mutates the Session nodes in the graph.
 type SessionMutation struct {
 	config
@@ -1795,6 +2824,8 @@ type UserMutation struct {
 	sessions           map[uuid.UUID]struct{}
 	removedsessions    map[uuid.UUID]struct{}
 	clearedsessions    bool
+	profile            *uuid.UUID
+	clearedprofile     bool
 	done               bool
 	oldValue           func(context.Context) (*User, error)
 	predicates         []predicate.User
@@ -2290,6 +3321,45 @@ func (m *UserMutation) ResetSessions() {
 	m.removedsessions = nil
 }
 
+// SetProfileID sets the "profile" edge to the Profile entity by id.
+func (m *UserMutation) SetProfileID(id uuid.UUID) {
+	m.profile = &id
+}
+
+// ClearProfile clears the "profile" edge to the Profile entity.
+func (m *UserMutation) ClearProfile() {
+	m.clearedprofile = true
+}
+
+// ProfileCleared reports if the "profile" edge to the Profile entity was cleared.
+func (m *UserMutation) ProfileCleared() bool {
+	return m.clearedprofile
+}
+
+// ProfileID returns the "profile" edge ID in the mutation.
+func (m *UserMutation) ProfileID() (id uuid.UUID, exists bool) {
+	if m.profile != nil {
+		return *m.profile, true
+	}
+	return
+}
+
+// ProfileIDs returns the "profile" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProfileID instead. It exists only for internal usage by the builders.
+func (m *UserMutation) ProfileIDs() (ids []uuid.UUID) {
+	if id := m.profile; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProfile resets all changes to the "profile" edge.
+func (m *UserMutation) ResetProfile() {
+	m.profile = nil
+	m.clearedprofile = false
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -2540,12 +3610,15 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.bodyweights != nil {
 		edges = append(edges, user.EdgeBodyweights)
 	}
 	if m.sessions != nil {
 		edges = append(edges, user.EdgeSessions)
+	}
+	if m.profile != nil {
+		edges = append(edges, user.EdgeProfile)
 	}
 	return edges
 }
@@ -2566,13 +3639,17 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeProfile:
+		if id := m.profile; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedbodyweights != nil {
 		edges = append(edges, user.EdgeBodyweights)
 	}
@@ -2604,12 +3681,15 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedbodyweights {
 		edges = append(edges, user.EdgeBodyweights)
 	}
 	if m.clearedsessions {
 		edges = append(edges, user.EdgeSessions)
+	}
+	if m.clearedprofile {
+		edges = append(edges, user.EdgeProfile)
 	}
 	return edges
 }
@@ -2622,6 +3702,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedbodyweights
 	case user.EdgeSessions:
 		return m.clearedsessions
+	case user.EdgeProfile:
+		return m.clearedprofile
 	}
 	return false
 }
@@ -2630,6 +3712,9 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
 	switch name {
+	case user.EdgeProfile:
+		m.ClearProfile()
+		return nil
 	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
@@ -2643,6 +3728,9 @@ func (m *UserMutation) ResetEdge(name string) error {
 		return nil
 	case user.EdgeSessions:
 		m.ResetSessions()
+		return nil
+	case user.EdgeProfile:
+		m.ResetProfile()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

@@ -13,6 +13,7 @@ import (
 
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/exercise"
+	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
@@ -34,6 +35,8 @@ type Client struct {
 	Bodyweight *BodyweightClient
 	// Exercise is the client for interacting with the Exercise builders.
 	Exercise *ExerciseClient
+	// Profile is the client for interacting with the Profile builders.
+	Profile *ProfileClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// User is the client for interacting with the User builders.
@@ -55,6 +58,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Bodyweight = NewBodyweightClient(c.config)
 	c.Exercise = NewExerciseClient(c.config)
+	c.Profile = NewProfileClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.Workout = NewWorkoutClient(c.config)
@@ -153,6 +157,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:          cfg,
 		Bodyweight:      NewBodyweightClient(cfg),
 		Exercise:        NewExerciseClient(cfg),
+		Profile:         NewProfileClient(cfg),
 		Session:         NewSessionClient(cfg),
 		User:            NewUserClient(cfg),
 		Workout:         NewWorkoutClient(cfg),
@@ -178,6 +183,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:          cfg,
 		Bodyweight:      NewBodyweightClient(cfg),
 		Exercise:        NewExerciseClient(cfg),
+		Profile:         NewProfileClient(cfg),
 		Session:         NewSessionClient(cfg),
 		User:            NewUserClient(cfg),
 		Workout:         NewWorkoutClient(cfg),
@@ -211,7 +217,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Bodyweight, c.Exercise, c.Session, c.User, c.Workout, c.WorkoutExercise,
+		c.Bodyweight, c.Exercise, c.Profile, c.Session, c.User, c.Workout,
+		c.WorkoutExercise,
 	} {
 		n.Use(hooks...)
 	}
@@ -221,7 +228,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Bodyweight, c.Exercise, c.Session, c.User, c.Workout, c.WorkoutExercise,
+		c.Bodyweight, c.Exercise, c.Profile, c.Session, c.User, c.Workout,
+		c.WorkoutExercise,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -234,6 +242,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Bodyweight.mutate(ctx, m)
 	case *ExerciseMutation:
 		return c.Exercise.mutate(ctx, m)
+	case *ProfileMutation:
+		return c.Profile.mutate(ctx, m)
 	case *SessionMutation:
 		return c.Session.mutate(ctx, m)
 	case *UserMutation:
@@ -529,6 +539,155 @@ func (c *ExerciseClient) mutate(ctx context.Context, m *ExerciseMutation) (Value
 	}
 }
 
+// ProfileClient is a client for the Profile schema.
+type ProfileClient struct {
+	config
+}
+
+// NewProfileClient returns a client for the Profile from the given config.
+func NewProfileClient(c config) *ProfileClient {
+	return &ProfileClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `profile.Hooks(f(g(h())))`.
+func (c *ProfileClient) Use(hooks ...Hook) {
+	c.hooks.Profile = append(c.hooks.Profile, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `profile.Intercept(f(g(h())))`.
+func (c *ProfileClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Profile = append(c.inters.Profile, interceptors...)
+}
+
+// Create returns a builder for creating a Profile entity.
+func (c *ProfileClient) Create() *ProfileCreate {
+	mutation := newProfileMutation(c.config, OpCreate)
+	return &ProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Profile entities.
+func (c *ProfileClient) CreateBulk(builders ...*ProfileCreate) *ProfileCreateBulk {
+	return &ProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProfileClient) MapCreateBulk(slice any, setFunc func(*ProfileCreate, int)) *ProfileCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProfileCreateBulk{err: fmt.Errorf("calling to ProfileClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProfileCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Profile.
+func (c *ProfileClient) Update() *ProfileUpdate {
+	mutation := newProfileMutation(c.config, OpUpdate)
+	return &ProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProfileClient) UpdateOne(pr *Profile) *ProfileUpdateOne {
+	mutation := newProfileMutation(c.config, OpUpdateOne, withProfile(pr))
+	return &ProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProfileClient) UpdateOneID(id uuid.UUID) *ProfileUpdateOne {
+	mutation := newProfileMutation(c.config, OpUpdateOne, withProfileID(id))
+	return &ProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Profile.
+func (c *ProfileClient) Delete() *ProfileDelete {
+	mutation := newProfileMutation(c.config, OpDelete)
+	return &ProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProfileClient) DeleteOne(pr *Profile) *ProfileDeleteOne {
+	return c.DeleteOneID(pr.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProfileClient) DeleteOneID(id uuid.UUID) *ProfileDeleteOne {
+	builder := c.Delete().Where(profile.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProfileDeleteOne{builder}
+}
+
+// Query returns a query builder for Profile.
+func (c *ProfileClient) Query() *ProfileQuery {
+	return &ProfileQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProfile},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Profile entity by its id.
+func (c *ProfileClient) Get(ctx context.Context, id uuid.UUID) (*Profile, error) {
+	return c.Query().Where(profile.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProfileClient) GetX(ctx context.Context, id uuid.UUID) *Profile {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Profile.
+func (c *ProfileClient) QueryUser(pr *Profile) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(profile.Table, profile.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, profile.UserTable, profile.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ProfileClient) Hooks() []Hook {
+	return c.hooks.Profile
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProfileClient) Interceptors() []Interceptor {
+	return c.inters.Profile
+}
+
+func (c *ProfileClient) mutate(ctx context.Context, m *ProfileMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Profile mutation op: %q", m.Op())
+	}
+}
+
 // SessionClient is a client for the Session schema.
 type SessionClient struct {
 	config
@@ -811,6 +970,22 @@ func (c *UserClient) QuerySessions(u *User) *SessionQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(session.Table, session.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.SessionsTable, user.SessionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProfile queries the profile edge of a User.
+func (c *UserClient) QueryProfile(u *User) *ProfileQuery {
+	query := (&ProfileClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(profile.Table, profile.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, user.ProfileTable, user.ProfileColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -1112,9 +1287,11 @@ func (c *WorkoutExerciseClient) mutate(ctx context.Context, m *WorkoutExerciseMu
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Bodyweight, Exercise, Session, User, Workout, WorkoutExercise []ent.Hook
+		Bodyweight, Exercise, Profile, Session, User, Workout,
+		WorkoutExercise []ent.Hook
 	}
 	inters struct {
-		Bodyweight, Exercise, Session, User, Workout, WorkoutExercise []ent.Interceptor
+		Bodyweight, Exercise, Profile, Session, User, Workout,
+		WorkoutExercise []ent.Interceptor
 	}
 )

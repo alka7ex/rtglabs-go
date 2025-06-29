@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"rtglabs-go/ent/bodyweight"
+	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"time"
@@ -139,6 +140,25 @@ func (uc *UserCreate) AddSessions(s ...*Session) *UserCreate {
 		ids[i] = s[i].ID
 	}
 	return uc.AddSessionIDs(ids...)
+}
+
+// SetProfileID sets the "profile" edge to the Profile entity by ID.
+func (uc *UserCreate) SetProfileID(id uuid.UUID) *UserCreate {
+	uc.mutation.SetProfileID(id)
+	return uc
+}
+
+// SetNillableProfileID sets the "profile" edge to the Profile entity by ID if the given value is not nil.
+func (uc *UserCreate) SetNillableProfileID(id *uuid.UUID) *UserCreate {
+	if id != nil {
+		uc = uc.SetProfileID(*id)
+	}
+	return uc
+}
+
+// SetProfile sets the "profile" edge to the Profile entity.
+func (uc *UserCreate) SetProfile(p *Profile) *UserCreate {
+	return uc.SetProfileID(p.ID)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -310,6 +330,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.ProfileIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   user.ProfileTable,
+			Columns: []string{user.ProfileColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(profile.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

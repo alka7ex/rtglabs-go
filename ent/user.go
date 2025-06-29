@@ -4,6 +4,7 @@ package ent
 
 import (
 	"fmt"
+	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/user"
 	"strings"
 	"time"
@@ -44,9 +45,11 @@ type UserEdges struct {
 	Bodyweights []*Bodyweight `json:"bodyweights,omitempty"`
 	// Sessions holds the value of the sessions edge.
 	Sessions []*Session `json:"sessions,omitempty"`
+	// Profile holds the value of the profile edge.
+	Profile *Profile `json:"profile,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // BodyweightsOrErr returns the Bodyweights value or an error if the edge
@@ -65,6 +68,17 @@ func (e UserEdges) SessionsOrErr() ([]*Session, error) {
 		return e.Sessions, nil
 	}
 	return nil, &NotLoadedError{edge: "sessions"}
+}
+
+// ProfileOrErr returns the Profile value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UserEdges) ProfileOrErr() (*Profile, error) {
+	if e.Profile != nil {
+		return e.Profile, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: profile.Label}
+	}
+	return nil, &NotLoadedError{edge: "profile"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -164,6 +178,11 @@ func (u *User) QueryBodyweights() *BodyweightQuery {
 // QuerySessions queries the "sessions" edge of the User entity.
 func (u *User) QuerySessions() *SessionQuery {
 	return NewUserClient(u.config).QuerySessions(u)
+}
+
+// QueryProfile queries the "profile" edge of the User entity.
+func (u *User) QueryProfile() *ProfileQuery {
+	return NewUserClient(u.config).QueryProfile(u)
 }
 
 // Update returns a builder for updating this User.
