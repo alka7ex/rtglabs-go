@@ -9,6 +9,9 @@ import (
 // Bodyweight is the predicate function for bodyweight builders.
 type Bodyweight func(*sql.Selector)
 
+// Exercise is the predicate function for exercise builders.
+type Exercise func(*sql.Selector)
+
 // Profile is the predicate function for profile builders.
 type Profile func(*sql.Selector)
 

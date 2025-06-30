@@ -4,6 +4,7 @@ package ent
 
 import (
 	"rtglabs-go/ent/bodyweight"
+	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/schema"
 	"rtglabs-go/ent/session"
@@ -41,6 +42,39 @@ func init() {
 	bodyweightDescID := bodyweightFields[0].Descriptor()
 	// bodyweight.DefaultID holds the default value on creation for the id field.
 	bodyweight.DefaultID = bodyweightDescID.Default.(func() uuid.UUID)
+	exerciseMixin := schema.Exercise{}.Mixin()
+	exerciseMixinFields0 := exerciseMixin[0].Fields()
+	_ = exerciseMixinFields0
+	exerciseMixinFields1 := exerciseMixin[1].Fields()
+	_ = exerciseMixinFields1
+	exerciseMixinFields2 := exerciseMixin[2].Fields()
+	_ = exerciseMixinFields2
+	exerciseFields := schema.Exercise{}.Fields()
+	_ = exerciseFields
+	// exerciseDescCreateTime is the schema descriptor for create_time field.
+	exerciseDescCreateTime := exerciseMixinFields0[0].Descriptor()
+	// exercise.DefaultCreateTime holds the default value on creation for the create_time field.
+	exercise.DefaultCreateTime = exerciseDescCreateTime.Default.(func() time.Time)
+	// exerciseDescUpdateTime is the schema descriptor for update_time field.
+	exerciseDescUpdateTime := exerciseMixinFields0[1].Descriptor()
+	// exercise.DefaultUpdateTime holds the default value on creation for the update_time field.
+	exercise.DefaultUpdateTime = exerciseDescUpdateTime.Default.(func() time.Time)
+	// exercise.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	exercise.UpdateDefaultUpdateTime = exerciseDescUpdateTime.UpdateDefault.(func() time.Time)
+	// exerciseDescCreatedAt is the schema descriptor for created_at field.
+	exerciseDescCreatedAt := exerciseMixinFields2[0].Descriptor()
+	// exercise.DefaultCreatedAt holds the default value on creation for the created_at field.
+	exercise.DefaultCreatedAt = exerciseDescCreatedAt.Default.(func() time.Time)
+	// exerciseDescUpdatedAt is the schema descriptor for updated_at field.
+	exerciseDescUpdatedAt := exerciseMixinFields2[1].Descriptor()
+	// exercise.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	exercise.DefaultUpdatedAt = exerciseDescUpdatedAt.Default.(func() time.Time)
+	// exercise.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	exercise.UpdateDefaultUpdatedAt = exerciseDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// exerciseDescID is the schema descriptor for id field.
+	exerciseDescID := exerciseMixinFields1[0].Descriptor()
+	// exercise.DefaultID holds the default value on creation for the id field.
+	exercise.DefaultID = exerciseDescID.Default.(func() uuid.UUID)
 	profileFields := schema.Profile{}.Fields()
 	_ = profileFields
 	// profileDescCreatedAt is the schema descriptor for created_at field.

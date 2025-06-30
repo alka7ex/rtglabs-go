@@ -20,6 +20,18 @@ func (f BodyweightFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BodyweightMutation", m)
 }
 
+// The ExerciseFunc type is an adapter to allow the use of ordinary
+// function as Exercise mutator.
+type ExerciseFunc func(context.Context, *ent.ExerciseMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ExerciseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ExerciseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ExerciseMutation", m)
+}
+
 // The ProfileFunc type is an adapter to allow the use of ordinary
 // function as Profile mutator.
 type ProfileFunc func(context.Context, *ent.ProfileMutation) (ent.Value, error)

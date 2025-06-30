@@ -32,6 +32,22 @@ var (
 			},
 		},
 	}
+	// ExercisesColumns holds the columns for the "exercises" table.
+	ExercisesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString, Unique: true},
+	}
+	// ExercisesTable holds the schema information for the "exercises" table.
+	ExercisesTable = &schema.Table{
+		Name:       "exercises",
+		Columns:    ExercisesColumns,
+		PrimaryKey: []*schema.Column{ExercisesColumns[0]},
+	}
 	// ProfilesColumns holds the columns for the "profiles" table.
 	ProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -101,6 +117,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BodyweightsTable,
+		ExercisesTable,
 		ProfilesTable,
 		SessionsTable,
 		UsersTable,

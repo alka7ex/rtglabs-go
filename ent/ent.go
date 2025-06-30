@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"rtglabs-go/ent/bodyweight"
+	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -77,6 +78,7 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			bodyweight.Table: bodyweight.ValidColumn,
+			exercise.Table:   exercise.ValidColumn,
 			profile.Table:    profile.ValidColumn,
 			session.Table:    session.ValidColumn,
 			user.Table:       user.ValidColumn,

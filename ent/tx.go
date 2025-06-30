@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Bodyweight is the client for interacting with the Bodyweight builders.
 	Bodyweight *BodyweightClient
+	// Exercise is the client for interacting with the Exercise builders.
+	Exercise *ExerciseClient
 	// Profile is the client for interacting with the Profile builders.
 	Profile *ProfileClient
 	// Session is the client for interacting with the Session builders.
@@ -152,6 +154,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Bodyweight = NewBodyweightClient(tx.config)
+	tx.Exercise = NewExerciseClient(tx.config)
 	tx.Profile = NewProfileClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.User = NewUserClient(tx.config)
