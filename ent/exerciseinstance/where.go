@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -388,6 +389,29 @@ func ExerciseIDLT(v uuid.UUID) predicate.ExerciseInstance {
 // ExerciseIDLTE applies the LTE predicate on the "exercise_id" field.
 func ExerciseIDLTE(v uuid.UUID) predicate.ExerciseInstance {
 	return predicate.ExerciseInstance(sql.FieldLTE(FieldExerciseID, v))
+}
+
+// HasWorkoutExercises applies the HasEdge predicate on the "workout_exercises" edge.
+func HasWorkoutExercises() predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, WorkoutExercisesTable, WorkoutExercisesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWorkoutExercisesWith applies the HasEdge predicate on the "workout_exercises" edge with a given conditions (other predicates).
+func HasWorkoutExercisesWith(preds ...predicate.WorkoutExercise) predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := newWorkoutExercisesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

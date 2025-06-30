@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -26,8 +27,26 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// EdgeExerciseInstances holds the string denoting the exercise_instances edge name in mutations.
+	EdgeExerciseInstances = "exercise_instances"
+	// EdgeWorkoutExercises holds the string denoting the workout_exercises edge name in mutations.
+	EdgeWorkoutExercises = "workout_exercises"
 	// Table holds the table name of the exercise in the database.
 	Table = "exercises"
+	// ExerciseInstancesTable is the table that holds the exercise_instances relation/edge.
+	ExerciseInstancesTable = "exercise_instances"
+	// ExerciseInstancesInverseTable is the table name for the ExerciseInstance entity.
+	// It exists in this package in order to avoid circular dependency with the "exerciseinstance" package.
+	ExerciseInstancesInverseTable = "exercise_instances"
+	// ExerciseInstancesColumn is the table column denoting the exercise_instances relation/edge.
+	ExerciseInstancesColumn = "exercise_exercise_instances"
+	// WorkoutExercisesTable is the table that holds the workout_exercises relation/edge.
+	WorkoutExercisesTable = "workout_exercises"
+	// WorkoutExercisesInverseTable is the table name for the WorkoutExercise entity.
+	// It exists in this package in order to avoid circular dependency with the "workoutexercise" package.
+	WorkoutExercisesInverseTable = "workout_exercises"
+	// WorkoutExercisesColumn is the table column denoting the workout_exercises relation/edge.
+	WorkoutExercisesColumn = "exercise_id"
 )
 
 // Columns holds all SQL columns for exercise fields.
@@ -104,4 +123,46 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByExerciseInstancesCount orders the results by exercise_instances count.
+func ByExerciseInstancesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newExerciseInstancesStep(), opts...)
+	}
+}
+
+// ByExerciseInstances orders the results by exercise_instances terms.
+func ByExerciseInstances(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newExerciseInstancesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByWorkoutExercisesCount orders the results by workout_exercises count.
+func ByWorkoutExercisesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newWorkoutExercisesStep(), opts...)
+	}
+}
+
+// ByWorkoutExercises orders the results by workout_exercises terms.
+func ByWorkoutExercises(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWorkoutExercisesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newExerciseInstancesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ExerciseInstancesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ExerciseInstancesTable, ExerciseInstancesColumn),
+	)
+}
+func newWorkoutExercisesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WorkoutExercisesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, WorkoutExercisesTable, WorkoutExercisesColumn),
+	)
 }

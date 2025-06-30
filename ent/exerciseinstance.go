@@ -31,8 +31,30 @@ type ExerciseInstance struct {
 	// WorkoutLogID holds the value of the "workout_log_id" field.
 	WorkoutLogID *uuid.UUID `json:"workout_log_id,omitempty"`
 	// ExerciseID holds the value of the "exercise_id" field.
-	ExerciseID   uuid.UUID `json:"exercise_id,omitempty"`
-	selectValues sql.SelectValues
+	ExerciseID uuid.UUID `json:"exercise_id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ExerciseInstanceQuery when eager-loading is set.
+	Edges                       ExerciseInstanceEdges `json:"edges"`
+	exercise_exercise_instances *uuid.UUID
+	selectValues                sql.SelectValues
+}
+
+// ExerciseInstanceEdges holds the relations/edges for other nodes in the graph.
+type ExerciseInstanceEdges struct {
+	// WorkoutExercises holds the value of the workout_exercises edge.
+	WorkoutExercises []*WorkoutExercise `json:"workout_exercises,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// WorkoutExercisesOrErr returns the WorkoutExercises value or an error if the edge
+// was not loaded in eager-loading.
+func (e ExerciseInstanceEdges) WorkoutExercisesOrErr() ([]*WorkoutExercise, error) {
+	if e.loadedTypes[0] {
+		return e.WorkoutExercises, nil
+	}
+	return nil, &NotLoadedError{edge: "workout_exercises"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -46,6 +68,8 @@ func (*ExerciseInstance) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case exerciseinstance.FieldID, exerciseinstance.FieldExerciseID:
 			values[i] = new(uuid.UUID)
+		case exerciseinstance.ForeignKeys[0]: // exercise_exercise_instances
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -111,6 +135,13 @@ func (ei *ExerciseInstance) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				ei.ExerciseID = *value
 			}
+		case exerciseinstance.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field exercise_exercise_instances", values[i])
+			} else if value.Valid {
+				ei.exercise_exercise_instances = new(uuid.UUID)
+				*ei.exercise_exercise_instances = *value.S.(*uuid.UUID)
+			}
 		default:
 			ei.selectValues.Set(columns[i], values[i])
 		}
@@ -122,6 +153,11 @@ func (ei *ExerciseInstance) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (ei *ExerciseInstance) Value(name string) (ent.Value, error) {
 	return ei.selectValues.Get(name)
+}
+
+// QueryWorkoutExercises queries the "workout_exercises" edge of the ExerciseInstance entity.
+func (ei *ExerciseInstance) QueryWorkoutExercises() *WorkoutExerciseQuery {
+	return NewExerciseInstanceClient(ei.config).QueryWorkoutExercises(ei)
 }
 
 // Update returns a builder for updating this ExerciseInstance.

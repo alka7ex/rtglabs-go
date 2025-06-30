@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -28,8 +29,17 @@ const (
 	FieldWorkoutLogID = "workout_log_id"
 	// FieldExerciseID holds the string denoting the exercise_id field in the database.
 	FieldExerciseID = "exercise_id"
+	// EdgeWorkoutExercises holds the string denoting the workout_exercises edge name in mutations.
+	EdgeWorkoutExercises = "workout_exercises"
 	// Table holds the table name of the exerciseinstance in the database.
 	Table = "exercise_instances"
+	// WorkoutExercisesTable is the table that holds the workout_exercises relation/edge.
+	WorkoutExercisesTable = "workout_exercises"
+	// WorkoutExercisesInverseTable is the table name for the WorkoutExercise entity.
+	// It exists in this package in order to avoid circular dependency with the "workoutexercise" package.
+	WorkoutExercisesInverseTable = "workout_exercises"
+	// WorkoutExercisesColumn is the table column denoting the workout_exercises relation/edge.
+	WorkoutExercisesColumn = "exercise_instance_id"
 )
 
 // Columns holds all SQL columns for exerciseinstance fields.
@@ -44,10 +54,21 @@ var Columns = []string{
 	FieldExerciseID,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the "exercise_instances"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"exercise_exercise_instances",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -112,4 +133,25 @@ func ByWorkoutLogID(opts ...sql.OrderTermOption) OrderOption {
 // ByExerciseID orders the results by the exercise_id field.
 func ByExerciseID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldExerciseID, opts...).ToFunc()
+}
+
+// ByWorkoutExercisesCount orders the results by workout_exercises count.
+func ByWorkoutExercisesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newWorkoutExercisesStep(), opts...)
+	}
+}
+
+// ByWorkoutExercises orders the results by workout_exercises terms.
+func ByWorkoutExercises(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWorkoutExercisesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newWorkoutExercisesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WorkoutExercisesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, WorkoutExercisesTable, WorkoutExercisesColumn),
+	)
 }

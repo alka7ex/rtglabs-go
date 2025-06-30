@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/google/uuid"
 )
 
 // WorkoutExerciseUpdate is the builder for updating WorkoutExercise entities.
@@ -72,26 +71,6 @@ func (weu *WorkoutExerciseUpdate) SetNillableDeletedAt(t *time.Time) *WorkoutExe
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (weu *WorkoutExerciseUpdate) ClearDeletedAt() *WorkoutExerciseUpdate {
 	weu.mutation.ClearDeletedAt()
-	return weu
-}
-
-// SetExerciseInstanceID sets the "exercise_instance_id" field.
-func (weu *WorkoutExerciseUpdate) SetExerciseInstanceID(u uuid.UUID) *WorkoutExerciseUpdate {
-	weu.mutation.SetExerciseInstanceID(u)
-	return weu
-}
-
-// SetNillableExerciseInstanceID sets the "exercise_instance_id" field if the given value is not nil.
-func (weu *WorkoutExerciseUpdate) SetNillableExerciseInstanceID(u *uuid.UUID) *WorkoutExerciseUpdate {
-	if u != nil {
-		weu.SetExerciseInstanceID(*u)
-	}
-	return weu
-}
-
-// ClearExerciseInstanceID clears the value of the "exercise_instance_id" field.
-func (weu *WorkoutExerciseUpdate) ClearExerciseInstanceID() *WorkoutExerciseUpdate {
-	weu.mutation.ClearExerciseInstanceID()
 	return weu
 }
 
@@ -248,7 +227,21 @@ func (weu *WorkoutExerciseUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (weu *WorkoutExerciseUpdate) check() error {
+	if weu.mutation.WorkoutCleared() && len(weu.mutation.WorkoutIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "WorkoutExercise.workout"`)
+	}
+	if weu.mutation.ExerciseCleared() && len(weu.mutation.ExerciseIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "WorkoutExercise.exercise"`)
+	}
+	return nil
+}
+
 func (weu *WorkoutExerciseUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := weu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(workoutexercise.Table, workoutexercise.Columns, sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID))
 	if ps := weu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -271,12 +264,6 @@ func (weu *WorkoutExerciseUpdate) sqlSave(ctx context.Context) (n int, err error
 	}
 	if weu.mutation.DeletedAtCleared() {
 		_spec.ClearField(workoutexercise.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := weu.mutation.ExerciseInstanceID(); ok {
-		_spec.SetField(workoutexercise.FieldExerciseInstanceID, field.TypeUUID, value)
-	}
-	if weu.mutation.ExerciseInstanceIDCleared() {
-		_spec.ClearField(workoutexercise.FieldExerciseInstanceID, field.TypeUUID)
 	}
 	if value, ok := weu.mutation.Order(); ok {
 		_spec.SetField(workoutexercise.FieldOrder, field.TypeUint, value)
@@ -377,26 +364,6 @@ func (weuo *WorkoutExerciseUpdateOne) SetNillableDeletedAt(t *time.Time) *Workou
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (weuo *WorkoutExerciseUpdateOne) ClearDeletedAt() *WorkoutExerciseUpdateOne {
 	weuo.mutation.ClearDeletedAt()
-	return weuo
-}
-
-// SetExerciseInstanceID sets the "exercise_instance_id" field.
-func (weuo *WorkoutExerciseUpdateOne) SetExerciseInstanceID(u uuid.UUID) *WorkoutExerciseUpdateOne {
-	weuo.mutation.SetExerciseInstanceID(u)
-	return weuo
-}
-
-// SetNillableExerciseInstanceID sets the "exercise_instance_id" field if the given value is not nil.
-func (weuo *WorkoutExerciseUpdateOne) SetNillableExerciseInstanceID(u *uuid.UUID) *WorkoutExerciseUpdateOne {
-	if u != nil {
-		weuo.SetExerciseInstanceID(*u)
-	}
-	return weuo
-}
-
-// ClearExerciseInstanceID clears the value of the "exercise_instance_id" field.
-func (weuo *WorkoutExerciseUpdateOne) ClearExerciseInstanceID() *WorkoutExerciseUpdateOne {
-	weuo.mutation.ClearExerciseInstanceID()
 	return weuo
 }
 
@@ -566,7 +533,21 @@ func (weuo *WorkoutExerciseUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (weuo *WorkoutExerciseUpdateOne) check() error {
+	if weuo.mutation.WorkoutCleared() && len(weuo.mutation.WorkoutIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "WorkoutExercise.workout"`)
+	}
+	if weuo.mutation.ExerciseCleared() && len(weuo.mutation.ExerciseIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "WorkoutExercise.exercise"`)
+	}
+	return nil
+}
+
 func (weuo *WorkoutExerciseUpdateOne) sqlSave(ctx context.Context) (_node *WorkoutExercise, err error) {
+	if err := weuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(workoutexercise.Table, workoutexercise.Columns, sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID))
 	id, ok := weuo.mutation.ID()
 	if !ok {
@@ -606,12 +587,6 @@ func (weuo *WorkoutExerciseUpdateOne) sqlSave(ctx context.Context) (_node *Worko
 	}
 	if weuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(workoutexercise.FieldDeletedAt, field.TypeTime)
-	}
-	if value, ok := weuo.mutation.ExerciseInstanceID(); ok {
-		_spec.SetField(workoutexercise.FieldExerciseInstanceID, field.TypeUUID, value)
-	}
-	if weuo.mutation.ExerciseInstanceIDCleared() {
-		_spec.ClearField(workoutexercise.FieldExerciseInstanceID, field.TypeUUID)
 	}
 	if value, ok := weuo.mutation.Order(); ok {
 		_spec.SetField(workoutexercise.FieldOrder, field.TypeUint, value)

@@ -4,6 +4,7 @@ import (
 	custommixin "rtglabs-go/ent/schema/mixin" // Using your custom mixin
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 )
@@ -38,6 +39,7 @@ func (Exercise) Fields() []ent.Field {
 // As requested, no relationships are defined for now.
 func (Exercise) Edges() []ent.Edge {
 	return []ent.Edge{
-		// No edges for now. We will add them later.
+		edge.To("exercise_instances", ExerciseInstance.Type),
+		edge.To("workout_exercises", WorkoutExercise.Type),
 	}
 }

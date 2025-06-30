@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -345,26 +346,6 @@ func WorkoutIDNotIn(vs ...uuid.UUID) predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldNotIn(FieldWorkoutID, vs...))
 }
 
-// WorkoutIDGT applies the GT predicate on the "workout_id" field.
-func WorkoutIDGT(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldGT(FieldWorkoutID, v))
-}
-
-// WorkoutIDGTE applies the GTE predicate on the "workout_id" field.
-func WorkoutIDGTE(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldGTE(FieldWorkoutID, v))
-}
-
-// WorkoutIDLT applies the LT predicate on the "workout_id" field.
-func WorkoutIDLT(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldLT(FieldWorkoutID, v))
-}
-
-// WorkoutIDLTE applies the LTE predicate on the "workout_id" field.
-func WorkoutIDLTE(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldLTE(FieldWorkoutID, v))
-}
-
 // ExerciseIDEQ applies the EQ predicate on the "exercise_id" field.
 func ExerciseIDEQ(v uuid.UUID) predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldEQ(FieldExerciseID, v))
@@ -385,26 +366,6 @@ func ExerciseIDNotIn(vs ...uuid.UUID) predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldNotIn(FieldExerciseID, vs...))
 }
 
-// ExerciseIDGT applies the GT predicate on the "exercise_id" field.
-func ExerciseIDGT(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldGT(FieldExerciseID, v))
-}
-
-// ExerciseIDGTE applies the GTE predicate on the "exercise_id" field.
-func ExerciseIDGTE(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldGTE(FieldExerciseID, v))
-}
-
-// ExerciseIDLT applies the LT predicate on the "exercise_id" field.
-func ExerciseIDLT(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldLT(FieldExerciseID, v))
-}
-
-// ExerciseIDLTE applies the LTE predicate on the "exercise_id" field.
-func ExerciseIDLTE(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldLTE(FieldExerciseID, v))
-}
-
 // ExerciseInstanceIDEQ applies the EQ predicate on the "exercise_instance_id" field.
 func ExerciseInstanceIDEQ(v uuid.UUID) predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldEQ(FieldExerciseInstanceID, v))
@@ -423,26 +384,6 @@ func ExerciseInstanceIDIn(vs ...uuid.UUID) predicate.WorkoutExercise {
 // ExerciseInstanceIDNotIn applies the NotIn predicate on the "exercise_instance_id" field.
 func ExerciseInstanceIDNotIn(vs ...uuid.UUID) predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldNotIn(FieldExerciseInstanceID, vs...))
-}
-
-// ExerciseInstanceIDGT applies the GT predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDGT(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldGT(FieldExerciseInstanceID, v))
-}
-
-// ExerciseInstanceIDGTE applies the GTE predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDGTE(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldGTE(FieldExerciseInstanceID, v))
-}
-
-// ExerciseInstanceIDLT applies the LT predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDLT(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldLT(FieldExerciseInstanceID, v))
-}
-
-// ExerciseInstanceIDLTE applies the LTE predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDLTE(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldLTE(FieldExerciseInstanceID, v))
 }
 
 // ExerciseInstanceIDIsNil applies the IsNil predicate on the "exercise_instance_id" field.
@@ -653,6 +594,75 @@ func RepsIsNil() predicate.WorkoutExercise {
 // RepsNotNil applies the NotNil predicate on the "reps" field.
 func RepsNotNil() predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldNotNull(FieldReps))
+}
+
+// HasWorkout applies the HasEdge predicate on the "workout" edge.
+func HasWorkout() predicate.WorkoutExercise {
+	return predicate.WorkoutExercise(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, WorkoutTable, WorkoutColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWorkoutWith applies the HasEdge predicate on the "workout" edge with a given conditions (other predicates).
+func HasWorkoutWith(preds ...predicate.Workout) predicate.WorkoutExercise {
+	return predicate.WorkoutExercise(func(s *sql.Selector) {
+		step := newWorkoutStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasExercise applies the HasEdge predicate on the "exercise" edge.
+func HasExercise() predicate.WorkoutExercise {
+	return predicate.WorkoutExercise(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ExerciseTable, ExerciseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasExerciseWith applies the HasEdge predicate on the "exercise" edge with a given conditions (other predicates).
+func HasExerciseWith(preds ...predicate.Exercise) predicate.WorkoutExercise {
+	return predicate.WorkoutExercise(func(s *sql.Selector) {
+		step := newExerciseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasExerciseInstance applies the HasEdge predicate on the "exercise_instance" edge.
+func HasExerciseInstance() predicate.WorkoutExercise {
+	return predicate.WorkoutExercise(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ExerciseInstanceTable, ExerciseInstanceColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasExerciseInstanceWith applies the HasEdge predicate on the "exercise_instance" edge with a given conditions (other predicates).
+func HasExerciseInstanceWith(preds ...predicate.ExerciseInstance) predicate.WorkoutExercise {
+	return predicate.WorkoutExercise(func(s *sql.Selector) {
+		step := newExerciseInstanceStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

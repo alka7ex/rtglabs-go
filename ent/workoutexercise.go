@@ -4,6 +4,9 @@ package ent
 
 import (
 	"fmt"
+	"rtglabs-go/ent/exercise"
+	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
 	"strings"
 	"time"
@@ -41,8 +44,57 @@ type WorkoutExercise struct {
 	// Weight holds the value of the "weight" field.
 	Weight *float64 `json:"weight,omitempty"`
 	// Reps holds the value of the "reps" field.
-	Reps         *uint `json:"reps,omitempty"`
+	Reps *uint `json:"reps,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the WorkoutExerciseQuery when eager-loading is set.
+	Edges        WorkoutExerciseEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// WorkoutExerciseEdges holds the relations/edges for other nodes in the graph.
+type WorkoutExerciseEdges struct {
+	// Workout holds the value of the workout edge.
+	Workout *Workout `json:"workout,omitempty"`
+	// Exercise holds the value of the exercise edge.
+	Exercise *Exercise `json:"exercise,omitempty"`
+	// ExerciseInstance holds the value of the exercise_instance edge.
+	ExerciseInstance *ExerciseInstance `json:"exercise_instance,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [3]bool
+}
+
+// WorkoutOrErr returns the Workout value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e WorkoutExerciseEdges) WorkoutOrErr() (*Workout, error) {
+	if e.Workout != nil {
+		return e.Workout, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: workout.Label}
+	}
+	return nil, &NotLoadedError{edge: "workout"}
+}
+
+// ExerciseOrErr returns the Exercise value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e WorkoutExerciseEdges) ExerciseOrErr() (*Exercise, error) {
+	if e.Exercise != nil {
+		return e.Exercise, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: exercise.Label}
+	}
+	return nil, &NotLoadedError{edge: "exercise"}
+}
+
+// ExerciseInstanceOrErr returns the ExerciseInstance value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e WorkoutExerciseEdges) ExerciseInstanceOrErr() (*ExerciseInstance, error) {
+	if e.ExerciseInstance != nil {
+		return e.ExerciseInstance, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: exerciseinstance.Label}
+	}
+	return nil, &NotLoadedError{edge: "exercise_instance"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -170,6 +222,21 @@ func (we *WorkoutExercise) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (we *WorkoutExercise) Value(name string) (ent.Value, error) {
 	return we.selectValues.Get(name)
+}
+
+// QueryWorkout queries the "workout" edge of the WorkoutExercise entity.
+func (we *WorkoutExercise) QueryWorkout() *WorkoutQuery {
+	return NewWorkoutExerciseClient(we.config).QueryWorkout(we)
+}
+
+// QueryExercise queries the "exercise" edge of the WorkoutExercise entity.
+func (we *WorkoutExercise) QueryExercise() *ExerciseQuery {
+	return NewWorkoutExerciseClient(we.config).QueryExercise(we)
+}
+
+// QueryExerciseInstance queries the "exercise_instance" edge of the WorkoutExercise entity.
+func (we *WorkoutExercise) QueryExerciseInstance() *ExerciseInstanceQuery {
+	return NewWorkoutExerciseClient(we.config).QueryExerciseInstance(we)
 }
 
 // Update returns a builder for updating this WorkoutExercise.

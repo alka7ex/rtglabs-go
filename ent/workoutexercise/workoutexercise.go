@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -38,8 +39,35 @@ const (
 	FieldWeight = "weight"
 	// FieldReps holds the string denoting the reps field in the database.
 	FieldReps = "reps"
+	// EdgeWorkout holds the string denoting the workout edge name in mutations.
+	EdgeWorkout = "workout"
+	// EdgeExercise holds the string denoting the exercise edge name in mutations.
+	EdgeExercise = "exercise"
+	// EdgeExerciseInstance holds the string denoting the exercise_instance edge name in mutations.
+	EdgeExerciseInstance = "exercise_instance"
 	// Table holds the table name of the workoutexercise in the database.
 	Table = "workout_exercises"
+	// WorkoutTable is the table that holds the workout relation/edge.
+	WorkoutTable = "workout_exercises"
+	// WorkoutInverseTable is the table name for the Workout entity.
+	// It exists in this package in order to avoid circular dependency with the "workout" package.
+	WorkoutInverseTable = "workouts"
+	// WorkoutColumn is the table column denoting the workout relation/edge.
+	WorkoutColumn = "workout_id"
+	// ExerciseTable is the table that holds the exercise relation/edge.
+	ExerciseTable = "workout_exercises"
+	// ExerciseInverseTable is the table name for the Exercise entity.
+	// It exists in this package in order to avoid circular dependency with the "exercise" package.
+	ExerciseInverseTable = "exercises"
+	// ExerciseColumn is the table column denoting the exercise relation/edge.
+	ExerciseColumn = "exercise_id"
+	// ExerciseInstanceTable is the table that holds the exercise_instance relation/edge.
+	ExerciseInstanceTable = "workout_exercises"
+	// ExerciseInstanceInverseTable is the table name for the ExerciseInstance entity.
+	// It exists in this package in order to avoid circular dependency with the "exerciseinstance" package.
+	ExerciseInstanceInverseTable = "exercise_instances"
+	// ExerciseInstanceColumn is the table column denoting the exercise_instance relation/edge.
+	ExerciseInstanceColumn = "exercise_instance_id"
 )
 
 // Columns holds all SQL columns for workoutexercise fields.
@@ -152,4 +180,46 @@ func ByWeight(opts ...sql.OrderTermOption) OrderOption {
 // ByReps orders the results by the reps field.
 func ByReps(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldReps, opts...).ToFunc()
+}
+
+// ByWorkoutField orders the results by workout field.
+func ByWorkoutField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWorkoutStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByExerciseField orders the results by exercise field.
+func ByExerciseField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newExerciseStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByExerciseInstanceField orders the results by exercise_instance field.
+func ByExerciseInstanceField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newExerciseInstanceStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newWorkoutStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WorkoutInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, WorkoutTable, WorkoutColumn),
+	)
+}
+func newExerciseStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ExerciseInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ExerciseTable, ExerciseColumn),
+	)
+}
+func newExerciseInstanceStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ExerciseInstanceInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ExerciseInstanceTable, ExerciseInstanceColumn),
+	)
 }

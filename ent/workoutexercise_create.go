@@ -6,6 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"rtglabs-go/ent/exercise"
+	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
 	"time"
 
@@ -187,6 +190,21 @@ func (wec *WorkoutExerciseCreate) SetNillableID(u *uuid.UUID) *WorkoutExerciseCr
 	return wec
 }
 
+// SetWorkout sets the "workout" edge to the Workout entity.
+func (wec *WorkoutExerciseCreate) SetWorkout(w *Workout) *WorkoutExerciseCreate {
+	return wec.SetWorkoutID(w.ID)
+}
+
+// SetExercise sets the "exercise" edge to the Exercise entity.
+func (wec *WorkoutExerciseCreate) SetExercise(e *Exercise) *WorkoutExerciseCreate {
+	return wec.SetExerciseID(e.ID)
+}
+
+// SetExerciseInstance sets the "exercise_instance" edge to the ExerciseInstance entity.
+func (wec *WorkoutExerciseCreate) SetExerciseInstance(e *ExerciseInstance) *WorkoutExerciseCreate {
+	return wec.SetExerciseInstanceID(e.ID)
+}
+
 // Mutation returns the WorkoutExerciseMutation object of the builder.
 func (wec *WorkoutExerciseCreate) Mutation() *WorkoutExerciseMutation {
 	return wec.mutation
@@ -264,6 +282,12 @@ func (wec *WorkoutExerciseCreate) check() error {
 	if _, ok := wec.mutation.ExerciseID(); !ok {
 		return &ValidationError{Name: "exercise_id", err: errors.New(`ent: missing required field "WorkoutExercise.exercise_id"`)}
 	}
+	if len(wec.mutation.WorkoutIDs()) == 0 {
+		return &ValidationError{Name: "workout", err: errors.New(`ent: missing required edge "WorkoutExercise.workout"`)}
+	}
+	if len(wec.mutation.ExerciseIDs()) == 0 {
+		return &ValidationError{Name: "exercise", err: errors.New(`ent: missing required edge "WorkoutExercise.exercise"`)}
+	}
 	return nil
 }
 
@@ -319,18 +343,6 @@ func (wec *WorkoutExerciseCreate) createSpec() (*WorkoutExercise, *sqlgraph.Crea
 		_spec.SetField(workoutexercise.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := wec.mutation.WorkoutID(); ok {
-		_spec.SetField(workoutexercise.FieldWorkoutID, field.TypeUUID, value)
-		_node.WorkoutID = value
-	}
-	if value, ok := wec.mutation.ExerciseID(); ok {
-		_spec.SetField(workoutexercise.FieldExerciseID, field.TypeUUID, value)
-		_node.ExerciseID = value
-	}
-	if value, ok := wec.mutation.ExerciseInstanceID(); ok {
-		_spec.SetField(workoutexercise.FieldExerciseInstanceID, field.TypeUUID, value)
-		_node.ExerciseInstanceID = &value
-	}
 	if value, ok := wec.mutation.Order(); ok {
 		_spec.SetField(workoutexercise.FieldOrder, field.TypeUint, value)
 		_node.Order = &value
@@ -346,6 +358,57 @@ func (wec *WorkoutExerciseCreate) createSpec() (*WorkoutExercise, *sqlgraph.Crea
 	if value, ok := wec.mutation.Reps(); ok {
 		_spec.SetField(workoutexercise.FieldReps, field.TypeUint, value)
 		_node.Reps = &value
+	}
+	if nodes := wec.mutation.WorkoutIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   workoutexercise.WorkoutTable,
+			Columns: []string{workoutexercise.WorkoutColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workout.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.WorkoutID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := wec.mutation.ExerciseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   workoutexercise.ExerciseTable,
+			Columns: []string{workoutexercise.ExerciseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ExerciseID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := wec.mutation.ExerciseInstanceIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   workoutexercise.ExerciseInstanceTable,
+			Columns: []string{workoutexercise.ExerciseInstanceColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseinstance.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ExerciseInstanceID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

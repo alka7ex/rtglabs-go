@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/workoutexercise"
 	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -123,6 +124,21 @@ func (eic *ExerciseInstanceCreate) SetNillableID(u *uuid.UUID) *ExerciseInstance
 		eic.SetID(*u)
 	}
 	return eic
+}
+
+// AddWorkoutExerciseIDs adds the "workout_exercises" edge to the WorkoutExercise entity by IDs.
+func (eic *ExerciseInstanceCreate) AddWorkoutExerciseIDs(ids ...uuid.UUID) *ExerciseInstanceCreate {
+	eic.mutation.AddWorkoutExerciseIDs(ids...)
+	return eic
+}
+
+// AddWorkoutExercises adds the "workout_exercises" edges to the WorkoutExercise entity.
+func (eic *ExerciseInstanceCreate) AddWorkoutExercises(w ...*WorkoutExercise) *ExerciseInstanceCreate {
+	ids := make([]uuid.UUID, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return eic.AddWorkoutExerciseIDs(ids...)
 }
 
 // Mutation returns the ExerciseInstanceMutation object of the builder.
@@ -261,6 +277,22 @@ func (eic *ExerciseInstanceCreate) createSpec() (*ExerciseInstance, *sqlgraph.Cr
 	if value, ok := eic.mutation.ExerciseID(); ok {
 		_spec.SetField(exerciseinstance.FieldExerciseID, field.TypeUUID, value)
 		_node.ExerciseID = value
+	}
+	if nodes := eic.mutation.WorkoutExercisesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exerciseinstance.WorkoutExercisesTable,
+			Columns: []string{exerciseinstance.WorkoutExercisesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

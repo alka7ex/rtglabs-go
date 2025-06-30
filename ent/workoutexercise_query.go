@@ -6,7 +6,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"rtglabs-go/ent/exercise"
+	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/predicate"
+	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
 
 	"entgo.io/ent"
@@ -19,10 +22,13 @@ import (
 // WorkoutExerciseQuery is the builder for querying WorkoutExercise entities.
 type WorkoutExerciseQuery struct {
 	config
-	ctx        *QueryContext
-	order      []workoutexercise.OrderOption
-	inters     []Interceptor
-	predicates []predicate.WorkoutExercise
+	ctx                  *QueryContext
+	order                []workoutexercise.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.WorkoutExercise
+	withWorkout          *WorkoutQuery
+	withExercise         *ExerciseQuery
+	withExerciseInstance *ExerciseInstanceQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -57,6 +63,72 @@ func (weq *WorkoutExerciseQuery) Unique(unique bool) *WorkoutExerciseQuery {
 func (weq *WorkoutExerciseQuery) Order(o ...workoutexercise.OrderOption) *WorkoutExerciseQuery {
 	weq.order = append(weq.order, o...)
 	return weq
+}
+
+// QueryWorkout chains the current query on the "workout" edge.
+func (weq *WorkoutExerciseQuery) QueryWorkout() *WorkoutQuery {
+	query := (&WorkoutClient{config: weq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := weq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := weq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutexercise.Table, workoutexercise.FieldID, selector),
+			sqlgraph.To(workout.Table, workout.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutexercise.WorkoutTable, workoutexercise.WorkoutColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(weq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryExercise chains the current query on the "exercise" edge.
+func (weq *WorkoutExerciseQuery) QueryExercise() *ExerciseQuery {
+	query := (&ExerciseClient{config: weq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := weq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := weq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutexercise.Table, workoutexercise.FieldID, selector),
+			sqlgraph.To(exercise.Table, exercise.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutexercise.ExerciseTable, workoutexercise.ExerciseColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(weq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryExerciseInstance chains the current query on the "exercise_instance" edge.
+func (weq *WorkoutExerciseQuery) QueryExerciseInstance() *ExerciseInstanceQuery {
+	query := (&ExerciseInstanceClient{config: weq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := weq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := weq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutexercise.Table, workoutexercise.FieldID, selector),
+			sqlgraph.To(exerciseinstance.Table, exerciseinstance.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutexercise.ExerciseInstanceTable, workoutexercise.ExerciseInstanceColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(weq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first WorkoutExercise entity from the query.
@@ -246,15 +318,51 @@ func (weq *WorkoutExerciseQuery) Clone() *WorkoutExerciseQuery {
 		return nil
 	}
 	return &WorkoutExerciseQuery{
-		config:     weq.config,
-		ctx:        weq.ctx.Clone(),
-		order:      append([]workoutexercise.OrderOption{}, weq.order...),
-		inters:     append([]Interceptor{}, weq.inters...),
-		predicates: append([]predicate.WorkoutExercise{}, weq.predicates...),
+		config:               weq.config,
+		ctx:                  weq.ctx.Clone(),
+		order:                append([]workoutexercise.OrderOption{}, weq.order...),
+		inters:               append([]Interceptor{}, weq.inters...),
+		predicates:           append([]predicate.WorkoutExercise{}, weq.predicates...),
+		withWorkout:          weq.withWorkout.Clone(),
+		withExercise:         weq.withExercise.Clone(),
+		withExerciseInstance: weq.withExerciseInstance.Clone(),
 		// clone intermediate query.
 		sql:  weq.sql.Clone(),
 		path: weq.path,
 	}
+}
+
+// WithWorkout tells the query-builder to eager-load the nodes that are connected to
+// the "workout" edge. The optional arguments are used to configure the query builder of the edge.
+func (weq *WorkoutExerciseQuery) WithWorkout(opts ...func(*WorkoutQuery)) *WorkoutExerciseQuery {
+	query := (&WorkoutClient{config: weq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	weq.withWorkout = query
+	return weq
+}
+
+// WithExercise tells the query-builder to eager-load the nodes that are connected to
+// the "exercise" edge. The optional arguments are used to configure the query builder of the edge.
+func (weq *WorkoutExerciseQuery) WithExercise(opts ...func(*ExerciseQuery)) *WorkoutExerciseQuery {
+	query := (&ExerciseClient{config: weq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	weq.withExercise = query
+	return weq
+}
+
+// WithExerciseInstance tells the query-builder to eager-load the nodes that are connected to
+// the "exercise_instance" edge. The optional arguments are used to configure the query builder of the edge.
+func (weq *WorkoutExerciseQuery) WithExerciseInstance(opts ...func(*ExerciseInstanceQuery)) *WorkoutExerciseQuery {
+	query := (&ExerciseInstanceClient{config: weq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	weq.withExerciseInstance = query
+	return weq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -333,8 +441,13 @@ func (weq *WorkoutExerciseQuery) prepareQuery(ctx context.Context) error {
 
 func (weq *WorkoutExerciseQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*WorkoutExercise, error) {
 	var (
-		nodes = []*WorkoutExercise{}
-		_spec = weq.querySpec()
+		nodes       = []*WorkoutExercise{}
+		_spec       = weq.querySpec()
+		loadedTypes = [3]bool{
+			weq.withWorkout != nil,
+			weq.withExercise != nil,
+			weq.withExerciseInstance != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*WorkoutExercise).scanValues(nil, columns)
@@ -342,6 +455,7 @@ func (weq *WorkoutExerciseQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &WorkoutExercise{config: weq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -353,7 +467,116 @@ func (weq *WorkoutExerciseQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := weq.withWorkout; query != nil {
+		if err := weq.loadWorkout(ctx, query, nodes, nil,
+			func(n *WorkoutExercise, e *Workout) { n.Edges.Workout = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := weq.withExercise; query != nil {
+		if err := weq.loadExercise(ctx, query, nodes, nil,
+			func(n *WorkoutExercise, e *Exercise) { n.Edges.Exercise = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := weq.withExerciseInstance; query != nil {
+		if err := weq.loadExerciseInstance(ctx, query, nodes, nil,
+			func(n *WorkoutExercise, e *ExerciseInstance) { n.Edges.ExerciseInstance = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (weq *WorkoutExerciseQuery) loadWorkout(ctx context.Context, query *WorkoutQuery, nodes []*WorkoutExercise, init func(*WorkoutExercise), assign func(*WorkoutExercise, *Workout)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*WorkoutExercise)
+	for i := range nodes {
+		fk := nodes[i].WorkoutID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(workout.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "workout_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (weq *WorkoutExerciseQuery) loadExercise(ctx context.Context, query *ExerciseQuery, nodes []*WorkoutExercise, init func(*WorkoutExercise), assign func(*WorkoutExercise, *Exercise)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*WorkoutExercise)
+	for i := range nodes {
+		fk := nodes[i].ExerciseID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(exercise.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "exercise_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (weq *WorkoutExerciseQuery) loadExerciseInstance(ctx context.Context, query *ExerciseInstanceQuery, nodes []*WorkoutExercise, init func(*WorkoutExercise), assign func(*WorkoutExercise, *ExerciseInstance)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*WorkoutExercise)
+	for i := range nodes {
+		if nodes[i].ExerciseInstanceID == nil {
+			continue
+		}
+		fk := *nodes[i].ExerciseInstanceID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(exerciseinstance.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "exercise_instance_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (weq *WorkoutExerciseQuery) sqlCount(ctx context.Context) (int, error) {
@@ -380,6 +603,15 @@ func (weq *WorkoutExerciseQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != workoutexercise.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if weq.withWorkout != nil {
+			_spec.Node.AddColumnOnce(workoutexercise.FieldWorkoutID)
+		}
+		if weq.withExercise != nil {
+			_spec.Node.AddColumnOnce(workoutexercise.FieldExerciseID)
+		}
+		if weq.withExerciseInstance != nil {
+			_spec.Node.AddColumnOnce(workoutexercise.FieldExerciseInstanceID)
 		}
 	}
 	if ps := weq.predicates; len(ps) > 0 {

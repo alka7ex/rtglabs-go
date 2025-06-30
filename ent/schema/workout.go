@@ -49,6 +49,7 @@ func (Workout) Edges() []ent.Edge {
 			Field("user_id").
 			Unique().
 			Required().Immutable(), // The foreign key is not nullable, so this is a required relationship.
+		edge.To("workout_exercises", WorkoutExercise.Type),
 	}
 }
 

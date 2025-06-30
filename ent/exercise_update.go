@@ -7,12 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"rtglabs-go/ent/exercise"
+	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/predicate"
+	"rtglabs-go/ent/workoutexercise"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // ExerciseUpdate is the builder for updating Exercise entities.
@@ -88,9 +91,81 @@ func (eu *ExerciseUpdate) SetNillableName(s *string) *ExerciseUpdate {
 	return eu
 }
 
+// AddExerciseInstanceIDs adds the "exercise_instances" edge to the ExerciseInstance entity by IDs.
+func (eu *ExerciseUpdate) AddExerciseInstanceIDs(ids ...uuid.UUID) *ExerciseUpdate {
+	eu.mutation.AddExerciseInstanceIDs(ids...)
+	return eu
+}
+
+// AddExerciseInstances adds the "exercise_instances" edges to the ExerciseInstance entity.
+func (eu *ExerciseUpdate) AddExerciseInstances(e ...*ExerciseInstance) *ExerciseUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return eu.AddExerciseInstanceIDs(ids...)
+}
+
+// AddWorkoutExerciseIDs adds the "workout_exercises" edge to the WorkoutExercise entity by IDs.
+func (eu *ExerciseUpdate) AddWorkoutExerciseIDs(ids ...uuid.UUID) *ExerciseUpdate {
+	eu.mutation.AddWorkoutExerciseIDs(ids...)
+	return eu
+}
+
+// AddWorkoutExercises adds the "workout_exercises" edges to the WorkoutExercise entity.
+func (eu *ExerciseUpdate) AddWorkoutExercises(w ...*WorkoutExercise) *ExerciseUpdate {
+	ids := make([]uuid.UUID, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return eu.AddWorkoutExerciseIDs(ids...)
+}
+
 // Mutation returns the ExerciseMutation object of the builder.
 func (eu *ExerciseUpdate) Mutation() *ExerciseMutation {
 	return eu.mutation
+}
+
+// ClearExerciseInstances clears all "exercise_instances" edges to the ExerciseInstance entity.
+func (eu *ExerciseUpdate) ClearExerciseInstances() *ExerciseUpdate {
+	eu.mutation.ClearExerciseInstances()
+	return eu
+}
+
+// RemoveExerciseInstanceIDs removes the "exercise_instances" edge to ExerciseInstance entities by IDs.
+func (eu *ExerciseUpdate) RemoveExerciseInstanceIDs(ids ...uuid.UUID) *ExerciseUpdate {
+	eu.mutation.RemoveExerciseInstanceIDs(ids...)
+	return eu
+}
+
+// RemoveExerciseInstances removes "exercise_instances" edges to ExerciseInstance entities.
+func (eu *ExerciseUpdate) RemoveExerciseInstances(e ...*ExerciseInstance) *ExerciseUpdate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return eu.RemoveExerciseInstanceIDs(ids...)
+}
+
+// ClearWorkoutExercises clears all "workout_exercises" edges to the WorkoutExercise entity.
+func (eu *ExerciseUpdate) ClearWorkoutExercises() *ExerciseUpdate {
+	eu.mutation.ClearWorkoutExercises()
+	return eu
+}
+
+// RemoveWorkoutExerciseIDs removes the "workout_exercises" edge to WorkoutExercise entities by IDs.
+func (eu *ExerciseUpdate) RemoveWorkoutExerciseIDs(ids ...uuid.UUID) *ExerciseUpdate {
+	eu.mutation.RemoveWorkoutExerciseIDs(ids...)
+	return eu
+}
+
+// RemoveWorkoutExercises removes "workout_exercises" edges to WorkoutExercise entities.
+func (eu *ExerciseUpdate) RemoveWorkoutExercises(w ...*WorkoutExercise) *ExerciseUpdate {
+	ids := make([]uuid.UUID, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return eu.RemoveWorkoutExerciseIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -159,6 +234,96 @@ func (eu *ExerciseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := eu.mutation.Name(); ok {
 		_spec.SetField(exercise.FieldName, field.TypeString, value)
+	}
+	if eu.mutation.ExerciseInstancesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.ExerciseInstancesTable,
+			Columns: []string{exercise.ExerciseInstancesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseinstance.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.RemovedExerciseInstancesIDs(); len(nodes) > 0 && !eu.mutation.ExerciseInstancesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.ExerciseInstancesTable,
+			Columns: []string{exercise.ExerciseInstancesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseinstance.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.ExerciseInstancesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.ExerciseInstancesTable,
+			Columns: []string{exercise.ExerciseInstancesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseinstance.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if eu.mutation.WorkoutExercisesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.WorkoutExercisesTable,
+			Columns: []string{exercise.WorkoutExercisesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.RemovedWorkoutExercisesIDs(); len(nodes) > 0 && !eu.mutation.WorkoutExercisesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.WorkoutExercisesTable,
+			Columns: []string{exercise.WorkoutExercisesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.WorkoutExercisesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.WorkoutExercisesTable,
+			Columns: []string{exercise.WorkoutExercisesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, eu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -240,9 +405,81 @@ func (euo *ExerciseUpdateOne) SetNillableName(s *string) *ExerciseUpdateOne {
 	return euo
 }
 
+// AddExerciseInstanceIDs adds the "exercise_instances" edge to the ExerciseInstance entity by IDs.
+func (euo *ExerciseUpdateOne) AddExerciseInstanceIDs(ids ...uuid.UUID) *ExerciseUpdateOne {
+	euo.mutation.AddExerciseInstanceIDs(ids...)
+	return euo
+}
+
+// AddExerciseInstances adds the "exercise_instances" edges to the ExerciseInstance entity.
+func (euo *ExerciseUpdateOne) AddExerciseInstances(e ...*ExerciseInstance) *ExerciseUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return euo.AddExerciseInstanceIDs(ids...)
+}
+
+// AddWorkoutExerciseIDs adds the "workout_exercises" edge to the WorkoutExercise entity by IDs.
+func (euo *ExerciseUpdateOne) AddWorkoutExerciseIDs(ids ...uuid.UUID) *ExerciseUpdateOne {
+	euo.mutation.AddWorkoutExerciseIDs(ids...)
+	return euo
+}
+
+// AddWorkoutExercises adds the "workout_exercises" edges to the WorkoutExercise entity.
+func (euo *ExerciseUpdateOne) AddWorkoutExercises(w ...*WorkoutExercise) *ExerciseUpdateOne {
+	ids := make([]uuid.UUID, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return euo.AddWorkoutExerciseIDs(ids...)
+}
+
 // Mutation returns the ExerciseMutation object of the builder.
 func (euo *ExerciseUpdateOne) Mutation() *ExerciseMutation {
 	return euo.mutation
+}
+
+// ClearExerciseInstances clears all "exercise_instances" edges to the ExerciseInstance entity.
+func (euo *ExerciseUpdateOne) ClearExerciseInstances() *ExerciseUpdateOne {
+	euo.mutation.ClearExerciseInstances()
+	return euo
+}
+
+// RemoveExerciseInstanceIDs removes the "exercise_instances" edge to ExerciseInstance entities by IDs.
+func (euo *ExerciseUpdateOne) RemoveExerciseInstanceIDs(ids ...uuid.UUID) *ExerciseUpdateOne {
+	euo.mutation.RemoveExerciseInstanceIDs(ids...)
+	return euo
+}
+
+// RemoveExerciseInstances removes "exercise_instances" edges to ExerciseInstance entities.
+func (euo *ExerciseUpdateOne) RemoveExerciseInstances(e ...*ExerciseInstance) *ExerciseUpdateOne {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return euo.RemoveExerciseInstanceIDs(ids...)
+}
+
+// ClearWorkoutExercises clears all "workout_exercises" edges to the WorkoutExercise entity.
+func (euo *ExerciseUpdateOne) ClearWorkoutExercises() *ExerciseUpdateOne {
+	euo.mutation.ClearWorkoutExercises()
+	return euo
+}
+
+// RemoveWorkoutExerciseIDs removes the "workout_exercises" edge to WorkoutExercise entities by IDs.
+func (euo *ExerciseUpdateOne) RemoveWorkoutExerciseIDs(ids ...uuid.UUID) *ExerciseUpdateOne {
+	euo.mutation.RemoveWorkoutExerciseIDs(ids...)
+	return euo
+}
+
+// RemoveWorkoutExercises removes "workout_exercises" edges to WorkoutExercise entities.
+func (euo *ExerciseUpdateOne) RemoveWorkoutExercises(w ...*WorkoutExercise) *ExerciseUpdateOne {
+	ids := make([]uuid.UUID, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return euo.RemoveWorkoutExerciseIDs(ids...)
 }
 
 // Where appends a list predicates to the ExerciseUpdate builder.
@@ -341,6 +578,96 @@ func (euo *ExerciseUpdateOne) sqlSave(ctx context.Context) (_node *Exercise, err
 	}
 	if value, ok := euo.mutation.Name(); ok {
 		_spec.SetField(exercise.FieldName, field.TypeString, value)
+	}
+	if euo.mutation.ExerciseInstancesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.ExerciseInstancesTable,
+			Columns: []string{exercise.ExerciseInstancesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseinstance.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.RemovedExerciseInstancesIDs(); len(nodes) > 0 && !euo.mutation.ExerciseInstancesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.ExerciseInstancesTable,
+			Columns: []string{exercise.ExerciseInstancesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseinstance.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.ExerciseInstancesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.ExerciseInstancesTable,
+			Columns: []string{exercise.ExerciseInstancesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseinstance.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.WorkoutExercisesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.WorkoutExercisesTable,
+			Columns: []string{exercise.WorkoutExercisesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.RemovedWorkoutExercisesIDs(); len(nodes) > 0 && !euo.mutation.WorkoutExercisesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.WorkoutExercisesTable,
+			Columns: []string{exercise.WorkoutExercisesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.WorkoutExercisesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.WorkoutExercisesTable,
+			Columns: []string{exercise.WorkoutExercisesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Exercise{config: euo.config}
 	_spec.Assign = _node.assignValues

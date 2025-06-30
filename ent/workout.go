@@ -43,9 +43,11 @@ type Workout struct {
 type WorkoutEdges struct {
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
+	// WorkoutExercises holds the value of the workout_exercises edge.
+	WorkoutExercises []*WorkoutExercise `json:"workout_exercises,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -57,6 +59,15 @@ func (e WorkoutEdges) UserOrErr() (*User, error) {
 		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "user"}
+}
+
+// WorkoutExercisesOrErr returns the WorkoutExercises value or an error if the edge
+// was not loaded in eager-loading.
+func (e WorkoutEdges) WorkoutExercisesOrErr() ([]*WorkoutExercise, error) {
+	if e.loadedTypes[1] {
+		return e.WorkoutExercises, nil
+	}
+	return nil, &NotLoadedError{edge: "workout_exercises"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -150,6 +161,11 @@ func (w *Workout) Value(name string) (ent.Value, error) {
 // QueryUser queries the "user" edge of the Workout entity.
 func (w *Workout) QueryUser() *UserQuery {
 	return NewWorkoutClient(w.config).QueryUser(w)
+}
+
+// QueryWorkoutExercises queries the "workout_exercises" edge of the Workout entity.
+func (w *Workout) QueryWorkoutExercises() *WorkoutExerciseQuery {
+	return NewWorkoutClient(w.config).QueryWorkoutExercises(w)
 }
 
 // Update returns a builder for updating this Workout.

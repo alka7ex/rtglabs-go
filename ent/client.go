@@ -522,6 +522,38 @@ func (c *ExerciseClient) GetX(ctx context.Context, id uuid.UUID) *Exercise {
 	return obj
 }
 
+// QueryExerciseInstances queries the exercise_instances edge of a Exercise.
+func (c *ExerciseClient) QueryExerciseInstances(e *Exercise) *ExerciseInstanceQuery {
+	query := (&ExerciseInstanceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exercise.Table, exercise.FieldID, id),
+			sqlgraph.To(exerciseinstance.Table, exerciseinstance.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, exercise.ExerciseInstancesTable, exercise.ExerciseInstancesColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkoutExercises queries the workout_exercises edge of a Exercise.
+func (c *ExerciseClient) QueryWorkoutExercises(e *Exercise) *WorkoutExerciseQuery {
+	query := (&WorkoutExerciseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exercise.Table, exercise.FieldID, id),
+			sqlgraph.To(workoutexercise.Table, workoutexercise.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, exercise.WorkoutExercisesTable, exercise.WorkoutExercisesColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ExerciseClient) Hooks() []Hook {
 	return c.hooks.Exercise
@@ -653,6 +685,22 @@ func (c *ExerciseInstanceClient) GetX(ctx context.Context, id uuid.UUID) *Exerci
 		panic(err)
 	}
 	return obj
+}
+
+// QueryWorkoutExercises queries the workout_exercises edge of a ExerciseInstance.
+func (c *ExerciseInstanceClient) QueryWorkoutExercises(ei *ExerciseInstance) *WorkoutExerciseQuery {
+	query := (&WorkoutExerciseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ei.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseinstance.Table, exerciseinstance.FieldID, id),
+			sqlgraph.To(workoutexercise.Table, workoutexercise.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, exerciseinstance.WorkoutExercisesTable, exerciseinstance.WorkoutExercisesColumn),
+		)
+		fromV = sqlgraph.Neighbors(ei.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -1299,6 +1347,22 @@ func (c *WorkoutClient) QueryUser(w *Workout) *UserQuery {
 	return query
 }
 
+// QueryWorkoutExercises queries the workout_exercises edge of a Workout.
+func (c *WorkoutClient) QueryWorkoutExercises(w *Workout) *WorkoutExerciseQuery {
+	query := (&WorkoutExerciseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := w.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workout.Table, workout.FieldID, id),
+			sqlgraph.To(workoutexercise.Table, workoutexercise.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, workout.WorkoutExercisesTable, workout.WorkoutExercisesColumn),
+		)
+		fromV = sqlgraph.Neighbors(w.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *WorkoutClient) Hooks() []Hook {
 	return c.hooks.Workout
@@ -1430,6 +1494,54 @@ func (c *WorkoutExerciseClient) GetX(ctx context.Context, id uuid.UUID) *Workout
 		panic(err)
 	}
 	return obj
+}
+
+// QueryWorkout queries the workout edge of a WorkoutExercise.
+func (c *WorkoutExerciseClient) QueryWorkout(we *WorkoutExercise) *WorkoutQuery {
+	query := (&WorkoutClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := we.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutexercise.Table, workoutexercise.FieldID, id),
+			sqlgraph.To(workout.Table, workout.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutexercise.WorkoutTable, workoutexercise.WorkoutColumn),
+		)
+		fromV = sqlgraph.Neighbors(we.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryExercise queries the exercise edge of a WorkoutExercise.
+func (c *WorkoutExerciseClient) QueryExercise(we *WorkoutExercise) *ExerciseQuery {
+	query := (&ExerciseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := we.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutexercise.Table, workoutexercise.FieldID, id),
+			sqlgraph.To(exercise.Table, exercise.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutexercise.ExerciseTable, workoutexercise.ExerciseColumn),
+		)
+		fromV = sqlgraph.Neighbors(we.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryExerciseInstance queries the exercise_instance edge of a WorkoutExercise.
+func (c *WorkoutExerciseClient) QueryExerciseInstance(we *WorkoutExercise) *ExerciseInstanceQuery {
+	query := (&ExerciseInstanceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := we.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutexercise.Table, workoutexercise.FieldID, id),
+			sqlgraph.To(exerciseinstance.Table, exerciseinstance.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutexercise.ExerciseInstanceTable, workoutexercise.ExerciseInstanceColumn),
+		)
+		fromV = sqlgraph.Neighbors(we.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

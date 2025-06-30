@@ -29,8 +29,40 @@ type Exercise struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Name holds the value of the "name" field.
-	Name         string `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ExerciseQuery when eager-loading is set.
+	Edges        ExerciseEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// ExerciseEdges holds the relations/edges for other nodes in the graph.
+type ExerciseEdges struct {
+	// ExerciseInstances holds the value of the exercise_instances edge.
+	ExerciseInstances []*ExerciseInstance `json:"exercise_instances,omitempty"`
+	// WorkoutExercises holds the value of the workout_exercises edge.
+	WorkoutExercises []*WorkoutExercise `json:"workout_exercises,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// ExerciseInstancesOrErr returns the ExerciseInstances value or an error if the edge
+// was not loaded in eager-loading.
+func (e ExerciseEdges) ExerciseInstancesOrErr() ([]*ExerciseInstance, error) {
+	if e.loadedTypes[0] {
+		return e.ExerciseInstances, nil
+	}
+	return nil, &NotLoadedError{edge: "exercise_instances"}
+}
+
+// WorkoutExercisesOrErr returns the WorkoutExercises value or an error if the edge
+// was not loaded in eager-loading.
+func (e ExerciseEdges) WorkoutExercisesOrErr() ([]*WorkoutExercise, error) {
+	if e.loadedTypes[1] {
+		return e.WorkoutExercises, nil
+	}
+	return nil, &NotLoadedError{edge: "workout_exercises"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -113,6 +145,16 @@ func (e *Exercise) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (e *Exercise) Value(name string) (ent.Value, error) {
 	return e.selectValues.Get(name)
+}
+
+// QueryExerciseInstances queries the "exercise_instances" edge of the Exercise entity.
+func (e *Exercise) QueryExerciseInstances() *ExerciseInstanceQuery {
+	return NewExerciseClient(e.config).QueryExerciseInstances(e)
+}
+
+// QueryWorkoutExercises queries the "workout_exercises" edge of the Exercise entity.
+func (e *Exercise) QueryWorkoutExercises() *WorkoutExerciseQuery {
+	return NewExerciseClient(e.config).QueryWorkoutExercises(e)
 }
 
 // Update returns a builder for updating this Exercise.
