@@ -48,6 +48,35 @@ var (
 		Columns:    ExercisesColumns,
 		PrimaryKey: []*schema.Column{ExercisesColumns[0]},
 	}
+	// ExerciseInstancesColumns holds the columns for the "exercise_instances" table.
+	ExerciseInstancesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "workout_log_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "exercise_id", Type: field.TypeUUID},
+	}
+	// ExerciseInstancesTable holds the schema information for the "exercise_instances" table.
+	ExerciseInstancesTable = &schema.Table{
+		Name:       "exercise_instances",
+		Columns:    ExerciseInstancesColumns,
+		PrimaryKey: []*schema.Column{ExerciseInstancesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "exerciseinstance_workout_log_id",
+				Unique:  false,
+				Columns: []*schema.Column{ExerciseInstancesColumns[6]},
+			},
+			{
+				Name:    "exerciseinstance_exercise_id",
+				Unique:  false,
+				Columns: []*schema.Column{ExerciseInstancesColumns[7]},
+			},
+		},
+	}
 	// ProfilesColumns holds the columns for the "profiles" table.
 	ProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -114,13 +143,92 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
+	// WorkoutsColumns holds the columns for the "workouts" table.
+	WorkoutsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// WorkoutsTable holds the schema information for the "workouts" table.
+	WorkoutsTable = &schema.Table{
+		Name:       "workouts",
+		Columns:    WorkoutsColumns,
+		PrimaryKey: []*schema.Column{WorkoutsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "workouts_users_workouts",
+				Columns:    []*schema.Column{WorkoutsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workout_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{WorkoutsColumns[7]},
+			},
+		},
+	}
+	// WorkoutExercisesColumns holds the columns for the "workout_exercises" table.
+	WorkoutExercisesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "workout_id", Type: field.TypeUUID},
+		{Name: "exercise_id", Type: field.TypeUUID},
+		{Name: "exercise_instance_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "order", Type: field.TypeUint, Nullable: true},
+		{Name: "sets", Type: field.TypeUint, Nullable: true},
+		{Name: "weight", Type: field.TypeFloat64, Nullable: true},
+		{Name: "reps", Type: field.TypeUint, Nullable: true},
+	}
+	// WorkoutExercisesTable holds the schema information for the "workout_exercises" table.
+	WorkoutExercisesTable = &schema.Table{
+		Name:       "workout_exercises",
+		Columns:    WorkoutExercisesColumns,
+		PrimaryKey: []*schema.Column{WorkoutExercisesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workoutexercise_workout_id_exercise_id",
+				Unique:  true,
+				Columns: []*schema.Column{WorkoutExercisesColumns[6], WorkoutExercisesColumns[7]},
+			},
+			{
+				Name:    "workoutexercise_workout_id",
+				Unique:  false,
+				Columns: []*schema.Column{WorkoutExercisesColumns[6]},
+			},
+			{
+				Name:    "workoutexercise_exercise_id",
+				Unique:  false,
+				Columns: []*schema.Column{WorkoutExercisesColumns[7]},
+			},
+			{
+				Name:    "workoutexercise_exercise_instance_id",
+				Unique:  false,
+				Columns: []*schema.Column{WorkoutExercisesColumns[8]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BodyweightsTable,
 		ExercisesTable,
+		ExerciseInstancesTable,
 		ProfilesTable,
 		SessionsTable,
 		UsersTable,
+		WorkoutsTable,
+		WorkoutExercisesTable,
 	}
 )
 
@@ -128,4 +236,5 @@ func init() {
 	BodyweightsTable.ForeignKeys[0].RefTable = UsersTable
 	ProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
+	WorkoutsTable.ForeignKeys[0].RefTable = UsersTable
 }

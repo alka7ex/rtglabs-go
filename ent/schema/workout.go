@@ -4,6 +4,7 @@ import (
 	custommixin "rtglabs-go/ent/schema/mixin"
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
@@ -39,10 +40,15 @@ func (Workout) Fields() []ent.Field {
 }
 
 // Edges of the Workout.
-// As requested, no relationships are defined for now.
 func (Workout) Edges() []ent.Edge {
 	return []ent.Edge{
-		// No edges for now. We will add the relation to 'user' later.
+		// A workout belongs to a single user (many-to-one relationship).
+		// This corresponds to $table->foreignUuid('user_id').
+		edge.From("user", User.Type).
+			Ref("workouts"). // <-- This defines the inverse edge name
+			Field("user_id").
+			Unique().
+			Required().Immutable(), // The foreign key is not nullable, so this is a required relationship.
 	}
 }
 

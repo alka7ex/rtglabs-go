@@ -12,6 +12,7 @@ import (
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
+	"rtglabs-go/ent/workout"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -30,6 +31,7 @@ type UserQuery struct {
 	withBodyweights *BodyweightQuery
 	withSessions    *SessionQuery
 	withProfile     *ProfileQuery
+	withWorkouts    *WorkoutQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -125,6 +127,28 @@ func (uq *UserQuery) QueryProfile() *ProfileQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(profile.Table, profile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, user.ProfileTable, user.ProfileColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryWorkouts chains the current query on the "workouts" edge.
+func (uq *UserQuery) QueryWorkouts() *WorkoutQuery {
+	query := (&WorkoutClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(workout.Table, workout.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.WorkoutsTable, user.WorkoutsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -327,6 +351,7 @@ func (uq *UserQuery) Clone() *UserQuery {
 		withBodyweights: uq.withBodyweights.Clone(),
 		withSessions:    uq.withSessions.Clone(),
 		withProfile:     uq.withProfile.Clone(),
+		withWorkouts:    uq.withWorkouts.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
@@ -363,6 +388,17 @@ func (uq *UserQuery) WithProfile(opts ...func(*ProfileQuery)) *UserQuery {
 		opt(query)
 	}
 	uq.withProfile = query
+	return uq
+}
+
+// WithWorkouts tells the query-builder to eager-load the nodes that are connected to
+// the "workouts" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithWorkouts(opts ...func(*WorkoutQuery)) *UserQuery {
+	query := (&WorkoutClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withWorkouts = query
 	return uq
 }
 
@@ -444,10 +480,11 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			uq.withBodyweights != nil,
 			uq.withSessions != nil,
 			uq.withProfile != nil,
+			uq.withWorkouts != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -485,6 +522,13 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	if query := uq.withProfile; query != nil {
 		if err := uq.loadProfile(ctx, query, nodes, nil,
 			func(n *User, e *Profile) { n.Edges.Profile = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withWorkouts; query != nil {
+		if err := uq.loadWorkouts(ctx, query, nodes,
+			func(n *User) { n.Edges.Workouts = []*Workout{} },
+			func(n *User, e *Workout) { n.Edges.Workouts = append(n.Edges.Workouts, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -577,6 +621,36 @@ func (uq *UserQuery) loadProfile(ctx context.Context, query *ProfileQuery, nodes
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadWorkouts(ctx context.Context, query *WorkoutQuery, nodes []*User, init func(*User), assign func(*User, *Workout)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(workout.FieldUserID)
+	}
+	query.Where(predicate.Workout(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.WorkoutsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

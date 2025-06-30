@@ -9,9 +9,12 @@ import (
 	"reflect"
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/exercise"
+	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
+	"rtglabs-go/ent/workout"
+	"rtglabs-go/ent/workoutexercise"
 	"sync"
 
 	"entgo.io/ent"
@@ -77,11 +80,14 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			bodyweight.Table: bodyweight.ValidColumn,
-			exercise.Table:   exercise.ValidColumn,
-			profile.Table:    profile.ValidColumn,
-			session.Table:    session.ValidColumn,
-			user.Table:       user.ValidColumn,
+			bodyweight.Table:       bodyweight.ValidColumn,
+			exercise.Table:         exercise.ValidColumn,
+			exerciseinstance.Table: exerciseinstance.ValidColumn,
+			profile.Table:          profile.ValidColumn,
+			session.Table:          session.ValidColumn,
+			user.Table:             user.ValidColumn,
+			workout.Table:          workout.ValidColumn,
+			workoutexercise.Table:  workoutexercise.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

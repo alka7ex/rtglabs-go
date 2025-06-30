@@ -35,6 +35,8 @@ const (
 	EdgeSessions = "sessions"
 	// EdgeProfile holds the string denoting the profile edge name in mutations.
 	EdgeProfile = "profile"
+	// EdgeWorkouts holds the string denoting the workouts edge name in mutations.
+	EdgeWorkouts = "workouts"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// BodyweightsTable is the table that holds the bodyweights relation/edge.
@@ -58,6 +60,13 @@ const (
 	ProfileInverseTable = "profiles"
 	// ProfileColumn is the table column denoting the profile relation/edge.
 	ProfileColumn = "user_id"
+	// WorkoutsTable is the table that holds the workouts relation/edge.
+	WorkoutsTable = "workouts"
+	// WorkoutsInverseTable is the table name for the Workout entity.
+	// It exists in this package in order to avoid circular dependency with the "workout" package.
+	WorkoutsInverseTable = "workouts"
+	// WorkoutsColumn is the table column denoting the workouts relation/edge.
+	WorkoutsColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -176,6 +185,20 @@ func ByProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newProfileStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByWorkoutsCount orders the results by workouts count.
+func ByWorkoutsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newWorkoutsStep(), opts...)
+	}
+}
+
+// ByWorkouts orders the results by workouts terms.
+func ByWorkouts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWorkoutsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newBodyweightsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -195,5 +218,12 @@ func newProfileStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProfileInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ProfileTable, ProfileColumn),
+	)
+}
+func newWorkoutsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WorkoutsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, WorkoutsTable, WorkoutsColumn),
 	)
 }

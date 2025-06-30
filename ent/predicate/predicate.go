@@ -12,6 +12,9 @@ type Bodyweight func(*sql.Selector)
 // Exercise is the predicate function for exercise builders.
 type Exercise func(*sql.Selector)
 
+// ExerciseInstance is the predicate function for exerciseinstance builders.
+type ExerciseInstance func(*sql.Selector)
+
 // Profile is the predicate function for profile builders.
 type Profile func(*sql.Selector)
 
@@ -20,3 +23,9 @@ type Session func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
+
+// Workout is the predicate function for workout builders.
+type Workout func(*sql.Selector)
+
+// WorkoutExercise is the predicate function for workoutexercise builders.
+type WorkoutExercise func(*sql.Selector)
