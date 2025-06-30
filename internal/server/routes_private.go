@@ -51,9 +51,10 @@ func (s *Server) registerPrivateRoutes() {
 
 	// Protected Bodyweight routes
 	// These routes are also now prefixed with "/admin".
-	g.POST("/bodyweights", bwHandler.CreateBodyweight)
-	g.GET("/bodyweights", bwHandler.ListBodyweights)
+	g.POST("/bodyweights", bwHandler.StoreBodyweight)
+	g.GET("/bodyweights", bwHandler.IndexBodyweight)
 	g.GET("/bodyweights/:id", bwHandler.GetBodyweight)
 	g.PUT("/bodyweights/:id", bwHandler.UpdateBodyweight)
-	g.DELETE("/bodyweights/:id", bwHandler.DeleteBodyweight)
+	g.DELETE("/bodyweights/:id", bwHandler.DestroyBodyweight)
 }
+
