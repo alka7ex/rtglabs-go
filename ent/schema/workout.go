@@ -43,12 +43,6 @@ func (Workout) Edges() []ent.Edge {
 			Unique().         // A workout can only belong to one user
 			Required(),       // A workout must have a user
 		// A workout has many workout_exercises (one-to-many relationship).
-		edge.To("workout_exercises", WorkoutExercise.Type).
-			Annotations(
-				// This will ensure that when a workout is deleted, its exercises are also deleted (cascade).
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade,
-				},
-			),
+		edge.To("workout_exercises", WorkoutExercise.Type),
 	}
 }

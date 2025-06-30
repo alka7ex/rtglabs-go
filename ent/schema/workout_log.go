@@ -46,29 +46,16 @@ func (WorkoutLog) Edges() []ent.Edge {
 		// A workout log can optionally be based on a workout template.
 		edge.From("workout", Workout.Type).
 			Ref("workout_logs").
-			Field("workout_id").
-			Unique().
-			Nillable().
-			Optional().
-			Annotations(
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade, // Cascade on delete
-				},
-			),
+			Field("workout_id"),
 		// A workout log belongs to a user.
 		edge.From("user", User.Type).
 			Ref("workout_logs").
 			Field("user_id").
 			Unique().
-			Required().
-			Annotations(
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade, // Cascade on delete
-				},
-			),
+			Required(),
 		// A workout log has many exercise instances and sets.
-		edge.To("exercise_instances", ExerciseInstance.Type).Inverse(),
-		edge.To("exercise_sets", ExerciseSet.Type).Inverse(),
+		edge.To("exercise_instances", ExerciseInstance.Type),
+		edge.To("exercise_sets", ExerciseSet.Type),
 	}
 }
 

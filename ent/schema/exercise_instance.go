@@ -44,23 +44,12 @@ func (ExerciseInstance) Edges() []ent.Edge {
 		edge.From("workout_log", WorkoutLog.Type).
 			Ref("exercise_instances").
 			Field("workout_log_id").
-			Unique(). // A single instance belongs to one log
-			Annotations(
-				// This ensures 'cascadeOnDelete' behavior.
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade,
-				},
-			),
+			Unique(),
 		// A many-to-one edge to Exercise. It is required.
 		edge.From("exercise", Exercise.Type).
 			Ref("exercise_instances").
 			Field("exercise_id").
 			Unique(). // A single instance belongs to one master exercise
-			Required().
-			Annotations(
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade,
-				},
-			),
+			Required(),
 	}
 }

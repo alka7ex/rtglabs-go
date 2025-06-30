@@ -49,35 +49,20 @@ func (ExerciseSet) Edges() []ent.Edge {
 			Ref("exercise_sets").
 			Field("workout_log_id").
 			Unique().
-			Required().
-			Annotations(
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade,
-				},
-			),
+			Required(),
 		// An exercise set belongs to a master exercise.
 		edge.From("exercise", Exercise.Type).
 			Ref("exercise_sets").
 			Field("exercise_id").
 			Unique().
-			Required().
-			Annotations(
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade,
-				},
-			),
+			Required(),
 		// An exercise set can optionally be linked to an exercise instance.
 		edge.From("exercise_instance", ExerciseInstance.Type).
 			Ref("exercise_sets").
 			Field("exercise_instance_id").
 			Unique().
 			Nillable().
-			Optional().
-			Annotations(
-				edge.Annotation{
-					edge.OnDelete: edge.Cascade,
-				},
-			),
+			Optional()
 	}
 }
 

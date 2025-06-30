@@ -61,7 +61,7 @@ func (WorkoutExercise) Edges() []ent.Edge {
 			Field("exercise_instance_id").
 			Unique().
 			Nillable().
-			Optional(),
+			Optional()
 	}
 }
 
