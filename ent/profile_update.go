@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"rtglabs-go/ent/predicate"
 	"rtglabs-go/ent/profile"
+	"rtglabs-go/ent/user"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // ProfileUpdate is the builder for updating Profile entities.
@@ -133,6 +135,26 @@ func (pu *ProfileUpdate) AddWeight(f float64) *ProfileUpdate {
 	return pu
 }
 
+// SetUserID sets the "user_id" field.
+func (pu *ProfileUpdate) SetUserID(u uuid.UUID) *ProfileUpdate {
+	pu.mutation.SetUserID(u)
+	return pu
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (pu *ProfileUpdate) SetNillableUserID(u *uuid.UUID) *ProfileUpdate {
+	if u != nil {
+		pu.SetUserID(*u)
+	}
+	return pu
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (pu *ProfileUpdate) ClearUserID() *ProfileUpdate {
+	pu.mutation.ClearUserID()
+	return pu
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (pu *ProfileUpdate) SetCreatedAt(t time.Time) *ProfileUpdate {
 	pu.mutation.SetCreatedAt(t)
@@ -173,9 +195,20 @@ func (pu *ProfileUpdate) ClearDeletedAt() *ProfileUpdate {
 	return pu
 }
 
+// SetUser sets the "user" edge to the User entity.
+func (pu *ProfileUpdate) SetUser(u *User) *ProfileUpdate {
+	return pu.SetUserID(u.ID)
+}
+
 // Mutation returns the ProfileMutation object of the builder.
 func (pu *ProfileUpdate) Mutation() *ProfileMutation {
 	return pu.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (pu *ProfileUpdate) ClearUser() *ProfileUpdate {
+	pu.mutation.ClearUser()
+	return pu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -264,6 +297,35 @@ func (pu *ProfileUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if pu.mutation.DeletedAtCleared() {
 		_spec.ClearField(profile.FieldDeletedAt, field.TypeTime)
+	}
+	if pu.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   profile.UserTable,
+			Columns: []string{profile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   profile.UserTable,
+			Columns: []string{profile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -390,6 +452,26 @@ func (puo *ProfileUpdateOne) AddWeight(f float64) *ProfileUpdateOne {
 	return puo
 }
 
+// SetUserID sets the "user_id" field.
+func (puo *ProfileUpdateOne) SetUserID(u uuid.UUID) *ProfileUpdateOne {
+	puo.mutation.SetUserID(u)
+	return puo
+}
+
+// SetNillableUserID sets the "user_id" field if the given value is not nil.
+func (puo *ProfileUpdateOne) SetNillableUserID(u *uuid.UUID) *ProfileUpdateOne {
+	if u != nil {
+		puo.SetUserID(*u)
+	}
+	return puo
+}
+
+// ClearUserID clears the value of the "user_id" field.
+func (puo *ProfileUpdateOne) ClearUserID() *ProfileUpdateOne {
+	puo.mutation.ClearUserID()
+	return puo
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (puo *ProfileUpdateOne) SetCreatedAt(t time.Time) *ProfileUpdateOne {
 	puo.mutation.SetCreatedAt(t)
@@ -430,9 +512,20 @@ func (puo *ProfileUpdateOne) ClearDeletedAt() *ProfileUpdateOne {
 	return puo
 }
 
+// SetUser sets the "user" edge to the User entity.
+func (puo *ProfileUpdateOne) SetUser(u *User) *ProfileUpdateOne {
+	return puo.SetUserID(u.ID)
+}
+
 // Mutation returns the ProfileMutation object of the builder.
 func (puo *ProfileUpdateOne) Mutation() *ProfileMutation {
 	return puo.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (puo *ProfileUpdateOne) ClearUser() *ProfileUpdateOne {
+	puo.mutation.ClearUser()
+	return puo
 }
 
 // Where appends a list predicates to the ProfileUpdate builder.
@@ -551,6 +644,35 @@ func (puo *ProfileUpdateOne) sqlSave(ctx context.Context) (_node *Profile, err e
 	}
 	if puo.mutation.DeletedAtCleared() {
 		_spec.ClearField(profile.FieldDeletedAt, field.TypeTime)
+	}
+	if puo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   profile.UserTable,
+			Columns: []string{profile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   profile.UserTable,
+			Columns: []string{profile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Profile{config: puo.config}
 	_spec.Assign = _node.assignValues

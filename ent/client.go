@@ -12,12 +12,9 @@ import (
 	"rtglabs-go/ent/migrate"
 
 	"rtglabs-go/ent/bodyweight"
-	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
-	"rtglabs-go/ent/workout"
-	"rtglabs-go/ent/workoutexercise"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -33,18 +30,12 @@ type Client struct {
 	Schema *migrate.Schema
 	// Bodyweight is the client for interacting with the Bodyweight builders.
 	Bodyweight *BodyweightClient
-	// Exercise is the client for interacting with the Exercise builders.
-	Exercise *ExerciseClient
 	// Profile is the client for interacting with the Profile builders.
 	Profile *ProfileClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
-	// Workout is the client for interacting with the Workout builders.
-	Workout *WorkoutClient
-	// WorkoutExercise is the client for interacting with the WorkoutExercise builders.
-	WorkoutExercise *WorkoutExerciseClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -57,12 +48,9 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Bodyweight = NewBodyweightClient(c.config)
-	c.Exercise = NewExerciseClient(c.config)
 	c.Profile = NewProfileClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.User = NewUserClient(c.config)
-	c.Workout = NewWorkoutClient(c.config)
-	c.WorkoutExercise = NewWorkoutExerciseClient(c.config)
 }
 
 type (
@@ -153,15 +141,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		Bodyweight:      NewBodyweightClient(cfg),
-		Exercise:        NewExerciseClient(cfg),
-		Profile:         NewProfileClient(cfg),
-		Session:         NewSessionClient(cfg),
-		User:            NewUserClient(cfg),
-		Workout:         NewWorkoutClient(cfg),
-		WorkoutExercise: NewWorkoutExerciseClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Bodyweight: NewBodyweightClient(cfg),
+		Profile:    NewProfileClient(cfg),
+		Session:    NewSessionClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -179,15 +164,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		Bodyweight:      NewBodyweightClient(cfg),
-		Exercise:        NewExerciseClient(cfg),
-		Profile:         NewProfileClient(cfg),
-		Session:         NewSessionClient(cfg),
-		User:            NewUserClient(cfg),
-		Workout:         NewWorkoutClient(cfg),
-		WorkoutExercise: NewWorkoutExerciseClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Bodyweight: NewBodyweightClient(cfg),
+		Profile:    NewProfileClient(cfg),
+		Session:    NewSessionClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -216,23 +198,19 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	for _, n := range []interface{ Use(...Hook) }{
-		c.Bodyweight, c.Exercise, c.Profile, c.Session, c.User, c.Workout,
-		c.WorkoutExercise,
-	} {
-		n.Use(hooks...)
-	}
+	c.Bodyweight.Use(hooks...)
+	c.Profile.Use(hooks...)
+	c.Session.Use(hooks...)
+	c.User.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Bodyweight, c.Exercise, c.Profile, c.Session, c.User, c.Workout,
-		c.WorkoutExercise,
-	} {
-		n.Intercept(interceptors...)
-	}
+	c.Bodyweight.Intercept(interceptors...)
+	c.Profile.Intercept(interceptors...)
+	c.Session.Intercept(interceptors...)
+	c.User.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -240,18 +218,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *BodyweightMutation:
 		return c.Bodyweight.mutate(ctx, m)
-	case *ExerciseMutation:
-		return c.Exercise.mutate(ctx, m)
 	case *ProfileMutation:
 		return c.Profile.mutate(ctx, m)
 	case *SessionMutation:
 		return c.Session.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
-	case *WorkoutMutation:
-		return c.Workout.mutate(ctx, m)
-	case *WorkoutExerciseMutation:
-		return c.WorkoutExercise.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -403,139 +375,6 @@ func (c *BodyweightClient) mutate(ctx context.Context, m *BodyweightMutation) (V
 		return (&BodyweightDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Bodyweight mutation op: %q", m.Op())
-	}
-}
-
-// ExerciseClient is a client for the Exercise schema.
-type ExerciseClient struct {
-	config
-}
-
-// NewExerciseClient returns a client for the Exercise from the given config.
-func NewExerciseClient(c config) *ExerciseClient {
-	return &ExerciseClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `exercise.Hooks(f(g(h())))`.
-func (c *ExerciseClient) Use(hooks ...Hook) {
-	c.hooks.Exercise = append(c.hooks.Exercise, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `exercise.Intercept(f(g(h())))`.
-func (c *ExerciseClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Exercise = append(c.inters.Exercise, interceptors...)
-}
-
-// Create returns a builder for creating a Exercise entity.
-func (c *ExerciseClient) Create() *ExerciseCreate {
-	mutation := newExerciseMutation(c.config, OpCreate)
-	return &ExerciseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of Exercise entities.
-func (c *ExerciseClient) CreateBulk(builders ...*ExerciseCreate) *ExerciseCreateBulk {
-	return &ExerciseCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *ExerciseClient) MapCreateBulk(slice any, setFunc func(*ExerciseCreate, int)) *ExerciseCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &ExerciseCreateBulk{err: fmt.Errorf("calling to ExerciseClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*ExerciseCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &ExerciseCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for Exercise.
-func (c *ExerciseClient) Update() *ExerciseUpdate {
-	mutation := newExerciseMutation(c.config, OpUpdate)
-	return &ExerciseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *ExerciseClient) UpdateOne(e *Exercise) *ExerciseUpdateOne {
-	mutation := newExerciseMutation(c.config, OpUpdateOne, withExercise(e))
-	return &ExerciseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *ExerciseClient) UpdateOneID(id uuid.UUID) *ExerciseUpdateOne {
-	mutation := newExerciseMutation(c.config, OpUpdateOne, withExerciseID(id))
-	return &ExerciseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for Exercise.
-func (c *ExerciseClient) Delete() *ExerciseDelete {
-	mutation := newExerciseMutation(c.config, OpDelete)
-	return &ExerciseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *ExerciseClient) DeleteOne(e *Exercise) *ExerciseDeleteOne {
-	return c.DeleteOneID(e.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *ExerciseClient) DeleteOneID(id uuid.UUID) *ExerciseDeleteOne {
-	builder := c.Delete().Where(exercise.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &ExerciseDeleteOne{builder}
-}
-
-// Query returns a query builder for Exercise.
-func (c *ExerciseClient) Query() *ExerciseQuery {
-	return &ExerciseQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeExercise},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a Exercise entity by its id.
-func (c *ExerciseClient) Get(ctx context.Context, id uuid.UUID) (*Exercise, error) {
-	return c.Query().Where(exercise.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *ExerciseClient) GetX(ctx context.Context, id uuid.UUID) *Exercise {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *ExerciseClient) Hooks() []Hook {
-	return c.hooks.Exercise
-}
-
-// Interceptors returns the client interceptors.
-func (c *ExerciseClient) Interceptors() []Interceptor {
-	return c.inters.Exercise
-}
-
-func (c *ExerciseClient) mutate(ctx context.Context, m *ExerciseMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&ExerciseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&ExerciseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&ExerciseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&ExerciseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown Exercise mutation op: %q", m.Op())
 	}
 }
 
@@ -1018,280 +857,12 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
-// WorkoutClient is a client for the Workout schema.
-type WorkoutClient struct {
-	config
-}
-
-// NewWorkoutClient returns a client for the Workout from the given config.
-func NewWorkoutClient(c config) *WorkoutClient {
-	return &WorkoutClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `workout.Hooks(f(g(h())))`.
-func (c *WorkoutClient) Use(hooks ...Hook) {
-	c.hooks.Workout = append(c.hooks.Workout, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `workout.Intercept(f(g(h())))`.
-func (c *WorkoutClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Workout = append(c.inters.Workout, interceptors...)
-}
-
-// Create returns a builder for creating a Workout entity.
-func (c *WorkoutClient) Create() *WorkoutCreate {
-	mutation := newWorkoutMutation(c.config, OpCreate)
-	return &WorkoutCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of Workout entities.
-func (c *WorkoutClient) CreateBulk(builders ...*WorkoutCreate) *WorkoutCreateBulk {
-	return &WorkoutCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *WorkoutClient) MapCreateBulk(slice any, setFunc func(*WorkoutCreate, int)) *WorkoutCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &WorkoutCreateBulk{err: fmt.Errorf("calling to WorkoutClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*WorkoutCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &WorkoutCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for Workout.
-func (c *WorkoutClient) Update() *WorkoutUpdate {
-	mutation := newWorkoutMutation(c.config, OpUpdate)
-	return &WorkoutUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *WorkoutClient) UpdateOne(w *Workout) *WorkoutUpdateOne {
-	mutation := newWorkoutMutation(c.config, OpUpdateOne, withWorkout(w))
-	return &WorkoutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *WorkoutClient) UpdateOneID(id uuid.UUID) *WorkoutUpdateOne {
-	mutation := newWorkoutMutation(c.config, OpUpdateOne, withWorkoutID(id))
-	return &WorkoutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for Workout.
-func (c *WorkoutClient) Delete() *WorkoutDelete {
-	mutation := newWorkoutMutation(c.config, OpDelete)
-	return &WorkoutDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *WorkoutClient) DeleteOne(w *Workout) *WorkoutDeleteOne {
-	return c.DeleteOneID(w.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *WorkoutClient) DeleteOneID(id uuid.UUID) *WorkoutDeleteOne {
-	builder := c.Delete().Where(workout.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &WorkoutDeleteOne{builder}
-}
-
-// Query returns a query builder for Workout.
-func (c *WorkoutClient) Query() *WorkoutQuery {
-	return &WorkoutQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeWorkout},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a Workout entity by its id.
-func (c *WorkoutClient) Get(ctx context.Context, id uuid.UUID) (*Workout, error) {
-	return c.Query().Where(workout.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *WorkoutClient) GetX(ctx context.Context, id uuid.UUID) *Workout {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *WorkoutClient) Hooks() []Hook {
-	return c.hooks.Workout
-}
-
-// Interceptors returns the client interceptors.
-func (c *WorkoutClient) Interceptors() []Interceptor {
-	return c.inters.Workout
-}
-
-func (c *WorkoutClient) mutate(ctx context.Context, m *WorkoutMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&WorkoutCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&WorkoutUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&WorkoutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&WorkoutDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown Workout mutation op: %q", m.Op())
-	}
-}
-
-// WorkoutExerciseClient is a client for the WorkoutExercise schema.
-type WorkoutExerciseClient struct {
-	config
-}
-
-// NewWorkoutExerciseClient returns a client for the WorkoutExercise from the given config.
-func NewWorkoutExerciseClient(c config) *WorkoutExerciseClient {
-	return &WorkoutExerciseClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `workoutexercise.Hooks(f(g(h())))`.
-func (c *WorkoutExerciseClient) Use(hooks ...Hook) {
-	c.hooks.WorkoutExercise = append(c.hooks.WorkoutExercise, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `workoutexercise.Intercept(f(g(h())))`.
-func (c *WorkoutExerciseClient) Intercept(interceptors ...Interceptor) {
-	c.inters.WorkoutExercise = append(c.inters.WorkoutExercise, interceptors...)
-}
-
-// Create returns a builder for creating a WorkoutExercise entity.
-func (c *WorkoutExerciseClient) Create() *WorkoutExerciseCreate {
-	mutation := newWorkoutExerciseMutation(c.config, OpCreate)
-	return &WorkoutExerciseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of WorkoutExercise entities.
-func (c *WorkoutExerciseClient) CreateBulk(builders ...*WorkoutExerciseCreate) *WorkoutExerciseCreateBulk {
-	return &WorkoutExerciseCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *WorkoutExerciseClient) MapCreateBulk(slice any, setFunc func(*WorkoutExerciseCreate, int)) *WorkoutExerciseCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &WorkoutExerciseCreateBulk{err: fmt.Errorf("calling to WorkoutExerciseClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*WorkoutExerciseCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &WorkoutExerciseCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for WorkoutExercise.
-func (c *WorkoutExerciseClient) Update() *WorkoutExerciseUpdate {
-	mutation := newWorkoutExerciseMutation(c.config, OpUpdate)
-	return &WorkoutExerciseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *WorkoutExerciseClient) UpdateOne(we *WorkoutExercise) *WorkoutExerciseUpdateOne {
-	mutation := newWorkoutExerciseMutation(c.config, OpUpdateOne, withWorkoutExercise(we))
-	return &WorkoutExerciseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *WorkoutExerciseClient) UpdateOneID(id uuid.UUID) *WorkoutExerciseUpdateOne {
-	mutation := newWorkoutExerciseMutation(c.config, OpUpdateOne, withWorkoutExerciseID(id))
-	return &WorkoutExerciseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for WorkoutExercise.
-func (c *WorkoutExerciseClient) Delete() *WorkoutExerciseDelete {
-	mutation := newWorkoutExerciseMutation(c.config, OpDelete)
-	return &WorkoutExerciseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *WorkoutExerciseClient) DeleteOne(we *WorkoutExercise) *WorkoutExerciseDeleteOne {
-	return c.DeleteOneID(we.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *WorkoutExerciseClient) DeleteOneID(id uuid.UUID) *WorkoutExerciseDeleteOne {
-	builder := c.Delete().Where(workoutexercise.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &WorkoutExerciseDeleteOne{builder}
-}
-
-// Query returns a query builder for WorkoutExercise.
-func (c *WorkoutExerciseClient) Query() *WorkoutExerciseQuery {
-	return &WorkoutExerciseQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeWorkoutExercise},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a WorkoutExercise entity by its id.
-func (c *WorkoutExerciseClient) Get(ctx context.Context, id uuid.UUID) (*WorkoutExercise, error) {
-	return c.Query().Where(workoutexercise.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *WorkoutExerciseClient) GetX(ctx context.Context, id uuid.UUID) *WorkoutExercise {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *WorkoutExerciseClient) Hooks() []Hook {
-	return c.hooks.WorkoutExercise
-}
-
-// Interceptors returns the client interceptors.
-func (c *WorkoutExerciseClient) Interceptors() []Interceptor {
-	return c.inters.WorkoutExercise
-}
-
-func (c *WorkoutExerciseClient) mutate(ctx context.Context, m *WorkoutExerciseMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&WorkoutExerciseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&WorkoutExerciseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&WorkoutExerciseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&WorkoutExerciseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown WorkoutExercise mutation op: %q", m.Op())
-	}
-}
-
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Bodyweight, Exercise, Profile, Session, User, Workout,
-		WorkoutExercise []ent.Hook
+		Bodyweight, Profile, Session, User []ent.Hook
 	}
 	inters struct {
-		Bodyweight, Exercise, Profile, Session, User, Workout,
-		WorkoutExercise []ent.Interceptor
+		Bodyweight, Profile, Session, User []ent.Interceptor
 	}
 )

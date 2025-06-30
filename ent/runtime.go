@@ -4,13 +4,10 @@ package ent
 
 import (
 	"rtglabs-go/ent/bodyweight"
-	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/schema"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
-	"rtglabs-go/ent/workout"
-	"rtglabs-go/ent/workoutexercise"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,26 +41,6 @@ func init() {
 	bodyweightDescID := bodyweightFields[0].Descriptor()
 	// bodyweight.DefaultID holds the default value on creation for the id field.
 	bodyweight.DefaultID = bodyweightDescID.Default.(func() uuid.UUID)
-	exerciseFields := schema.Exercise{}.Fields()
-	_ = exerciseFields
-	// exerciseDescName is the schema descriptor for name field.
-	exerciseDescName := exerciseFields[1].Descriptor()
-	// exercise.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	exercise.NameValidator = exerciseDescName.Validators[0].(func(string) error)
-	// exerciseDescCreatedAt is the schema descriptor for created_at field.
-	exerciseDescCreatedAt := exerciseFields[2].Descriptor()
-	// exercise.DefaultCreatedAt holds the default value on creation for the created_at field.
-	exercise.DefaultCreatedAt = exerciseDescCreatedAt.Default.(func() time.Time)
-	// exerciseDescUpdatedAt is the schema descriptor for updated_at field.
-	exerciseDescUpdatedAt := exerciseFields[3].Descriptor()
-	// exercise.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	exercise.DefaultUpdatedAt = exerciseDescUpdatedAt.Default.(func() time.Time)
-	// exercise.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	exercise.UpdateDefaultUpdatedAt = exerciseDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// exerciseDescID is the schema descriptor for id field.
-	exerciseDescID := exerciseFields[0].Descriptor()
-	// exercise.DefaultID holds the default value on creation for the id field.
-	exercise.DefaultID = exerciseDescID.Default.(func() uuid.UUID)
 	profileFields := schema.Profile{}.Fields()
 	_ = profileFields
 	// profileDescCreatedAt is the schema descriptor for created_at field.
@@ -118,40 +95,4 @@ func init() {
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
-	workoutFields := schema.Workout{}.Fields()
-	_ = workoutFields
-	// workoutDescName is the schema descriptor for name field.
-	workoutDescName := workoutFields[2].Descriptor()
-	// workout.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	workout.NameValidator = workoutDescName.Validators[0].(func(string) error)
-	// workoutDescCreatedAt is the schema descriptor for created_at field.
-	workoutDescCreatedAt := workoutFields[3].Descriptor()
-	// workout.DefaultCreatedAt holds the default value on creation for the created_at field.
-	workout.DefaultCreatedAt = workoutDescCreatedAt.Default.(func() time.Time)
-	// workoutDescUpdatedAt is the schema descriptor for updated_at field.
-	workoutDescUpdatedAt := workoutFields[4].Descriptor()
-	// workout.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	workout.DefaultUpdatedAt = workoutDescUpdatedAt.Default.(func() time.Time)
-	// workout.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	workout.UpdateDefaultUpdatedAt = workoutDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// workoutDescID is the schema descriptor for id field.
-	workoutDescID := workoutFields[0].Descriptor()
-	// workout.DefaultID holds the default value on creation for the id field.
-	workout.DefaultID = workoutDescID.Default.(func() uuid.UUID)
-	workoutexerciseFields := schema.WorkoutExercise{}.Fields()
-	_ = workoutexerciseFields
-	// workoutexerciseDescCreatedAt is the schema descriptor for created_at field.
-	workoutexerciseDescCreatedAt := workoutexerciseFields[8].Descriptor()
-	// workoutexercise.DefaultCreatedAt holds the default value on creation for the created_at field.
-	workoutexercise.DefaultCreatedAt = workoutexerciseDescCreatedAt.Default.(func() time.Time)
-	// workoutexerciseDescUpdatedAt is the schema descriptor for updated_at field.
-	workoutexerciseDescUpdatedAt := workoutexerciseFields[9].Descriptor()
-	// workoutexercise.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	workoutexercise.DefaultUpdatedAt = workoutexerciseDescUpdatedAt.Default.(func() time.Time)
-	// workoutexercise.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	workoutexercise.UpdateDefaultUpdatedAt = workoutexerciseDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// workoutexerciseDescID is the schema descriptor for id field.
-	workoutexerciseDescID := workoutexerciseFields[0].Descriptor()
-	// workoutexercise.DefaultID holds the default value on creation for the id field.
-	workoutexercise.DefaultID = workoutexerciseDescID.Default.(func() uuid.UUID)
 }

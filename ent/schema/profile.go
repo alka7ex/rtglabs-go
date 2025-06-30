@@ -18,8 +18,7 @@ type Profile struct {
 func (Profile) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
-			Default(uuid.New).
-			Immutable(),
+			Default(uuid.New),
 		field.Int("units"),
 		field.Int("age"),
 		field.Float("height").
@@ -40,7 +39,6 @@ func (Profile) Fields() []ent.Field {
 				"sqlite":   "numeric",
 			}),
 		field.UUID("user_id", uuid.UUID{}).
-			Immutable().
 			Optional().
 			Nillable(),
 		field.Time("created_at").
@@ -63,7 +61,7 @@ func (Profile) Edges() []ent.Edge {
 		edge.From("user", User.Type).
 			Ref("profile").
 			Field("user_id").
-			Unique().Immutable(),
+			Unique(),
 	}
 }
 

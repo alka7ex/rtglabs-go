@@ -32,20 +32,6 @@ var (
 			},
 		},
 	}
-	// ExercisesColumns holds the columns for the "exercises" table.
-	ExercisesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "name", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-	}
-	// ExercisesTable holds the schema information for the "exercises" table.
-	ExercisesTable = &schema.Table{
-		Name:       "exercises",
-		Columns:    ExercisesColumns,
-		PrimaryKey: []*schema.Column{ExercisesColumns[0]},
-	}
 	// ProfilesColumns holds the columns for the "profiles" table.
 	ProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -112,50 +98,12 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
-	// WorkoutsColumns holds the columns for the "workouts" table.
-	WorkoutsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "user_id", Type: field.TypeUUID},
-		{Name: "name", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-	}
-	// WorkoutsTable holds the schema information for the "workouts" table.
-	WorkoutsTable = &schema.Table{
-		Name:       "workouts",
-		Columns:    WorkoutsColumns,
-		PrimaryKey: []*schema.Column{WorkoutsColumns[0]},
-	}
-	// WorkoutExercisesColumns holds the columns for the "workout_exercises" table.
-	WorkoutExercisesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "workout_id", Type: field.TypeUUID},
-		{Name: "exercise_id", Type: field.TypeUUID},
-		{Name: "exercise_instance_id", Type: field.TypeUUID, Nullable: true},
-		{Name: "order", Type: field.TypeInt},
-		{Name: "sets", Type: field.TypeInt},
-		{Name: "reps", Type: field.TypeInt},
-		{Name: "weight", Type: field.TypeFloat64},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-	}
-	// WorkoutExercisesTable holds the schema information for the "workout_exercises" table.
-	WorkoutExercisesTable = &schema.Table{
-		Name:       "workout_exercises",
-		Columns:    WorkoutExercisesColumns,
-		PrimaryKey: []*schema.Column{WorkoutExercisesColumns[0]},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BodyweightsTable,
-		ExercisesTable,
 		ProfilesTable,
 		SessionsTable,
 		UsersTable,
-		WorkoutsTable,
-		WorkoutExercisesTable,
 	}
 )
 
