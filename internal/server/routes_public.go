@@ -5,7 +5,7 @@ import (
 
 	"rtglabs-go/cmd/web"
 	"rtglabs-go/internal/database" // Import database for entClient if needed
-	"rtglabs-go/internal/handlers"
+	"rtglabs-go/internal/handlers/auth"
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"

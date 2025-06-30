@@ -198,4 +198,3 @@ func (h *BodyweightHandler) DeleteBodyweight(c echo.Context) error {
 func timePtr(t time.Time) *time.Time {
 	return &t
 }
-
