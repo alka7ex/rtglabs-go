@@ -30,6 +30,6 @@ func (s *Server) registerPublicRoutes() {
 
 	// Auth routes (public for registration/login)
 	authHandler := handlers.NewAuthHandler(entClient)
-	s.echo.POST("/auth/register", authHandler.StoreRegister) // Use the new name
-	s.echo.POST("/auth/login", authHandler.StoreLogin)       // Use the new name
+	s.echo.POST("/api/register", authHandler.StoreRegister) // Use the new name
+	s.echo.POST("/api/login", authHandler.StoreLogin)       // Use the new name
 }

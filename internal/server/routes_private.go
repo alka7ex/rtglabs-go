@@ -8,6 +8,7 @@ import (
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
 	exercise_handler "rtglabs-go/internal/handlers/exercise"
+	workout_handler "rtglabs-go/internal/handlers/workout"
 )
 
 // registerPrivateRoutes registers all routes that require authentication.
@@ -22,6 +23,8 @@ func (s *Server) registerPrivateRoutes() {
 	bwHandler := bw_handlers.NewBodyweightHandler(entClient)
 
 	exerciseHandler := exercise_handler.NewExerciseHandler(entClient)
+
+	workoutHandler := workout_handler.NewWorkoutHandler(entClient)
 
 	// FIX 1: Create the group from the server's Echo instance.
 	g := s.echo.Group("/api")
@@ -62,4 +65,10 @@ func (s *Server) registerPrivateRoutes() {
 
 	// Protected Exercise routes
 	g.GET("/exercise", exerciseHandler.IndexExercise)
+
+	// Protected Workout routes
+	g.POST("/workouts", workoutHandler.StoreWorkout)         // Create
+	g.GET("/workouts", workoutHandler.IndexWorkout)          // List
+	g.GET("/workouts/:id", workoutHandler.GetWorkout)        // Get (Show)
+	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout) // Delete (Soft Delete)
 }
