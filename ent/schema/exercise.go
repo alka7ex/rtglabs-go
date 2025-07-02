@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"entgo.io/ent/schema/mixin"
 )
 
 // Exercise holds the schema definition for the Exercise entity.
@@ -19,7 +18,6 @@ type Exercise struct {
 // This adds common fields like 'id', 'created_at', 'updated_at', and 'deleted_at'.
 func (Exercise) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		mixin.Time{},             // Maps to 'created_at' and 'updated_at'
 		custommixin.UUID{},       // Maps to the 'id' field
 		custommixin.Timestamps{}, // Maps to 'created_at', 'updated_at', and 'soft_deletes'
 	}

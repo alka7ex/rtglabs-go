@@ -24,34 +24,6 @@ type WorkoutExerciseCreate struct {
 	hooks    []Hook
 }
 
-// SetCreateTime sets the "create_time" field.
-func (wec *WorkoutExerciseCreate) SetCreateTime(t time.Time) *WorkoutExerciseCreate {
-	wec.mutation.SetCreateTime(t)
-	return wec
-}
-
-// SetNillableCreateTime sets the "create_time" field if the given value is not nil.
-func (wec *WorkoutExerciseCreate) SetNillableCreateTime(t *time.Time) *WorkoutExerciseCreate {
-	if t != nil {
-		wec.SetCreateTime(*t)
-	}
-	return wec
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (wec *WorkoutExerciseCreate) SetUpdateTime(t time.Time) *WorkoutExerciseCreate {
-	wec.mutation.SetUpdateTime(t)
-	return wec
-}
-
-// SetNillableUpdateTime sets the "update_time" field if the given value is not nil.
-func (wec *WorkoutExerciseCreate) SetNillableUpdateTime(t *time.Time) *WorkoutExerciseCreate {
-	if t != nil {
-		wec.SetUpdateTime(*t)
-	}
-	return wec
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (wec *WorkoutExerciseCreate) SetCreatedAt(t time.Time) *WorkoutExerciseCreate {
 	wec.mutation.SetCreatedAt(t)
@@ -240,14 +212,6 @@ func (wec *WorkoutExerciseCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (wec *WorkoutExerciseCreate) defaults() {
-	if _, ok := wec.mutation.CreateTime(); !ok {
-		v := workoutexercise.DefaultCreateTime()
-		wec.mutation.SetCreateTime(v)
-	}
-	if _, ok := wec.mutation.UpdateTime(); !ok {
-		v := workoutexercise.DefaultUpdateTime()
-		wec.mutation.SetUpdateTime(v)
-	}
 	if _, ok := wec.mutation.CreatedAt(); !ok {
 		v := workoutexercise.DefaultCreatedAt()
 		wec.mutation.SetCreatedAt(v)
@@ -264,12 +228,6 @@ func (wec *WorkoutExerciseCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (wec *WorkoutExerciseCreate) check() error {
-	if _, ok := wec.mutation.CreateTime(); !ok {
-		return &ValidationError{Name: "create_time", err: errors.New(`ent: missing required field "WorkoutExercise.create_time"`)}
-	}
-	if _, ok := wec.mutation.UpdateTime(); !ok {
-		return &ValidationError{Name: "update_time", err: errors.New(`ent: missing required field "WorkoutExercise.update_time"`)}
-	}
 	if _, ok := wec.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "WorkoutExercise.created_at"`)}
 	}
@@ -322,14 +280,6 @@ func (wec *WorkoutExerciseCreate) createSpec() (*WorkoutExercise, *sqlgraph.Crea
 	if id, ok := wec.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
-	}
-	if value, ok := wec.mutation.CreateTime(); ok {
-		_spec.SetField(workoutexercise.FieldCreateTime, field.TypeTime, value)
-		_node.CreateTime = value
-	}
-	if value, ok := wec.mutation.UpdateTime(); ok {
-		_spec.SetField(workoutexercise.FieldUpdateTime, field.TypeTime, value)
-		_node.UpdateTime = value
 	}
 	if value, ok := wec.mutation.CreatedAt(); ok {
 		_spec.SetField(workoutexercise.FieldCreatedAt, field.TypeTime, value)

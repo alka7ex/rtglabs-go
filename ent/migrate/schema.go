@@ -11,11 +11,11 @@ var (
 	// BodyweightsColumns holds the columns for the "bodyweights" table.
 	BodyweightsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "weight", Type: field.TypeFloat64},
-		{Name: "unit", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "weight", Type: field.TypeFloat64},
+		{Name: "unit", Type: field.TypeString},
 		{Name: "user_id", Type: field.TypeUUID},
 	}
 	// BodyweightsTable holds the schema information for the "bodyweights" table.
@@ -35,8 +35,6 @@ var (
 	// ExercisesColumns holds the columns for the "exercises" table.
 	ExercisesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "create_time", Type: field.TypeTime},
-		{Name: "update_time", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -51,8 +49,6 @@ var (
 	// ExerciseInstancesColumns holds the columns for the "exercise_instances" table.
 	ExerciseInstancesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "create_time", Type: field.TypeTime},
-		{Name: "update_time", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -68,7 +64,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "exercise_instances_exercises_exercise_instances",
-				Columns:    []*schema.Column{ExerciseInstancesColumns[8]},
+				Columns:    []*schema.Column{ExerciseInstancesColumns[6]},
 				RefColumns: []*schema.Column{ExercisesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -77,26 +73,26 @@ var (
 			{
 				Name:    "exerciseinstance_workout_log_id",
 				Unique:  false,
-				Columns: []*schema.Column{ExerciseInstancesColumns[6]},
+				Columns: []*schema.Column{ExerciseInstancesColumns[4]},
 			},
 			{
 				Name:    "exerciseinstance_exercise_id",
 				Unique:  false,
-				Columns: []*schema.Column{ExerciseInstancesColumns[7]},
+				Columns: []*schema.Column{ExerciseInstancesColumns[5]},
 			},
 		},
 	}
 	// ProfilesColumns holds the columns for the "profiles" table.
 	ProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "units", Type: field.TypeInt},
 		{Name: "age", Type: field.TypeInt},
 		{Name: "height", Type: field.TypeFloat64, SchemaType: map[string]string{"mysql": "decimal(10, 2)", "postgres": "numeric(10, 2)", "sqlite": "numeric"}},
 		{Name: "gender", Type: field.TypeInt},
 		{Name: "weight", Type: field.TypeFloat64, SchemaType: map[string]string{"mysql": "decimal(10, 2)", "postgres": "numeric(10, 2)", "sqlite": "numeric"}},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "user_id", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
 	// ProfilesTable holds the schema information for the "profiles" table.
@@ -138,13 +134,13 @@ var (
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "password", Type: field.TypeString},
 		{Name: "email_verified_at", Type: field.TypeTime, Nullable: true},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -155,8 +151,6 @@ var (
 	// WorkoutsColumns holds the columns for the "workouts" table.
 	WorkoutsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "create_time", Type: field.TypeTime},
-		{Name: "update_time", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -171,7 +165,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "workouts_users_workouts",
-				Columns:    []*schema.Column{WorkoutsColumns[7]},
+				Columns:    []*schema.Column{WorkoutsColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -180,15 +174,13 @@ var (
 			{
 				Name:    "workout_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{WorkoutsColumns[7]},
+				Columns: []*schema.Column{WorkoutsColumns[5]},
 			},
 		},
 	}
 	// WorkoutExercisesColumns holds the columns for the "workout_exercises" table.
 	WorkoutExercisesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "create_time", Type: field.TypeTime},
-		{Name: "update_time", Type: field.TypeTime},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
@@ -208,19 +200,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "workout_exercises_exercises_workout_exercises",
-				Columns:    []*schema.Column{WorkoutExercisesColumns[10]},
+				Columns:    []*schema.Column{WorkoutExercisesColumns[8]},
 				RefColumns: []*schema.Column{ExercisesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "workout_exercises_exercise_instances_workout_exercises",
-				Columns:    []*schema.Column{WorkoutExercisesColumns[11]},
+				Columns:    []*schema.Column{WorkoutExercisesColumns[9]},
 				RefColumns: []*schema.Column{ExerciseInstancesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "workout_exercises_workouts_workout_exercises",
-				Columns:    []*schema.Column{WorkoutExercisesColumns[12]},
+				Columns:    []*schema.Column{WorkoutExercisesColumns[10]},
 				RefColumns: []*schema.Column{WorkoutsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -229,22 +221,22 @@ var (
 			{
 				Name:    "workoutexercise_workout_id_exercise_id",
 				Unique:  true,
-				Columns: []*schema.Column{WorkoutExercisesColumns[12], WorkoutExercisesColumns[10]},
+				Columns: []*schema.Column{WorkoutExercisesColumns[10], WorkoutExercisesColumns[8]},
 			},
 			{
 				Name:    "workoutexercise_workout_id",
 				Unique:  false,
-				Columns: []*schema.Column{WorkoutExercisesColumns[12]},
+				Columns: []*schema.Column{WorkoutExercisesColumns[10]},
 			},
 			{
 				Name:    "workoutexercise_exercise_id",
 				Unique:  false,
-				Columns: []*schema.Column{WorkoutExercisesColumns[10]},
+				Columns: []*schema.Column{WorkoutExercisesColumns[8]},
 			},
 			{
 				Name:    "workoutexercise_exercise_instance_id",
 				Unique:  false,
-				Columns: []*schema.Column{WorkoutExercisesColumns[11]},
+				Columns: []*schema.Column{WorkoutExercisesColumns[9]},
 			},
 		},
 	}

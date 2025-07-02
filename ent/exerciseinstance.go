@@ -18,10 +18,6 @@ type ExerciseInstance struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID uuid.UUID `json:"id,omitempty"`
-	// CreateTime holds the value of the "create_time" field.
-	CreateTime time.Time `json:"create_time,omitempty"`
-	// UpdateTime holds the value of the "update_time" field.
-	UpdateTime time.Time `json:"update_time,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -64,7 +60,7 @@ func (*ExerciseInstance) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case exerciseinstance.FieldWorkoutLogID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case exerciseinstance.FieldCreateTime, exerciseinstance.FieldUpdateTime, exerciseinstance.FieldCreatedAt, exerciseinstance.FieldUpdatedAt, exerciseinstance.FieldDeletedAt:
+		case exerciseinstance.FieldCreatedAt, exerciseinstance.FieldUpdatedAt, exerciseinstance.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		case exerciseinstance.FieldID, exerciseinstance.FieldExerciseID:
 			values[i] = new(uuid.UUID)
@@ -90,18 +86,6 @@ func (ei *ExerciseInstance) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value != nil {
 				ei.ID = *value
-			}
-		case exerciseinstance.FieldCreateTime:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field create_time", values[i])
-			} else if value.Valid {
-				ei.CreateTime = value.Time
-			}
-		case exerciseinstance.FieldUpdateTime:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field update_time", values[i])
-			} else if value.Valid {
-				ei.UpdateTime = value.Time
 			}
 		case exerciseinstance.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -183,12 +167,6 @@ func (ei *ExerciseInstance) String() string {
 	var builder strings.Builder
 	builder.WriteString("ExerciseInstance(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", ei.ID))
-	builder.WriteString("create_time=")
-	builder.WriteString(ei.CreateTime.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("update_time=")
-	builder.WriteString(ei.UpdateTime.Format(time.ANSIC))
-	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(ei.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")

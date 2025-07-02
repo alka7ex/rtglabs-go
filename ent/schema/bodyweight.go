@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"time"
+	custommixin "rtglabs-go/ent/schema/mixin"
 
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
@@ -15,6 +15,13 @@ type Bodyweight struct {
 	ent.Schema
 }
 
+func (Bodyweight) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		custommixin.UUID{},       // Maps to the 'id' primary key
+		custommixin.Timestamps{}, // Maps to 'timestampsTz' and 'softDeletesTz'
+	}
+}
+
 // Fields of the Bodyweight.
 func (Bodyweight) Fields() []ent.Field {
 	return []ent.Field{
@@ -26,14 +33,6 @@ func (Bodyweight) Fields() []ent.Field {
 			Positive(),
 		field.String("unit").
 			NotEmpty(),
-		field.Time("created_at").
-			Default(time.Now).Nillable(),
-		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now).Nillable(),
-		field.Time("deleted_at").
-			Optional().
-			Nillable(),
 	}
 }
 

@@ -22,24 +22,6 @@ type BodyweightCreate struct {
 	hooks    []Hook
 }
 
-// SetUserID sets the "user_id" field.
-func (bc *BodyweightCreate) SetUserID(u uuid.UUID) *BodyweightCreate {
-	bc.mutation.SetUserID(u)
-	return bc
-}
-
-// SetWeight sets the "weight" field.
-func (bc *BodyweightCreate) SetWeight(f float64) *BodyweightCreate {
-	bc.mutation.SetWeight(f)
-	return bc
-}
-
-// SetUnit sets the "unit" field.
-func (bc *BodyweightCreate) SetUnit(s string) *BodyweightCreate {
-	bc.mutation.SetUnit(s)
-	return bc
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (bc *BodyweightCreate) SetCreatedAt(t time.Time) *BodyweightCreate {
 	bc.mutation.SetCreatedAt(t)
@@ -79,6 +61,24 @@ func (bc *BodyweightCreate) SetNillableDeletedAt(t *time.Time) *BodyweightCreate
 	if t != nil {
 		bc.SetDeletedAt(*t)
 	}
+	return bc
+}
+
+// SetUserID sets the "user_id" field.
+func (bc *BodyweightCreate) SetUserID(u uuid.UUID) *BodyweightCreate {
+	bc.mutation.SetUserID(u)
+	return bc
+}
+
+// SetWeight sets the "weight" field.
+func (bc *BodyweightCreate) SetWeight(f float64) *BodyweightCreate {
+	bc.mutation.SetWeight(f)
+	return bc
+}
+
+// SetUnit sets the "unit" field.
+func (bc *BodyweightCreate) SetUnit(s string) *BodyweightCreate {
+	bc.mutation.SetUnit(s)
 	return bc
 }
 
@@ -152,6 +152,12 @@ func (bc *BodyweightCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bc *BodyweightCreate) check() error {
+	if _, ok := bc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Bodyweight.created_at"`)}
+	}
+	if _, ok := bc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Bodyweight.updated_at"`)}
+	}
 	if _, ok := bc.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Bodyweight.user_id"`)}
 	}
@@ -170,12 +176,6 @@ func (bc *BodyweightCreate) check() error {
 		if err := bodyweight.UnitValidator(v); err != nil {
 			return &ValidationError{Name: "unit", err: fmt.Errorf(`ent: validator failed for field "Bodyweight.unit": %w`, err)}
 		}
-	}
-	if _, ok := bc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Bodyweight.created_at"`)}
-	}
-	if _, ok := bc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Bodyweight.updated_at"`)}
 	}
 	if len(bc.mutation.UserIDs()) == 0 {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Bodyweight.user"`)}
@@ -215,6 +215,18 @@ func (bc *BodyweightCreate) createSpec() (*Bodyweight, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
+	if value, ok := bc.mutation.CreatedAt(); ok {
+		_spec.SetField(bodyweight.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := bc.mutation.UpdatedAt(); ok {
+		_spec.SetField(bodyweight.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := bc.mutation.DeletedAt(); ok {
+		_spec.SetField(bodyweight.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
 	if value, ok := bc.mutation.Weight(); ok {
 		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
 		_node.Weight = value
@@ -222,18 +234,6 @@ func (bc *BodyweightCreate) createSpec() (*Bodyweight, *sqlgraph.CreateSpec) {
 	if value, ok := bc.mutation.Unit(); ok {
 		_spec.SetField(bodyweight.FieldUnit, field.TypeString, value)
 		_node.Unit = value
-	}
-	if value, ok := bc.mutation.CreatedAt(); ok {
-		_spec.SetField(bodyweight.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = &value
-	}
-	if value, ok := bc.mutation.UpdatedAt(); ok {
-		_spec.SetField(bodyweight.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = &value
-	}
-	if value, ok := bc.mutation.DeletedAt(); ok {
-		_spec.SetField(bodyweight.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
 	}
 	if nodes := bc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -55,13 +55,6 @@ type DeleteBodyweightResponse struct {
 
 // --- Pagination DTOs ---
 
-// Link defines the structure for a pagination link.
-type Link struct {
-	URL    *string `json:"url"` // Use a pointer for nullable URLs
-	Label  string  `json:"label"`
-	Active bool    `json:"active"`
-}
-
 // ListBodyweightResponse defines the structure for a paginated list of bodyweight records.
 type ListBodyweightResponse struct {
 	CurrentPage  int                  `json:"current_page"`
@@ -78,4 +71,3 @@ type ListBodyweightResponse struct {
 	To           *int                 `json:"to"`            // Use a pointer for nullable field
 	Total        int                  `json:"total"`
 }
-

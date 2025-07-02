@@ -28,12 +28,6 @@ func (weu *WorkoutExerciseUpdate) Where(ps ...predicate.WorkoutExercise) *Workou
 	return weu
 }
 
-// SetUpdateTime sets the "update_time" field.
-func (weu *WorkoutExerciseUpdate) SetUpdateTime(t time.Time) *WorkoutExerciseUpdate {
-	weu.mutation.SetUpdateTime(t)
-	return weu
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (weu *WorkoutExerciseUpdate) SetCreatedAt(t time.Time) *WorkoutExerciseUpdate {
 	weu.mutation.SetCreatedAt(t)
@@ -217,10 +211,6 @@ func (weu *WorkoutExerciseUpdate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (weu *WorkoutExerciseUpdate) defaults() {
-	if _, ok := weu.mutation.UpdateTime(); !ok {
-		v := workoutexercise.UpdateDefaultUpdateTime()
-		weu.mutation.SetUpdateTime(v)
-	}
 	if _, ok := weu.mutation.UpdatedAt(); !ok {
 		v := workoutexercise.UpdateDefaultUpdatedAt()
 		weu.mutation.SetUpdatedAt(v)
@@ -249,9 +239,6 @@ func (weu *WorkoutExerciseUpdate) sqlSave(ctx context.Context) (n int, err error
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := weu.mutation.UpdateTime(); ok {
-		_spec.SetField(workoutexercise.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := weu.mutation.CreatedAt(); ok {
 		_spec.SetField(workoutexercise.FieldCreatedAt, field.TypeTime, value)
@@ -319,12 +306,6 @@ type WorkoutExerciseUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *WorkoutExerciseMutation
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (weuo *WorkoutExerciseUpdateOne) SetUpdateTime(t time.Time) *WorkoutExerciseUpdateOne {
-	weuo.mutation.SetUpdateTime(t)
-	return weuo
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -523,10 +504,6 @@ func (weuo *WorkoutExerciseUpdateOne) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (weuo *WorkoutExerciseUpdateOne) defaults() {
-	if _, ok := weuo.mutation.UpdateTime(); !ok {
-		v := workoutexercise.UpdateDefaultUpdateTime()
-		weuo.mutation.SetUpdateTime(v)
-	}
 	if _, ok := weuo.mutation.UpdatedAt(); !ok {
 		v := workoutexercise.UpdateDefaultUpdatedAt()
 		weuo.mutation.SetUpdatedAt(v)
@@ -572,9 +549,6 @@ func (weuo *WorkoutExerciseUpdateOne) sqlSave(ctx context.Context) (_node *Worko
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := weuo.mutation.UpdateTime(); ok {
-		_spec.SetField(workoutexercise.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := weuo.mutation.CreatedAt(); ok {
 		_spec.SetField(workoutexercise.FieldCreatedAt, field.TypeTime, value)

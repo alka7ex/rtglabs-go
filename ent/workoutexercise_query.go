@@ -371,12 +371,12 @@ func (weq *WorkoutExerciseQuery) WithExerciseInstance(opts ...func(*ExerciseInst
 // Example:
 //
 //	var v []struct {
-//		CreateTime time.Time `json:"create_time,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.WorkoutExercise.Query().
-//		GroupBy(workoutexercise.FieldCreateTime).
+//		GroupBy(workoutexercise.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (weq *WorkoutExerciseQuery) GroupBy(field string, fields ...string) *WorkoutExerciseGroupBy {
@@ -394,11 +394,11 @@ func (weq *WorkoutExerciseQuery) GroupBy(field string, fields ...string) *Workou
 // Example:
 //
 //	var v []struct {
-//		CreateTime time.Time `json:"create_time,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.WorkoutExercise.Query().
-//		Select(workoutexercise.FieldCreateTime).
+//		Select(workoutexercise.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (weq *WorkoutExerciseQuery) Select(fields ...string) *WorkoutExerciseSelect {
 	weq.ctx.Fields = append(weq.ctx.Fields, fields...)

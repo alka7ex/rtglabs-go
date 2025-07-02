@@ -299,12 +299,12 @@ func (bq *BodyweightQuery) WithUser(opts ...func(*UserQuery)) *BodyweightQuery {
 // Example:
 //
 //	var v []struct {
-//		UserID uuid.UUID `json:"user_id,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Bodyweight.Query().
-//		GroupBy(bodyweight.FieldUserID).
+//		GroupBy(bodyweight.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (bq *BodyweightQuery) GroupBy(field string, fields ...string) *BodyweightGroupBy {
@@ -322,11 +322,11 @@ func (bq *BodyweightQuery) GroupBy(field string, fields ...string) *BodyweightGr
 // Example:
 //
 //	var v []struct {
-//		UserID uuid.UUID `json:"user_id,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.Bodyweight.Query().
-//		Select(bodyweight.FieldUserID).
+//		Select(bodyweight.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (bq *BodyweightQuery) Select(fields ...string) *BodyweightSelect {
 	bq.ctx.Fields = append(bq.ctx.Fields, fields...)

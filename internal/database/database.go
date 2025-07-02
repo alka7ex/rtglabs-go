@@ -1,3 +1,4 @@
+// internal/database/database.go
 package database
 
 import (
@@ -9,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/joho/godotenv/autoload" // Ensure environment variables are loaded
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,11 +26,11 @@ type Service interface {
 }
 
 type service struct {
-	db *sql.DB
+	db    *sql.DB
+	dbURL string // Store the actual URL used for the connection
 }
 
 var (
-	dburl      = os.Getenv("BLUEPRINT_DB_URL")
 	dbInstance *service
 )
 
@@ -39,21 +40,28 @@ func New() Service {
 		return dbInstance
 	}
 
-	db, err := sql.Open("sqlite3", "file:../../db/test.db?_fk=1")
+	// Get the database URL from the environment variable
+	dbURL := os.Getenv("BLUEPRINT_DB_URL")
+	if dbURL == "" {
+		log.Fatal("BLUEPRINT_DB_URL environment variable is not set")
+	}
+
+	db, err := sql.Open("sqlite3", dbURL)
 	if err != nil {
 		// This will not be a connection error, but a DSN parse error or
 		// another initialization error.
-		log.Fatal(err)
+		log.Fatalf("failed to open sqlite database with URL %s: %v", dbURL, err)
 	}
 
 	dbInstance = &service{
-		db: db,
+		db:    db,
+		dbURL: dbURL, // Store the URL for logging in Close()
 	}
 	return dbInstance
 }
 
 // Health checks the health of the database connection by pinging the database.
-// It returns a map with keys indicating various health statistics.
+// ... (rest of Health function remains the same)
 func (s *service) Health() map[string]string {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -108,6 +116,6 @@ func (s *service) Health() map[string]string {
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", dburl)
+	log.Printf("Disconnected from database: %s", s.dbURL) // Use the stored URL
 	return s.db.Close()
 }

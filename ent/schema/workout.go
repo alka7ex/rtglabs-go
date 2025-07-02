@@ -7,7 +7,6 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
-	"entgo.io/ent/schema/mixin"
 	"github.com/google/uuid"
 )
 
@@ -21,7 +20,6 @@ type Workout struct {
 // This adds common fields like 'id', 'created_at', 'updated_at', and 'deleted_at'.
 func (Workout) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		mixin.Time{},
 		custommixin.UUID{},       // Maps to the 'id' primary key
 		custommixin.Timestamps{}, // Maps to 'timestampsTz' and 'softDeletesTz'
 	}

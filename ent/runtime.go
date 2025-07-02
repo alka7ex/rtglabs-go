@@ -21,8 +21,21 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	bodyweightMixin := schema.Bodyweight{}.Mixin()
+	bodyweightMixinFields1 := bodyweightMixin[1].Fields()
+	_ = bodyweightMixinFields1
 	bodyweightFields := schema.Bodyweight{}.Fields()
 	_ = bodyweightFields
+	// bodyweightDescCreatedAt is the schema descriptor for created_at field.
+	bodyweightDescCreatedAt := bodyweightMixinFields1[0].Descriptor()
+	// bodyweight.DefaultCreatedAt holds the default value on creation for the created_at field.
+	bodyweight.DefaultCreatedAt = bodyweightDescCreatedAt.Default.(func() time.Time)
+	// bodyweightDescUpdatedAt is the schema descriptor for updated_at field.
+	bodyweightDescUpdatedAt := bodyweightMixinFields1[1].Descriptor()
+	// bodyweight.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	bodyweight.DefaultUpdatedAt = bodyweightDescUpdatedAt.Default.(func() time.Time)
+	// bodyweight.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	bodyweight.UpdateDefaultUpdatedAt = bodyweightDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// bodyweightDescWeight is the schema descriptor for weight field.
 	bodyweightDescWeight := bodyweightFields[2].Descriptor()
 	// bodyweight.WeightValidator is a validator for the "weight" field. It is called by the builders before save.
@@ -31,16 +44,6 @@ func init() {
 	bodyweightDescUnit := bodyweightFields[3].Descriptor()
 	// bodyweight.UnitValidator is a validator for the "unit" field. It is called by the builders before save.
 	bodyweight.UnitValidator = bodyweightDescUnit.Validators[0].(func(string) error)
-	// bodyweightDescCreatedAt is the schema descriptor for created_at field.
-	bodyweightDescCreatedAt := bodyweightFields[4].Descriptor()
-	// bodyweight.DefaultCreatedAt holds the default value on creation for the created_at field.
-	bodyweight.DefaultCreatedAt = bodyweightDescCreatedAt.Default.(func() time.Time)
-	// bodyweightDescUpdatedAt is the schema descriptor for updated_at field.
-	bodyweightDescUpdatedAt := bodyweightFields[5].Descriptor()
-	// bodyweight.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	bodyweight.DefaultUpdatedAt = bodyweightDescUpdatedAt.Default.(func() time.Time)
-	// bodyweight.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	bodyweight.UpdateDefaultUpdatedAt = bodyweightDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// bodyweightDescID is the schema descriptor for id field.
 	bodyweightDescID := bodyweightFields[0].Descriptor()
 	// bodyweight.DefaultID holds the default value on creation for the id field.
@@ -50,32 +53,20 @@ func init() {
 	_ = exerciseMixinFields0
 	exerciseMixinFields1 := exerciseMixin[1].Fields()
 	_ = exerciseMixinFields1
-	exerciseMixinFields2 := exerciseMixin[2].Fields()
-	_ = exerciseMixinFields2
 	exerciseFields := schema.Exercise{}.Fields()
 	_ = exerciseFields
-	// exerciseDescCreateTime is the schema descriptor for create_time field.
-	exerciseDescCreateTime := exerciseMixinFields0[0].Descriptor()
-	// exercise.DefaultCreateTime holds the default value on creation for the create_time field.
-	exercise.DefaultCreateTime = exerciseDescCreateTime.Default.(func() time.Time)
-	// exerciseDescUpdateTime is the schema descriptor for update_time field.
-	exerciseDescUpdateTime := exerciseMixinFields0[1].Descriptor()
-	// exercise.DefaultUpdateTime holds the default value on creation for the update_time field.
-	exercise.DefaultUpdateTime = exerciseDescUpdateTime.Default.(func() time.Time)
-	// exercise.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
-	exercise.UpdateDefaultUpdateTime = exerciseDescUpdateTime.UpdateDefault.(func() time.Time)
 	// exerciseDescCreatedAt is the schema descriptor for created_at field.
-	exerciseDescCreatedAt := exerciseMixinFields2[0].Descriptor()
+	exerciseDescCreatedAt := exerciseMixinFields1[0].Descriptor()
 	// exercise.DefaultCreatedAt holds the default value on creation for the created_at field.
 	exercise.DefaultCreatedAt = exerciseDescCreatedAt.Default.(func() time.Time)
 	// exerciseDescUpdatedAt is the schema descriptor for updated_at field.
-	exerciseDescUpdatedAt := exerciseMixinFields2[1].Descriptor()
+	exerciseDescUpdatedAt := exerciseMixinFields1[1].Descriptor()
 	// exercise.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	exercise.DefaultUpdatedAt = exerciseDescUpdatedAt.Default.(func() time.Time)
 	// exercise.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	exercise.UpdateDefaultUpdatedAt = exerciseDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// exerciseDescID is the schema descriptor for id field.
-	exerciseDescID := exerciseMixinFields1[0].Descriptor()
+	exerciseDescID := exerciseMixinFields0[0].Descriptor()
 	// exercise.DefaultID holds the default value on creation for the id field.
 	exercise.DefaultID = exerciseDescID.Default.(func() uuid.UUID)
 	exerciseinstanceMixin := schema.ExerciseInstance{}.Mixin()
@@ -83,42 +74,33 @@ func init() {
 	_ = exerciseinstanceMixinFields0
 	exerciseinstanceMixinFields1 := exerciseinstanceMixin[1].Fields()
 	_ = exerciseinstanceMixinFields1
-	exerciseinstanceMixinFields2 := exerciseinstanceMixin[2].Fields()
-	_ = exerciseinstanceMixinFields2
 	exerciseinstanceFields := schema.ExerciseInstance{}.Fields()
 	_ = exerciseinstanceFields
-	// exerciseinstanceDescCreateTime is the schema descriptor for create_time field.
-	exerciseinstanceDescCreateTime := exerciseinstanceMixinFields0[0].Descriptor()
-	// exerciseinstance.DefaultCreateTime holds the default value on creation for the create_time field.
-	exerciseinstance.DefaultCreateTime = exerciseinstanceDescCreateTime.Default.(func() time.Time)
-	// exerciseinstanceDescUpdateTime is the schema descriptor for update_time field.
-	exerciseinstanceDescUpdateTime := exerciseinstanceMixinFields0[1].Descriptor()
-	// exerciseinstance.DefaultUpdateTime holds the default value on creation for the update_time field.
-	exerciseinstance.DefaultUpdateTime = exerciseinstanceDescUpdateTime.Default.(func() time.Time)
-	// exerciseinstance.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
-	exerciseinstance.UpdateDefaultUpdateTime = exerciseinstanceDescUpdateTime.UpdateDefault.(func() time.Time)
 	// exerciseinstanceDescCreatedAt is the schema descriptor for created_at field.
-	exerciseinstanceDescCreatedAt := exerciseinstanceMixinFields2[0].Descriptor()
+	exerciseinstanceDescCreatedAt := exerciseinstanceMixinFields1[0].Descriptor()
 	// exerciseinstance.DefaultCreatedAt holds the default value on creation for the created_at field.
 	exerciseinstance.DefaultCreatedAt = exerciseinstanceDescCreatedAt.Default.(func() time.Time)
 	// exerciseinstanceDescUpdatedAt is the schema descriptor for updated_at field.
-	exerciseinstanceDescUpdatedAt := exerciseinstanceMixinFields2[1].Descriptor()
+	exerciseinstanceDescUpdatedAt := exerciseinstanceMixinFields1[1].Descriptor()
 	// exerciseinstance.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	exerciseinstance.DefaultUpdatedAt = exerciseinstanceDescUpdatedAt.Default.(func() time.Time)
 	// exerciseinstance.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	exerciseinstance.UpdateDefaultUpdatedAt = exerciseinstanceDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// exerciseinstanceDescID is the schema descriptor for id field.
-	exerciseinstanceDescID := exerciseinstanceMixinFields1[0].Descriptor()
+	exerciseinstanceDescID := exerciseinstanceMixinFields0[0].Descriptor()
 	// exerciseinstance.DefaultID holds the default value on creation for the id field.
 	exerciseinstance.DefaultID = exerciseinstanceDescID.Default.(func() uuid.UUID)
+	profileMixin := schema.Profile{}.Mixin()
+	profileMixinFields1 := profileMixin[1].Fields()
+	_ = profileMixinFields1
 	profileFields := schema.Profile{}.Fields()
 	_ = profileFields
 	// profileDescCreatedAt is the schema descriptor for created_at field.
-	profileDescCreatedAt := profileFields[7].Descriptor()
+	profileDescCreatedAt := profileMixinFields1[0].Descriptor()
 	// profile.DefaultCreatedAt holds the default value on creation for the created_at field.
 	profile.DefaultCreatedAt = profileDescCreatedAt.Default.(func() time.Time)
 	// profileDescUpdatedAt is the schema descriptor for updated_at field.
-	profileDescUpdatedAt := profileFields[8].Descriptor()
+	profileDescUpdatedAt := profileMixinFields1[1].Descriptor()
 	// profile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	profile.DefaultUpdatedAt = profileDescUpdatedAt.Default.(func() time.Time)
 	// profile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -137,8 +119,21 @@ func init() {
 	sessionDescID := sessionFields[0].Descriptor()
 	// session.DefaultID holds the default value on creation for the id field.
 	session.DefaultID = sessionDescID.Default.(func() uuid.UUID)
+	userMixin := schema.User{}.Mixin()
+	userMixinFields1 := userMixin[1].Fields()
+	_ = userMixinFields1
 	userFields := schema.User{}.Fields()
 	_ = userFields
+	// userDescCreatedAt is the schema descriptor for created_at field.
+	userDescCreatedAt := userMixinFields1[0].Descriptor()
+	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
+	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
+	// userDescUpdatedAt is the schema descriptor for updated_at field.
+	userDescUpdatedAt := userMixinFields1[1].Descriptor()
+	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
+	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// userDescName is the schema descriptor for name field.
 	userDescName := userFields[1].Descriptor()
 	// user.NameValidator is a validator for the "name" field. It is called by the builders before save.
@@ -151,16 +146,6 @@ func init() {
 	userDescPassword := userFields[3].Descriptor()
 	// user.PasswordValidator is a validator for the "password" field. It is called by the builders before save.
 	user.PasswordValidator = userDescPassword.Validators[0].(func(string) error)
-	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[5].Descriptor()
-	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
-	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
-	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userFields[6].Descriptor()
-	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
-	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// userDescID is the schema descriptor for id field.
 	userDescID := userFields[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
@@ -170,32 +155,20 @@ func init() {
 	_ = workoutMixinFields0
 	workoutMixinFields1 := workoutMixin[1].Fields()
 	_ = workoutMixinFields1
-	workoutMixinFields2 := workoutMixin[2].Fields()
-	_ = workoutMixinFields2
 	workoutFields := schema.Workout{}.Fields()
 	_ = workoutFields
-	// workoutDescCreateTime is the schema descriptor for create_time field.
-	workoutDescCreateTime := workoutMixinFields0[0].Descriptor()
-	// workout.DefaultCreateTime holds the default value on creation for the create_time field.
-	workout.DefaultCreateTime = workoutDescCreateTime.Default.(func() time.Time)
-	// workoutDescUpdateTime is the schema descriptor for update_time field.
-	workoutDescUpdateTime := workoutMixinFields0[1].Descriptor()
-	// workout.DefaultUpdateTime holds the default value on creation for the update_time field.
-	workout.DefaultUpdateTime = workoutDescUpdateTime.Default.(func() time.Time)
-	// workout.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
-	workout.UpdateDefaultUpdateTime = workoutDescUpdateTime.UpdateDefault.(func() time.Time)
 	// workoutDescCreatedAt is the schema descriptor for created_at field.
-	workoutDescCreatedAt := workoutMixinFields2[0].Descriptor()
+	workoutDescCreatedAt := workoutMixinFields1[0].Descriptor()
 	// workout.DefaultCreatedAt holds the default value on creation for the created_at field.
 	workout.DefaultCreatedAt = workoutDescCreatedAt.Default.(func() time.Time)
 	// workoutDescUpdatedAt is the schema descriptor for updated_at field.
-	workoutDescUpdatedAt := workoutMixinFields2[1].Descriptor()
+	workoutDescUpdatedAt := workoutMixinFields1[1].Descriptor()
 	// workout.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	workout.DefaultUpdatedAt = workoutDescUpdatedAt.Default.(func() time.Time)
 	// workout.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	workout.UpdateDefaultUpdatedAt = workoutDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// workoutDescID is the schema descriptor for id field.
-	workoutDescID := workoutMixinFields1[0].Descriptor()
+	workoutDescID := workoutMixinFields0[0].Descriptor()
 	// workout.DefaultID holds the default value on creation for the id field.
 	workout.DefaultID = workoutDescID.Default.(func() uuid.UUID)
 	workoutexerciseMixin := schema.WorkoutExercise{}.Mixin()
@@ -203,32 +176,20 @@ func init() {
 	_ = workoutexerciseMixinFields0
 	workoutexerciseMixinFields1 := workoutexerciseMixin[1].Fields()
 	_ = workoutexerciseMixinFields1
-	workoutexerciseMixinFields2 := workoutexerciseMixin[2].Fields()
-	_ = workoutexerciseMixinFields2
 	workoutexerciseFields := schema.WorkoutExercise{}.Fields()
 	_ = workoutexerciseFields
-	// workoutexerciseDescCreateTime is the schema descriptor for create_time field.
-	workoutexerciseDescCreateTime := workoutexerciseMixinFields0[0].Descriptor()
-	// workoutexercise.DefaultCreateTime holds the default value on creation for the create_time field.
-	workoutexercise.DefaultCreateTime = workoutexerciseDescCreateTime.Default.(func() time.Time)
-	// workoutexerciseDescUpdateTime is the schema descriptor for update_time field.
-	workoutexerciseDescUpdateTime := workoutexerciseMixinFields0[1].Descriptor()
-	// workoutexercise.DefaultUpdateTime holds the default value on creation for the update_time field.
-	workoutexercise.DefaultUpdateTime = workoutexerciseDescUpdateTime.Default.(func() time.Time)
-	// workoutexercise.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
-	workoutexercise.UpdateDefaultUpdateTime = workoutexerciseDescUpdateTime.UpdateDefault.(func() time.Time)
 	// workoutexerciseDescCreatedAt is the schema descriptor for created_at field.
-	workoutexerciseDescCreatedAt := workoutexerciseMixinFields2[0].Descriptor()
+	workoutexerciseDescCreatedAt := workoutexerciseMixinFields1[0].Descriptor()
 	// workoutexercise.DefaultCreatedAt holds the default value on creation for the created_at field.
 	workoutexercise.DefaultCreatedAt = workoutexerciseDescCreatedAt.Default.(func() time.Time)
 	// workoutexerciseDescUpdatedAt is the schema descriptor for updated_at field.
-	workoutexerciseDescUpdatedAt := workoutexerciseMixinFields2[1].Descriptor()
+	workoutexerciseDescUpdatedAt := workoutexerciseMixinFields1[1].Descriptor()
 	// workoutexercise.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	workoutexercise.DefaultUpdatedAt = workoutexerciseDescUpdatedAt.Default.(func() time.Time)
 	// workoutexercise.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	workoutexercise.UpdateDefaultUpdatedAt = workoutexerciseDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// workoutexerciseDescID is the schema descriptor for id field.
-	workoutexerciseDescID := workoutexerciseMixinFields1[0].Descriptor()
+	workoutexerciseDescID := workoutexerciseMixinFields0[0].Descriptor()
 	// workoutexercise.DefaultID holds the default value on creation for the id field.
 	workoutexercise.DefaultID = workoutexerciseDescID.Default.(func() uuid.UUID)
 }

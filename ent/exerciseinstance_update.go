@@ -30,12 +30,6 @@ func (eiu *ExerciseInstanceUpdate) Where(ps ...predicate.ExerciseInstance) *Exer
 	return eiu
 }
 
-// SetUpdateTime sets the "update_time" field.
-func (eiu *ExerciseInstanceUpdate) SetUpdateTime(t time.Time) *ExerciseInstanceUpdate {
-	eiu.mutation.SetUpdateTime(t)
-	return eiu
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (eiu *ExerciseInstanceUpdate) SetCreatedAt(t time.Time) *ExerciseInstanceUpdate {
 	eiu.mutation.SetCreatedAt(t)
@@ -167,10 +161,6 @@ func (eiu *ExerciseInstanceUpdate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (eiu *ExerciseInstanceUpdate) defaults() {
-	if _, ok := eiu.mutation.UpdateTime(); !ok {
-		v := exerciseinstance.UpdateDefaultUpdateTime()
-		eiu.mutation.SetUpdateTime(v)
-	}
 	if _, ok := eiu.mutation.UpdatedAt(); !ok {
 		v := exerciseinstance.UpdateDefaultUpdatedAt()
 		eiu.mutation.SetUpdatedAt(v)
@@ -185,9 +175,6 @@ func (eiu *ExerciseInstanceUpdate) sqlSave(ctx context.Context) (n int, err erro
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := eiu.mutation.UpdateTime(); ok {
-		_spec.SetField(exerciseinstance.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := eiu.mutation.CreatedAt(); ok {
 		_spec.SetField(exerciseinstance.FieldCreatedAt, field.TypeTime, value)
@@ -270,12 +257,6 @@ type ExerciseInstanceUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ExerciseInstanceMutation
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (eiuo *ExerciseInstanceUpdateOne) SetUpdateTime(t time.Time) *ExerciseInstanceUpdateOne {
-	eiuo.mutation.SetUpdateTime(t)
-	return eiuo
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -422,10 +403,6 @@ func (eiuo *ExerciseInstanceUpdateOne) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (eiuo *ExerciseInstanceUpdateOne) defaults() {
-	if _, ok := eiuo.mutation.UpdateTime(); !ok {
-		v := exerciseinstance.UpdateDefaultUpdateTime()
-		eiuo.mutation.SetUpdateTime(v)
-	}
 	if _, ok := eiuo.mutation.UpdatedAt(); !ok {
 		v := exerciseinstance.UpdateDefaultUpdatedAt()
 		eiuo.mutation.SetUpdatedAt(v)
@@ -457,9 +434,6 @@ func (eiuo *ExerciseInstanceUpdateOne) sqlSave(ctx context.Context) (_node *Exer
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := eiuo.mutation.UpdateTime(); ok {
-		_spec.SetField(exerciseinstance.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := eiuo.mutation.CreatedAt(); ok {
 		_spec.SetField(exerciseinstance.FieldCreatedAt, field.TypeTime, value)

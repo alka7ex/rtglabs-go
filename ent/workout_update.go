@@ -30,12 +30,6 @@ func (wu *WorkoutUpdate) Where(ps ...predicate.Workout) *WorkoutUpdate {
 	return wu
 }
 
-// SetUpdateTime sets the "update_time" field.
-func (wu *WorkoutUpdate) SetUpdateTime(t time.Time) *WorkoutUpdate {
-	wu.mutation.SetUpdateTime(t)
-	return wu
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (wu *WorkoutUpdate) SetCreatedAt(t time.Time) *WorkoutUpdate {
 	wu.mutation.SetCreatedAt(t)
@@ -161,10 +155,6 @@ func (wu *WorkoutUpdate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (wu *WorkoutUpdate) defaults() {
-	if _, ok := wu.mutation.UpdateTime(); !ok {
-		v := workout.UpdateDefaultUpdateTime()
-		wu.mutation.SetUpdateTime(v)
-	}
 	if _, ok := wu.mutation.UpdatedAt(); !ok {
 		v := workout.UpdateDefaultUpdatedAt()
 		wu.mutation.SetUpdatedAt(v)
@@ -190,9 +180,6 @@ func (wu *WorkoutUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := wu.mutation.UpdateTime(); ok {
-		_spec.SetField(workout.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := wu.mutation.CreatedAt(); ok {
 		_spec.SetField(workout.FieldCreatedAt, field.TypeTime, value)
@@ -272,12 +259,6 @@ type WorkoutUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *WorkoutMutation
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (wuo *WorkoutUpdateOne) SetUpdateTime(t time.Time) *WorkoutUpdateOne {
-	wuo.mutation.SetUpdateTime(t)
-	return wuo
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -418,10 +399,6 @@ func (wuo *WorkoutUpdateOne) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (wuo *WorkoutUpdateOne) defaults() {
-	if _, ok := wuo.mutation.UpdateTime(); !ok {
-		v := workout.UpdateDefaultUpdateTime()
-		wuo.mutation.SetUpdateTime(v)
-	}
 	if _, ok := wuo.mutation.UpdatedAt(); !ok {
 		v := workout.UpdateDefaultUpdatedAt()
 		wuo.mutation.SetUpdatedAt(v)
@@ -464,9 +441,6 @@ func (wuo *WorkoutUpdateOne) sqlSave(ctx context.Context) (_node *Workout, err e
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := wuo.mutation.UpdateTime(); ok {
-		_spec.SetField(workout.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := wuo.mutation.CreatedAt(); ok {
 		_spec.SetField(workout.FieldCreatedAt, field.TypeTime, value)

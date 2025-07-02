@@ -22,34 +22,6 @@ type ExerciseInstanceCreate struct {
 	hooks    []Hook
 }
 
-// SetCreateTime sets the "create_time" field.
-func (eic *ExerciseInstanceCreate) SetCreateTime(t time.Time) *ExerciseInstanceCreate {
-	eic.mutation.SetCreateTime(t)
-	return eic
-}
-
-// SetNillableCreateTime sets the "create_time" field if the given value is not nil.
-func (eic *ExerciseInstanceCreate) SetNillableCreateTime(t *time.Time) *ExerciseInstanceCreate {
-	if t != nil {
-		eic.SetCreateTime(*t)
-	}
-	return eic
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (eic *ExerciseInstanceCreate) SetUpdateTime(t time.Time) *ExerciseInstanceCreate {
-	eic.mutation.SetUpdateTime(t)
-	return eic
-}
-
-// SetNillableUpdateTime sets the "update_time" field if the given value is not nil.
-func (eic *ExerciseInstanceCreate) SetNillableUpdateTime(t *time.Time) *ExerciseInstanceCreate {
-	if t != nil {
-		eic.SetUpdateTime(*t)
-	}
-	return eic
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (eic *ExerciseInstanceCreate) SetCreatedAt(t time.Time) *ExerciseInstanceCreate {
 	eic.mutation.SetCreatedAt(t)
@@ -176,14 +148,6 @@ func (eic *ExerciseInstanceCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (eic *ExerciseInstanceCreate) defaults() {
-	if _, ok := eic.mutation.CreateTime(); !ok {
-		v := exerciseinstance.DefaultCreateTime()
-		eic.mutation.SetCreateTime(v)
-	}
-	if _, ok := eic.mutation.UpdateTime(); !ok {
-		v := exerciseinstance.DefaultUpdateTime()
-		eic.mutation.SetUpdateTime(v)
-	}
 	if _, ok := eic.mutation.CreatedAt(); !ok {
 		v := exerciseinstance.DefaultCreatedAt()
 		eic.mutation.SetCreatedAt(v)
@@ -200,12 +164,6 @@ func (eic *ExerciseInstanceCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (eic *ExerciseInstanceCreate) check() error {
-	if _, ok := eic.mutation.CreateTime(); !ok {
-		return &ValidationError{Name: "create_time", err: errors.New(`ent: missing required field "ExerciseInstance.create_time"`)}
-	}
-	if _, ok := eic.mutation.UpdateTime(); !ok {
-		return &ValidationError{Name: "update_time", err: errors.New(`ent: missing required field "ExerciseInstance.update_time"`)}
-	}
 	if _, ok := eic.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ExerciseInstance.created_at"`)}
 	}
@@ -249,14 +207,6 @@ func (eic *ExerciseInstanceCreate) createSpec() (*ExerciseInstance, *sqlgraph.Cr
 	if id, ok := eic.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
-	}
-	if value, ok := eic.mutation.CreateTime(); ok {
-		_spec.SetField(exerciseinstance.FieldCreateTime, field.TypeTime, value)
-		_node.CreateTime = value
-	}
-	if value, ok := eic.mutation.UpdateTime(); ok {
-		_spec.SetField(exerciseinstance.FieldUpdateTime, field.TypeTime, value)
-		_node.UpdateTime = value
 	}
 	if value, ok := eic.mutation.CreatedAt(); ok {
 		_spec.SetField(exerciseinstance.FieldCreatedAt, field.TypeTime, value)

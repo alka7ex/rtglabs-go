@@ -336,12 +336,12 @@ func (wq *WorkoutQuery) WithWorkoutExercises(opts ...func(*WorkoutExerciseQuery)
 // Example:
 //
 //	var v []struct {
-//		CreateTime time.Time `json:"create_time,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Workout.Query().
-//		GroupBy(workout.FieldCreateTime).
+//		GroupBy(workout.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (wq *WorkoutQuery) GroupBy(field string, fields ...string) *WorkoutGroupBy {
@@ -359,11 +359,11 @@ func (wq *WorkoutQuery) GroupBy(field string, fields ...string) *WorkoutGroupBy 
 // Example:
 //
 //	var v []struct {
-//		CreateTime time.Time `json:"create_time,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.Workout.Query().
-//		Select(workout.FieldCreateTime).
+//		Select(workout.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (wq *WorkoutQuery) Select(fields ...string) *WorkoutSelect {
 	wq.ctx.Fields = append(wq.ctx.Fields, fields...)

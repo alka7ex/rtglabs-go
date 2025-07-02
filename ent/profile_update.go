@@ -30,6 +30,46 @@ func (pu *ProfileUpdate) Where(ps ...predicate.Profile) *ProfileUpdate {
 	return pu
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (pu *ProfileUpdate) SetCreatedAt(t time.Time) *ProfileUpdate {
+	pu.mutation.SetCreatedAt(t)
+	return pu
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (pu *ProfileUpdate) SetNillableCreatedAt(t *time.Time) *ProfileUpdate {
+	if t != nil {
+		pu.SetCreatedAt(*t)
+	}
+	return pu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (pu *ProfileUpdate) SetUpdatedAt(t time.Time) *ProfileUpdate {
+	pu.mutation.SetUpdatedAt(t)
+	return pu
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (pu *ProfileUpdate) SetDeletedAt(t time.Time) *ProfileUpdate {
+	pu.mutation.SetDeletedAt(t)
+	return pu
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (pu *ProfileUpdate) SetNillableDeletedAt(t *time.Time) *ProfileUpdate {
+	if t != nil {
+		pu.SetDeletedAt(*t)
+	}
+	return pu
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (pu *ProfileUpdate) ClearDeletedAt() *ProfileUpdate {
+	pu.mutation.ClearDeletedAt()
+	return pu
+}
+
 // SetUnits sets the "units" field.
 func (pu *ProfileUpdate) SetUnits(i int) *ProfileUpdate {
 	pu.mutation.ResetUnits()
@@ -155,46 +195,6 @@ func (pu *ProfileUpdate) ClearUserID() *ProfileUpdate {
 	return pu
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (pu *ProfileUpdate) SetCreatedAt(t time.Time) *ProfileUpdate {
-	pu.mutation.SetCreatedAt(t)
-	return pu
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (pu *ProfileUpdate) SetNillableCreatedAt(t *time.Time) *ProfileUpdate {
-	if t != nil {
-		pu.SetCreatedAt(*t)
-	}
-	return pu
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (pu *ProfileUpdate) SetUpdatedAt(t time.Time) *ProfileUpdate {
-	pu.mutation.SetUpdatedAt(t)
-	return pu
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (pu *ProfileUpdate) SetDeletedAt(t time.Time) *ProfileUpdate {
-	pu.mutation.SetDeletedAt(t)
-	return pu
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (pu *ProfileUpdate) SetNillableDeletedAt(t *time.Time) *ProfileUpdate {
-	if t != nil {
-		pu.SetDeletedAt(*t)
-	}
-	return pu
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (pu *ProfileUpdate) ClearDeletedAt() *ProfileUpdate {
-	pu.mutation.ClearDeletedAt()
-	return pu
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (pu *ProfileUpdate) SetUser(u *User) *ProfileUpdate {
 	return pu.SetUserID(u.ID)
@@ -256,6 +256,18 @@ func (pu *ProfileUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if value, ok := pu.mutation.CreatedAt(); ok {
+		_spec.SetField(profile.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := pu.mutation.UpdatedAt(); ok {
+		_spec.SetField(profile.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := pu.mutation.DeletedAt(); ok {
+		_spec.SetField(profile.FieldDeletedAt, field.TypeTime, value)
+	}
+	if pu.mutation.DeletedAtCleared() {
+		_spec.ClearField(profile.FieldDeletedAt, field.TypeTime)
+	}
 	if value, ok := pu.mutation.Units(); ok {
 		_spec.SetField(profile.FieldUnits, field.TypeInt, value)
 	}
@@ -285,18 +297,6 @@ func (pu *ProfileUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pu.mutation.AddedWeight(); ok {
 		_spec.AddField(profile.FieldWeight, field.TypeFloat64, value)
-	}
-	if value, ok := pu.mutation.CreatedAt(); ok {
-		_spec.SetField(profile.FieldCreatedAt, field.TypeTime, value)
-	}
-	if value, ok := pu.mutation.UpdatedAt(); ok {
-		_spec.SetField(profile.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := pu.mutation.DeletedAt(); ok {
-		_spec.SetField(profile.FieldDeletedAt, field.TypeTime, value)
-	}
-	if pu.mutation.DeletedAtCleared() {
-		_spec.ClearField(profile.FieldDeletedAt, field.TypeTime)
 	}
 	if pu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -345,6 +345,46 @@ type ProfileUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ProfileMutation
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (puo *ProfileUpdateOne) SetCreatedAt(t time.Time) *ProfileUpdateOne {
+	puo.mutation.SetCreatedAt(t)
+	return puo
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (puo *ProfileUpdateOne) SetNillableCreatedAt(t *time.Time) *ProfileUpdateOne {
+	if t != nil {
+		puo.SetCreatedAt(*t)
+	}
+	return puo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (puo *ProfileUpdateOne) SetUpdatedAt(t time.Time) *ProfileUpdateOne {
+	puo.mutation.SetUpdatedAt(t)
+	return puo
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (puo *ProfileUpdateOne) SetDeletedAt(t time.Time) *ProfileUpdateOne {
+	puo.mutation.SetDeletedAt(t)
+	return puo
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (puo *ProfileUpdateOne) SetNillableDeletedAt(t *time.Time) *ProfileUpdateOne {
+	if t != nil {
+		puo.SetDeletedAt(*t)
+	}
+	return puo
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (puo *ProfileUpdateOne) ClearDeletedAt() *ProfileUpdateOne {
+	puo.mutation.ClearDeletedAt()
+	return puo
 }
 
 // SetUnits sets the "units" field.
@@ -472,46 +512,6 @@ func (puo *ProfileUpdateOne) ClearUserID() *ProfileUpdateOne {
 	return puo
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (puo *ProfileUpdateOne) SetCreatedAt(t time.Time) *ProfileUpdateOne {
-	puo.mutation.SetCreatedAt(t)
-	return puo
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (puo *ProfileUpdateOne) SetNillableCreatedAt(t *time.Time) *ProfileUpdateOne {
-	if t != nil {
-		puo.SetCreatedAt(*t)
-	}
-	return puo
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (puo *ProfileUpdateOne) SetUpdatedAt(t time.Time) *ProfileUpdateOne {
-	puo.mutation.SetUpdatedAt(t)
-	return puo
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (puo *ProfileUpdateOne) SetDeletedAt(t time.Time) *ProfileUpdateOne {
-	puo.mutation.SetDeletedAt(t)
-	return puo
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (puo *ProfileUpdateOne) SetNillableDeletedAt(t *time.Time) *ProfileUpdateOne {
-	if t != nil {
-		puo.SetDeletedAt(*t)
-	}
-	return puo
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (puo *ProfileUpdateOne) ClearDeletedAt() *ProfileUpdateOne {
-	puo.mutation.ClearDeletedAt()
-	return puo
-}
-
 // SetUser sets the "user" edge to the User entity.
 func (puo *ProfileUpdateOne) SetUser(u *User) *ProfileUpdateOne {
 	return puo.SetUserID(u.ID)
@@ -603,6 +603,18 @@ func (puo *ProfileUpdateOne) sqlSave(ctx context.Context) (_node *Profile, err e
 			}
 		}
 	}
+	if value, ok := puo.mutation.CreatedAt(); ok {
+		_spec.SetField(profile.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := puo.mutation.UpdatedAt(); ok {
+		_spec.SetField(profile.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := puo.mutation.DeletedAt(); ok {
+		_spec.SetField(profile.FieldDeletedAt, field.TypeTime, value)
+	}
+	if puo.mutation.DeletedAtCleared() {
+		_spec.ClearField(profile.FieldDeletedAt, field.TypeTime)
+	}
 	if value, ok := puo.mutation.Units(); ok {
 		_spec.SetField(profile.FieldUnits, field.TypeInt, value)
 	}
@@ -632,18 +644,6 @@ func (puo *ProfileUpdateOne) sqlSave(ctx context.Context) (_node *Profile, err e
 	}
 	if value, ok := puo.mutation.AddedWeight(); ok {
 		_spec.AddField(profile.FieldWeight, field.TypeFloat64, value)
-	}
-	if value, ok := puo.mutation.CreatedAt(); ok {
-		_spec.SetField(profile.FieldCreatedAt, field.TypeTime, value)
-	}
-	if value, ok := puo.mutation.UpdatedAt(); ok {
-		_spec.SetField(profile.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := puo.mutation.DeletedAt(); ok {
-		_spec.SetField(profile.FieldDeletedAt, field.TypeTime, value)
-	}
-	if puo.mutation.DeletedAtCleared() {
-		_spec.ClearField(profile.FieldDeletedAt, field.TypeTime)
 	}
 	if puo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -301,12 +301,12 @@ func (eiq *ExerciseInstanceQuery) WithWorkoutExercises(opts ...func(*WorkoutExer
 // Example:
 //
 //	var v []struct {
-//		CreateTime time.Time `json:"create_time,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ExerciseInstance.Query().
-//		GroupBy(exerciseinstance.FieldCreateTime).
+//		GroupBy(exerciseinstance.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (eiq *ExerciseInstanceQuery) GroupBy(field string, fields ...string) *ExerciseInstanceGroupBy {
@@ -324,11 +324,11 @@ func (eiq *ExerciseInstanceQuery) GroupBy(field string, fields ...string) *Exerc
 // Example:
 //
 //	var v []struct {
-//		CreateTime time.Time `json:"create_time,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.ExerciseInstance.Query().
-//		Select(exerciseinstance.FieldCreateTime).
+//		Select(exerciseinstance.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (eiq *ExerciseInstanceQuery) Select(fields ...string) *ExerciseInstanceSelect {
 	eiq.ctx.Fields = append(eiq.ctx.Fields, fields...)

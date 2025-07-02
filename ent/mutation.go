@@ -48,12 +48,12 @@ type BodyweightMutation struct {
 	op            Op
 	typ           string
 	id            *uuid.UUID
-	weight        *float64
-	addweight     *float64
-	unit          *string
 	created_at    *time.Time
 	updated_at    *time.Time
 	deleted_at    *time.Time
+	weight        *float64
+	addweight     *float64
+	unit          *string
 	clearedFields map[string]struct{}
 	user          *uuid.UUID
 	cleareduser   bool
@@ -164,6 +164,127 @@ func (m *BodyweightMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BodyweightMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BodyweightMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Bodyweight entity.
+// If the Bodyweight object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BodyweightMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BodyweightMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BodyweightMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BodyweightMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Bodyweight entity.
+// If the Bodyweight object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BodyweightMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BodyweightMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BodyweightMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BodyweightMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the Bodyweight entity.
+// If the Bodyweight object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BodyweightMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BodyweightMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[bodyweight.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BodyweightMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[bodyweight.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BodyweightMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, bodyweight.FieldDeletedAt)
 }
 
 // SetUserID sets the "user_id" field.
@@ -294,127 +415,6 @@ func (m *BodyweightMutation) ResetUnit() {
 	m.unit = nil
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (m *BodyweightMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *BodyweightMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the Bodyweight entity.
-// If the Bodyweight object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BodyweightMutation) OldCreatedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *BodyweightMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *BodyweightMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *BodyweightMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the Bodyweight entity.
-// If the Bodyweight object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BodyweightMutation) OldUpdatedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *BodyweightMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (m *BodyweightMutation) SetDeletedAt(t time.Time) {
-	m.deleted_at = &t
-}
-
-// DeletedAt returns the value of the "deleted_at" field in the mutation.
-func (m *BodyweightMutation) DeletedAt() (r time.Time, exists bool) {
-	v := m.deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDeletedAt returns the old "deleted_at" field's value of the Bodyweight entity.
-// If the Bodyweight object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BodyweightMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
-	}
-	return oldValue.DeletedAt, nil
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (m *BodyweightMutation) ClearDeletedAt() {
-	m.deleted_at = nil
-	m.clearedFields[bodyweight.FieldDeletedAt] = struct{}{}
-}
-
-// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
-func (m *BodyweightMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[bodyweight.FieldDeletedAt]
-	return ok
-}
-
-// ResetDeletedAt resets all changes to the "deleted_at" field.
-func (m *BodyweightMutation) ResetDeletedAt() {
-	m.deleted_at = nil
-	delete(m.clearedFields, bodyweight.FieldDeletedAt)
-}
-
 // ClearUser clears the "user" edge to the User entity.
 func (m *BodyweightMutation) ClearUser() {
 	m.cleareduser = true
@@ -477,15 +477,6 @@ func (m *BodyweightMutation) Type() string {
 // AddedFields().
 func (m *BodyweightMutation) Fields() []string {
 	fields := make([]string, 0, 6)
-	if m.user != nil {
-		fields = append(fields, bodyweight.FieldUserID)
-	}
-	if m.weight != nil {
-		fields = append(fields, bodyweight.FieldWeight)
-	}
-	if m.unit != nil {
-		fields = append(fields, bodyweight.FieldUnit)
-	}
 	if m.created_at != nil {
 		fields = append(fields, bodyweight.FieldCreatedAt)
 	}
@@ -495,6 +486,15 @@ func (m *BodyweightMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, bodyweight.FieldDeletedAt)
 	}
+	if m.user != nil {
+		fields = append(fields, bodyweight.FieldUserID)
+	}
+	if m.weight != nil {
+		fields = append(fields, bodyweight.FieldWeight)
+	}
+	if m.unit != nil {
+		fields = append(fields, bodyweight.FieldUnit)
+	}
 	return fields
 }
 
@@ -503,18 +503,18 @@ func (m *BodyweightMutation) Fields() []string {
 // schema.
 func (m *BodyweightMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case bodyweight.FieldUserID:
-		return m.UserID()
-	case bodyweight.FieldWeight:
-		return m.Weight()
-	case bodyweight.FieldUnit:
-		return m.Unit()
 	case bodyweight.FieldCreatedAt:
 		return m.CreatedAt()
 	case bodyweight.FieldUpdatedAt:
 		return m.UpdatedAt()
 	case bodyweight.FieldDeletedAt:
 		return m.DeletedAt()
+	case bodyweight.FieldUserID:
+		return m.UserID()
+	case bodyweight.FieldWeight:
+		return m.Weight()
+	case bodyweight.FieldUnit:
+		return m.Unit()
 	}
 	return nil, false
 }
@@ -524,18 +524,18 @@ func (m *BodyweightMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *BodyweightMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case bodyweight.FieldUserID:
-		return m.OldUserID(ctx)
-	case bodyweight.FieldWeight:
-		return m.OldWeight(ctx)
-	case bodyweight.FieldUnit:
-		return m.OldUnit(ctx)
 	case bodyweight.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case bodyweight.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	case bodyweight.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case bodyweight.FieldUserID:
+		return m.OldUserID(ctx)
+	case bodyweight.FieldWeight:
+		return m.OldWeight(ctx)
+	case bodyweight.FieldUnit:
+		return m.OldUnit(ctx)
 	}
 	return nil, fmt.Errorf("unknown Bodyweight field %s", name)
 }
@@ -545,27 +545,6 @@ func (m *BodyweightMutation) OldField(ctx context.Context, name string) (ent.Val
 // type.
 func (m *BodyweightMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case bodyweight.FieldUserID:
-		v, ok := value.(uuid.UUID)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUserID(v)
-		return nil
-	case bodyweight.FieldWeight:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetWeight(v)
-		return nil
-	case bodyweight.FieldUnit:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUnit(v)
-		return nil
 	case bodyweight.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -586,6 +565,27 @@ func (m *BodyweightMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case bodyweight.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case bodyweight.FieldWeight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWeight(v)
+		return nil
+	case bodyweight.FieldUnit:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnit(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Bodyweight field %s", name)
@@ -660,15 +660,6 @@ func (m *BodyweightMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *BodyweightMutation) ResetField(name string) error {
 	switch name {
-	case bodyweight.FieldUserID:
-		m.ResetUserID()
-		return nil
-	case bodyweight.FieldWeight:
-		m.ResetWeight()
-		return nil
-	case bodyweight.FieldUnit:
-		m.ResetUnit()
-		return nil
 	case bodyweight.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -677,6 +668,15 @@ func (m *BodyweightMutation) ResetField(name string) error {
 		return nil
 	case bodyweight.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case bodyweight.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case bodyweight.FieldWeight:
+		m.ResetWeight()
+		return nil
+	case bodyweight.FieldUnit:
+		m.ResetUnit()
 		return nil
 	}
 	return fmt.Errorf("unknown Bodyweight field %s", name)
@@ -762,8 +762,6 @@ type ExerciseMutation struct {
 	op                        Op
 	typ                       string
 	id                        *uuid.UUID
-	create_time               *time.Time
-	update_time               *time.Time
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
@@ -882,78 +880,6 @@ func (m *ExerciseMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetCreateTime sets the "create_time" field.
-func (m *ExerciseMutation) SetCreateTime(t time.Time) {
-	m.create_time = &t
-}
-
-// CreateTime returns the value of the "create_time" field in the mutation.
-func (m *ExerciseMutation) CreateTime() (r time.Time, exists bool) {
-	v := m.create_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreateTime returns the old "create_time" field's value of the Exercise entity.
-// If the Exercise object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ExerciseMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
-	}
-	return oldValue.CreateTime, nil
-}
-
-// ResetCreateTime resets all changes to the "create_time" field.
-func (m *ExerciseMutation) ResetCreateTime() {
-	m.create_time = nil
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (m *ExerciseMutation) SetUpdateTime(t time.Time) {
-	m.update_time = &t
-}
-
-// UpdateTime returns the value of the "update_time" field in the mutation.
-func (m *ExerciseMutation) UpdateTime() (r time.Time, exists bool) {
-	v := m.update_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdateTime returns the old "update_time" field's value of the Exercise entity.
-// If the Exercise object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ExerciseMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
-	}
-	return oldValue.UpdateTime, nil
-}
-
-// ResetUpdateTime resets all changes to the "update_time" field.
-func (m *ExerciseMutation) ResetUpdateTime() {
-	m.update_time = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -1255,13 +1181,7 @@ func (m *ExerciseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ExerciseMutation) Fields() []string {
-	fields := make([]string, 0, 6)
-	if m.create_time != nil {
-		fields = append(fields, exercise.FieldCreateTime)
-	}
-	if m.update_time != nil {
-		fields = append(fields, exercise.FieldUpdateTime)
-	}
+	fields := make([]string, 0, 4)
 	if m.created_at != nil {
 		fields = append(fields, exercise.FieldCreatedAt)
 	}
@@ -1282,10 +1202,6 @@ func (m *ExerciseMutation) Fields() []string {
 // schema.
 func (m *ExerciseMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case exercise.FieldCreateTime:
-		return m.CreateTime()
-	case exercise.FieldUpdateTime:
-		return m.UpdateTime()
 	case exercise.FieldCreatedAt:
 		return m.CreatedAt()
 	case exercise.FieldUpdatedAt:
@@ -1303,10 +1219,6 @@ func (m *ExerciseMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *ExerciseMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case exercise.FieldCreateTime:
-		return m.OldCreateTime(ctx)
-	case exercise.FieldUpdateTime:
-		return m.OldUpdateTime(ctx)
 	case exercise.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case exercise.FieldUpdatedAt:
@@ -1324,20 +1236,6 @@ func (m *ExerciseMutation) OldField(ctx context.Context, name string) (ent.Value
 // type.
 func (m *ExerciseMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case exercise.FieldCreateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreateTime(v)
-		return nil
-	case exercise.FieldUpdateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdateTime(v)
-		return nil
 	case exercise.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -1424,12 +1322,6 @@ func (m *ExerciseMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *ExerciseMutation) ResetField(name string) error {
 	switch name {
-	case exercise.FieldCreateTime:
-		m.ResetCreateTime()
-		return nil
-	case exercise.FieldUpdateTime:
-		m.ResetUpdateTime()
-		return nil
 	case exercise.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -1562,8 +1454,6 @@ type ExerciseInstanceMutation struct {
 	op                       Op
 	typ                      string
 	id                       *uuid.UUID
-	create_time              *time.Time
-	update_time              *time.Time
 	created_at               *time.Time
 	updated_at               *time.Time
 	deleted_at               *time.Time
@@ -1680,78 +1570,6 @@ func (m *ExerciseInstanceMutation) IDs(ctx context.Context) ([]uuid.UUID, error)
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetCreateTime sets the "create_time" field.
-func (m *ExerciseInstanceMutation) SetCreateTime(t time.Time) {
-	m.create_time = &t
-}
-
-// CreateTime returns the value of the "create_time" field in the mutation.
-func (m *ExerciseInstanceMutation) CreateTime() (r time.Time, exists bool) {
-	v := m.create_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreateTime returns the old "create_time" field's value of the ExerciseInstance entity.
-// If the ExerciseInstance object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ExerciseInstanceMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
-	}
-	return oldValue.CreateTime, nil
-}
-
-// ResetCreateTime resets all changes to the "create_time" field.
-func (m *ExerciseInstanceMutation) ResetCreateTime() {
-	m.create_time = nil
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (m *ExerciseInstanceMutation) SetUpdateTime(t time.Time) {
-	m.update_time = &t
-}
-
-// UpdateTime returns the value of the "update_time" field in the mutation.
-func (m *ExerciseInstanceMutation) UpdateTime() (r time.Time, exists bool) {
-	v := m.update_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdateTime returns the old "update_time" field's value of the ExerciseInstance entity.
-// If the ExerciseInstance object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ExerciseInstanceMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
-	}
-	return oldValue.UpdateTime, nil
-}
-
-// ResetUpdateTime resets all changes to the "update_time" field.
-func (m *ExerciseInstanceMutation) ResetUpdateTime() {
-	m.update_time = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -2048,13 +1866,7 @@ func (m *ExerciseInstanceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ExerciseInstanceMutation) Fields() []string {
-	fields := make([]string, 0, 7)
-	if m.create_time != nil {
-		fields = append(fields, exerciseinstance.FieldCreateTime)
-	}
-	if m.update_time != nil {
-		fields = append(fields, exerciseinstance.FieldUpdateTime)
-	}
+	fields := make([]string, 0, 5)
 	if m.created_at != nil {
 		fields = append(fields, exerciseinstance.FieldCreatedAt)
 	}
@@ -2078,10 +1890,6 @@ func (m *ExerciseInstanceMutation) Fields() []string {
 // schema.
 func (m *ExerciseInstanceMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case exerciseinstance.FieldCreateTime:
-		return m.CreateTime()
-	case exerciseinstance.FieldUpdateTime:
-		return m.UpdateTime()
 	case exerciseinstance.FieldCreatedAt:
 		return m.CreatedAt()
 	case exerciseinstance.FieldUpdatedAt:
@@ -2101,10 +1909,6 @@ func (m *ExerciseInstanceMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *ExerciseInstanceMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case exerciseinstance.FieldCreateTime:
-		return m.OldCreateTime(ctx)
-	case exerciseinstance.FieldUpdateTime:
-		return m.OldUpdateTime(ctx)
 	case exerciseinstance.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case exerciseinstance.FieldUpdatedAt:
@@ -2124,20 +1928,6 @@ func (m *ExerciseInstanceMutation) OldField(ctx context.Context, name string) (e
 // type.
 func (m *ExerciseInstanceMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case exerciseinstance.FieldCreateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreateTime(v)
-		return nil
-	case exerciseinstance.FieldUpdateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdateTime(v)
-		return nil
 	case exerciseinstance.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -2237,12 +2027,6 @@ func (m *ExerciseInstanceMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *ExerciseInstanceMutation) ResetField(name string) error {
 	switch name {
-	case exerciseinstance.FieldCreateTime:
-		m.ResetCreateTime()
-		return nil
-	case exerciseinstance.FieldUpdateTime:
-		m.ResetUpdateTime()
-		return nil
 	case exerciseinstance.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -2352,6 +2136,9 @@ type ProfileMutation struct {
 	op            Op
 	typ           string
 	id            *uuid.UUID
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
 	units         *int
 	addunits      *int
 	age           *int
@@ -2362,9 +2149,6 @@ type ProfileMutation struct {
 	addgender     *int
 	weight        *float64
 	addweight     *float64
-	created_at    *time.Time
-	updated_at    *time.Time
-	deleted_at    *time.Time
 	clearedFields map[string]struct{}
 	user          *uuid.UUID
 	cleareduser   bool
@@ -2475,6 +2259,127 @@ func (m *ProfileMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProfileMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProfileMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProfileMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProfileMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProfileMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProfileMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ProfileMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ProfileMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the Profile entity.
+// If the Profile object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProfileMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ProfileMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[profile.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ProfileMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[profile.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ProfileMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, profile.FieldDeletedAt)
 }
 
 // SetUnits sets the "units" field.
@@ -2806,127 +2711,6 @@ func (m *ProfileMutation) ResetUserID() {
 	delete(m.clearedFields, profile.FieldUserID)
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (m *ProfileMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *ProfileMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the Profile entity.
-// If the Profile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProfileMutation) OldCreatedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *ProfileMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *ProfileMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *ProfileMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the Profile entity.
-// If the Profile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProfileMutation) OldUpdatedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *ProfileMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (m *ProfileMutation) SetDeletedAt(t time.Time) {
-	m.deleted_at = &t
-}
-
-// DeletedAt returns the value of the "deleted_at" field in the mutation.
-func (m *ProfileMutation) DeletedAt() (r time.Time, exists bool) {
-	v := m.deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDeletedAt returns the old "deleted_at" field's value of the Profile entity.
-// If the Profile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProfileMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
-	}
-	return oldValue.DeletedAt, nil
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (m *ProfileMutation) ClearDeletedAt() {
-	m.deleted_at = nil
-	m.clearedFields[profile.FieldDeletedAt] = struct{}{}
-}
-
-// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
-func (m *ProfileMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[profile.FieldDeletedAt]
-	return ok
-}
-
-// ResetDeletedAt resets all changes to the "deleted_at" field.
-func (m *ProfileMutation) ResetDeletedAt() {
-	m.deleted_at = nil
-	delete(m.clearedFields, profile.FieldDeletedAt)
-}
-
 // ClearUser clears the "user" edge to the User entity.
 func (m *ProfileMutation) ClearUser() {
 	m.cleareduser = true
@@ -2989,6 +2773,15 @@ func (m *ProfileMutation) Type() string {
 // AddedFields().
 func (m *ProfileMutation) Fields() []string {
 	fields := make([]string, 0, 9)
+	if m.created_at != nil {
+		fields = append(fields, profile.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, profile.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, profile.FieldDeletedAt)
+	}
 	if m.units != nil {
 		fields = append(fields, profile.FieldUnits)
 	}
@@ -3007,15 +2800,6 @@ func (m *ProfileMutation) Fields() []string {
 	if m.user != nil {
 		fields = append(fields, profile.FieldUserID)
 	}
-	if m.created_at != nil {
-		fields = append(fields, profile.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, profile.FieldUpdatedAt)
-	}
-	if m.deleted_at != nil {
-		fields = append(fields, profile.FieldDeletedAt)
-	}
 	return fields
 }
 
@@ -3024,6 +2808,12 @@ func (m *ProfileMutation) Fields() []string {
 // schema.
 func (m *ProfileMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case profile.FieldCreatedAt:
+		return m.CreatedAt()
+	case profile.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case profile.FieldDeletedAt:
+		return m.DeletedAt()
 	case profile.FieldUnits:
 		return m.Units()
 	case profile.FieldAge:
@@ -3036,12 +2826,6 @@ func (m *ProfileMutation) Field(name string) (ent.Value, bool) {
 		return m.Weight()
 	case profile.FieldUserID:
 		return m.UserID()
-	case profile.FieldCreatedAt:
-		return m.CreatedAt()
-	case profile.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case profile.FieldDeletedAt:
-		return m.DeletedAt()
 	}
 	return nil, false
 }
@@ -3051,6 +2835,12 @@ func (m *ProfileMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *ProfileMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case profile.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case profile.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case profile.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
 	case profile.FieldUnits:
 		return m.OldUnits(ctx)
 	case profile.FieldAge:
@@ -3063,12 +2853,6 @@ func (m *ProfileMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldWeight(ctx)
 	case profile.FieldUserID:
 		return m.OldUserID(ctx)
-	case profile.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case profile.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case profile.FieldDeletedAt:
-		return m.OldDeletedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown Profile field %s", name)
 }
@@ -3078,6 +2862,27 @@ func (m *ProfileMutation) OldField(ctx context.Context, name string) (ent.Value,
 // type.
 func (m *ProfileMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case profile.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case profile.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case profile.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
 	case profile.FieldUnits:
 		v, ok := value.(int)
 		if !ok {
@@ -3119,27 +2924,6 @@ func (m *ProfileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUserID(v)
-		return nil
-	case profile.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case profile.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case profile.FieldDeletedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDeletedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Profile field %s", name)
@@ -3234,11 +3018,11 @@ func (m *ProfileMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *ProfileMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(profile.FieldUserID) {
-		fields = append(fields, profile.FieldUserID)
-	}
 	if m.FieldCleared(profile.FieldDeletedAt) {
 		fields = append(fields, profile.FieldDeletedAt)
+	}
+	if m.FieldCleared(profile.FieldUserID) {
+		fields = append(fields, profile.FieldUserID)
 	}
 	return fields
 }
@@ -3254,11 +3038,11 @@ func (m *ProfileMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ProfileMutation) ClearField(name string) error {
 	switch name {
-	case profile.FieldUserID:
-		m.ClearUserID()
-		return nil
 	case profile.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case profile.FieldUserID:
+		m.ClearUserID()
 		return nil
 	}
 	return fmt.Errorf("unknown Profile nullable field %s", name)
@@ -3268,6 +3052,15 @@ func (m *ProfileMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *ProfileMutation) ResetField(name string) error {
 	switch name {
+	case profile.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case profile.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case profile.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
 	case profile.FieldUnits:
 		m.ResetUnits()
 		return nil
@@ -3285,15 +3078,6 @@ func (m *ProfileMutation) ResetField(name string) error {
 		return nil
 	case profile.FieldUserID:
 		m.ResetUserID()
-		return nil
-	case profile.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case profile.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case profile.FieldDeletedAt:
-		m.ResetDeletedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Profile field %s", name)
@@ -3886,13 +3670,13 @@ type UserMutation struct {
 	op                 Op
 	typ                string
 	id                 *uuid.UUID
+	created_at         *time.Time
+	updated_at         *time.Time
+	deleted_at         *time.Time
 	name               *string
 	email              *string
 	password           *string
 	email_verified_at  *time.Time
-	created_at         *time.Time
-	updated_at         *time.Time
-	deleted_at         *time.Time
 	clearedFields      map[string]struct{}
 	bodyweights        map[uuid.UUID]struct{}
 	removedbodyweights map[uuid.UUID]struct{}
@@ -4012,6 +3796,127 @@ func (m *UserMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *UserMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *UserMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *UserMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *UserMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *UserMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *UserMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *UserMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *UserMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *UserMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[user.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *UserMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[user.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *UserMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, user.FieldDeletedAt)
 }
 
 // SetName sets the "name" field.
@@ -4169,127 +4074,6 @@ func (m *UserMutation) EmailVerifiedAtCleared() bool {
 func (m *UserMutation) ResetEmailVerifiedAt() {
 	m.email_verified_at = nil
 	delete(m.clearedFields, user.FieldEmailVerifiedAt)
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *UserMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *UserMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the User entity.
-// If the User object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *UserMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *UserMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *UserMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the User entity.
-// If the User object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *UserMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (m *UserMutation) SetDeletedAt(t time.Time) {
-	m.deleted_at = &t
-}
-
-// DeletedAt returns the value of the "deleted_at" field in the mutation.
-func (m *UserMutation) DeletedAt() (r time.Time, exists bool) {
-	v := m.deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDeletedAt returns the old "deleted_at" field's value of the User entity.
-// If the User object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
-	}
-	return oldValue.DeletedAt, nil
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (m *UserMutation) ClearDeletedAt() {
-	m.deleted_at = nil
-	m.clearedFields[user.FieldDeletedAt] = struct{}{}
-}
-
-// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
-func (m *UserMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[user.FieldDeletedAt]
-	return ok
-}
-
-// ResetDeletedAt resets all changes to the "deleted_at" field.
-func (m *UserMutation) ResetDeletedAt() {
-	m.deleted_at = nil
-	delete(m.clearedFields, user.FieldDeletedAt)
 }
 
 // AddBodyweightIDs adds the "bodyweights" edge to the Bodyweight entity by ids.
@@ -4528,6 +4312,15 @@ func (m *UserMutation) Type() string {
 // AddedFields().
 func (m *UserMutation) Fields() []string {
 	fields := make([]string, 0, 7)
+	if m.created_at != nil {
+		fields = append(fields, user.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, user.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, user.FieldDeletedAt)
+	}
 	if m.name != nil {
 		fields = append(fields, user.FieldName)
 	}
@@ -4540,15 +4333,6 @@ func (m *UserMutation) Fields() []string {
 	if m.email_verified_at != nil {
 		fields = append(fields, user.FieldEmailVerifiedAt)
 	}
-	if m.created_at != nil {
-		fields = append(fields, user.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, user.FieldUpdatedAt)
-	}
-	if m.deleted_at != nil {
-		fields = append(fields, user.FieldDeletedAt)
-	}
 	return fields
 }
 
@@ -4557,6 +4341,12 @@ func (m *UserMutation) Fields() []string {
 // schema.
 func (m *UserMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case user.FieldCreatedAt:
+		return m.CreatedAt()
+	case user.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case user.FieldDeletedAt:
+		return m.DeletedAt()
 	case user.FieldName:
 		return m.Name()
 	case user.FieldEmail:
@@ -4565,12 +4355,6 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Password()
 	case user.FieldEmailVerifiedAt:
 		return m.EmailVerifiedAt()
-	case user.FieldCreatedAt:
-		return m.CreatedAt()
-	case user.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case user.FieldDeletedAt:
-		return m.DeletedAt()
 	}
 	return nil, false
 }
@@ -4580,6 +4364,12 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case user.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case user.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case user.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
 	case user.FieldName:
 		return m.OldName(ctx)
 	case user.FieldEmail:
@@ -4588,12 +4378,6 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldPassword(ctx)
 	case user.FieldEmailVerifiedAt:
 		return m.OldEmailVerifiedAt(ctx)
-	case user.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case user.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case user.FieldDeletedAt:
-		return m.OldDeletedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -4603,6 +4387,27 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *UserMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case user.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case user.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case user.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
 	case user.FieldName:
 		v, ok := value.(string)
 		if !ok {
@@ -4630,27 +4435,6 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEmailVerifiedAt(v)
-		return nil
-	case user.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case user.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case user.FieldDeletedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDeletedAt(v)
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
@@ -4682,11 +4466,11 @@ func (m *UserMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *UserMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(user.FieldEmailVerifiedAt) {
-		fields = append(fields, user.FieldEmailVerifiedAt)
-	}
 	if m.FieldCleared(user.FieldDeletedAt) {
 		fields = append(fields, user.FieldDeletedAt)
+	}
+	if m.FieldCleared(user.FieldEmailVerifiedAt) {
+		fields = append(fields, user.FieldEmailVerifiedAt)
 	}
 	return fields
 }
@@ -4702,11 +4486,11 @@ func (m *UserMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *UserMutation) ClearField(name string) error {
 	switch name {
-	case user.FieldEmailVerifiedAt:
-		m.ClearEmailVerifiedAt()
-		return nil
 	case user.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case user.FieldEmailVerifiedAt:
+		m.ClearEmailVerifiedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown User nullable field %s", name)
@@ -4716,6 +4500,15 @@ func (m *UserMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *UserMutation) ResetField(name string) error {
 	switch name {
+	case user.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case user.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case user.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
 	case user.FieldName:
 		m.ResetName()
 		return nil
@@ -4727,15 +4520,6 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldEmailVerifiedAt:
 		m.ResetEmailVerifiedAt()
-		return nil
-	case user.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case user.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case user.FieldDeletedAt:
-		m.ResetDeletedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
@@ -4901,8 +4685,6 @@ type WorkoutMutation struct {
 	op                       Op
 	typ                      string
 	id                       *uuid.UUID
-	create_time              *time.Time
-	update_time              *time.Time
 	created_at               *time.Time
 	updated_at               *time.Time
 	deleted_at               *time.Time
@@ -5020,78 +4802,6 @@ func (m *WorkoutMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetCreateTime sets the "create_time" field.
-func (m *WorkoutMutation) SetCreateTime(t time.Time) {
-	m.create_time = &t
-}
-
-// CreateTime returns the value of the "create_time" field in the mutation.
-func (m *WorkoutMutation) CreateTime() (r time.Time, exists bool) {
-	v := m.create_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreateTime returns the old "create_time" field's value of the Workout entity.
-// If the Workout object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *WorkoutMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
-	}
-	return oldValue.CreateTime, nil
-}
-
-// ResetCreateTime resets all changes to the "create_time" field.
-func (m *WorkoutMutation) ResetCreateTime() {
-	m.create_time = nil
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (m *WorkoutMutation) SetUpdateTime(t time.Time) {
-	m.update_time = &t
-}
-
-// UpdateTime returns the value of the "update_time" field in the mutation.
-func (m *WorkoutMutation) UpdateTime() (r time.Time, exists bool) {
-	v := m.update_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdateTime returns the old "update_time" field's value of the Workout entity.
-// If the Workout object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *WorkoutMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
-	}
-	return oldValue.UpdateTime, nil
-}
-
-// ResetUpdateTime resets all changes to the "update_time" field.
-func (m *WorkoutMutation) ResetUpdateTime() {
-	m.update_time = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -5402,13 +5112,7 @@ func (m *WorkoutMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *WorkoutMutation) Fields() []string {
-	fields := make([]string, 0, 7)
-	if m.create_time != nil {
-		fields = append(fields, workout.FieldCreateTime)
-	}
-	if m.update_time != nil {
-		fields = append(fields, workout.FieldUpdateTime)
-	}
+	fields := make([]string, 0, 5)
 	if m.created_at != nil {
 		fields = append(fields, workout.FieldCreatedAt)
 	}
@@ -5432,10 +5136,6 @@ func (m *WorkoutMutation) Fields() []string {
 // schema.
 func (m *WorkoutMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case workout.FieldCreateTime:
-		return m.CreateTime()
-	case workout.FieldUpdateTime:
-		return m.UpdateTime()
 	case workout.FieldCreatedAt:
 		return m.CreatedAt()
 	case workout.FieldUpdatedAt:
@@ -5455,10 +5155,6 @@ func (m *WorkoutMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *WorkoutMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case workout.FieldCreateTime:
-		return m.OldCreateTime(ctx)
-	case workout.FieldUpdateTime:
-		return m.OldUpdateTime(ctx)
 	case workout.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case workout.FieldUpdatedAt:
@@ -5478,20 +5174,6 @@ func (m *WorkoutMutation) OldField(ctx context.Context, name string) (ent.Value,
 // type.
 func (m *WorkoutMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case workout.FieldCreateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreateTime(v)
-		return nil
-	case workout.FieldUpdateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdateTime(v)
-		return nil
 	case workout.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -5585,12 +5267,6 @@ func (m *WorkoutMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *WorkoutMutation) ResetField(name string) error {
 	switch name {
-	case workout.FieldCreateTime:
-		m.ResetCreateTime()
-		return nil
-	case workout.FieldUpdateTime:
-		m.ResetUpdateTime()
-		return nil
 	case workout.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
@@ -5718,8 +5394,6 @@ type WorkoutExerciseMutation struct {
 	op                       Op
 	typ                      string
 	id                       *uuid.UUID
-	create_time              *time.Time
-	update_time              *time.Time
 	created_at               *time.Time
 	updated_at               *time.Time
 	deleted_at               *time.Time
@@ -5845,78 +5519,6 @@ func (m *WorkoutExerciseMutation) IDs(ctx context.Context) ([]uuid.UUID, error) 
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
-}
-
-// SetCreateTime sets the "create_time" field.
-func (m *WorkoutExerciseMutation) SetCreateTime(t time.Time) {
-	m.create_time = &t
-}
-
-// CreateTime returns the value of the "create_time" field in the mutation.
-func (m *WorkoutExerciseMutation) CreateTime() (r time.Time, exists bool) {
-	v := m.create_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreateTime returns the old "create_time" field's value of the WorkoutExercise entity.
-// If the WorkoutExercise object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *WorkoutExerciseMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
-	}
-	return oldValue.CreateTime, nil
-}
-
-// ResetCreateTime resets all changes to the "create_time" field.
-func (m *WorkoutExerciseMutation) ResetCreateTime() {
-	m.create_time = nil
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (m *WorkoutExerciseMutation) SetUpdateTime(t time.Time) {
-	m.update_time = &t
-}
-
-// UpdateTime returns the value of the "update_time" field in the mutation.
-func (m *WorkoutExerciseMutation) UpdateTime() (r time.Time, exists bool) {
-	v := m.update_time
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdateTime returns the old "update_time" field's value of the WorkoutExercise entity.
-// If the WorkoutExercise object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *WorkoutExerciseMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdateTime is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdateTime requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
-	}
-	return oldValue.UpdateTime, nil
-}
-
-// ResetUpdateTime resets all changes to the "update_time" field.
-func (m *WorkoutExerciseMutation) ResetUpdateTime() {
-	m.update_time = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -6556,13 +6158,7 @@ func (m *WorkoutExerciseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *WorkoutExerciseMutation) Fields() []string {
-	fields := make([]string, 0, 12)
-	if m.create_time != nil {
-		fields = append(fields, workoutexercise.FieldCreateTime)
-	}
-	if m.update_time != nil {
-		fields = append(fields, workoutexercise.FieldUpdateTime)
-	}
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, workoutexercise.FieldCreatedAt)
 	}
@@ -6601,10 +6197,6 @@ func (m *WorkoutExerciseMutation) Fields() []string {
 // schema.
 func (m *WorkoutExerciseMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case workoutexercise.FieldCreateTime:
-		return m.CreateTime()
-	case workoutexercise.FieldUpdateTime:
-		return m.UpdateTime()
 	case workoutexercise.FieldCreatedAt:
 		return m.CreatedAt()
 	case workoutexercise.FieldUpdatedAt:
@@ -6634,10 +6226,6 @@ func (m *WorkoutExerciseMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *WorkoutExerciseMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case workoutexercise.FieldCreateTime:
-		return m.OldCreateTime(ctx)
-	case workoutexercise.FieldUpdateTime:
-		return m.OldUpdateTime(ctx)
 	case workoutexercise.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case workoutexercise.FieldUpdatedAt:
@@ -6667,20 +6255,6 @@ func (m *WorkoutExerciseMutation) OldField(ctx context.Context, name string) (en
 // type.
 func (m *WorkoutExerciseMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case workoutexercise.FieldCreateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreateTime(v)
-		return nil
-	case workoutexercise.FieldUpdateTime:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdateTime(v)
-		return nil
 	case workoutexercise.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -6890,12 +6464,6 @@ func (m *WorkoutExerciseMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *WorkoutExerciseMutation) ResetField(name string) error {
 	switch name {
-	case workoutexercise.FieldCreateTime:
-		m.ResetCreateTime()
-		return nil
-	case workoutexercise.FieldUpdateTime:
-		m.ResetUpdateTime()
-		return nil
 	case workoutexercise.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil

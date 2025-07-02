@@ -30,6 +30,46 @@ func (bu *BodyweightUpdate) Where(ps ...predicate.Bodyweight) *BodyweightUpdate 
 	return bu
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (bu *BodyweightUpdate) SetCreatedAt(t time.Time) *BodyweightUpdate {
+	bu.mutation.SetCreatedAt(t)
+	return bu
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (bu *BodyweightUpdate) SetNillableCreatedAt(t *time.Time) *BodyweightUpdate {
+	if t != nil {
+		bu.SetCreatedAt(*t)
+	}
+	return bu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (bu *BodyweightUpdate) SetUpdatedAt(t time.Time) *BodyweightUpdate {
+	bu.mutation.SetUpdatedAt(t)
+	return bu
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (bu *BodyweightUpdate) SetDeletedAt(t time.Time) *BodyweightUpdate {
+	bu.mutation.SetDeletedAt(t)
+	return bu
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (bu *BodyweightUpdate) SetNillableDeletedAt(t *time.Time) *BodyweightUpdate {
+	if t != nil {
+		bu.SetDeletedAt(*t)
+	}
+	return bu
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (bu *BodyweightUpdate) ClearDeletedAt() *BodyweightUpdate {
+	bu.mutation.ClearDeletedAt()
+	return bu
+}
+
 // SetUserID sets the "user_id" field.
 func (bu *BodyweightUpdate) SetUserID(u uuid.UUID) *BodyweightUpdate {
 	bu.mutation.SetUserID(u)
@@ -76,46 +116,6 @@ func (bu *BodyweightUpdate) SetNillableUnit(s *string) *BodyweightUpdate {
 	if s != nil {
 		bu.SetUnit(*s)
 	}
-	return bu
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (bu *BodyweightUpdate) SetCreatedAt(t time.Time) *BodyweightUpdate {
-	bu.mutation.SetCreatedAt(t)
-	return bu
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (bu *BodyweightUpdate) SetNillableCreatedAt(t *time.Time) *BodyweightUpdate {
-	if t != nil {
-		bu.SetCreatedAt(*t)
-	}
-	return bu
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (bu *BodyweightUpdate) SetUpdatedAt(t time.Time) *BodyweightUpdate {
-	bu.mutation.SetUpdatedAt(t)
-	return bu
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (bu *BodyweightUpdate) SetDeletedAt(t time.Time) *BodyweightUpdate {
-	bu.mutation.SetDeletedAt(t)
-	return bu
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (bu *BodyweightUpdate) SetNillableDeletedAt(t *time.Time) *BodyweightUpdate {
-	if t != nil {
-		bu.SetDeletedAt(*t)
-	}
-	return bu
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (bu *BodyweightUpdate) ClearDeletedAt() *BodyweightUpdate {
-	bu.mutation.ClearDeletedAt()
 	return bu
 }
 
@@ -201,15 +201,6 @@ func (bu *BodyweightUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := bu.mutation.Weight(); ok {
-		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
-	}
-	if value, ok := bu.mutation.AddedWeight(); ok {
-		_spec.AddField(bodyweight.FieldWeight, field.TypeFloat64, value)
-	}
-	if value, ok := bu.mutation.Unit(); ok {
-		_spec.SetField(bodyweight.FieldUnit, field.TypeString, value)
-	}
 	if value, ok := bu.mutation.CreatedAt(); ok {
 		_spec.SetField(bodyweight.FieldCreatedAt, field.TypeTime, value)
 	}
@@ -221,6 +212,15 @@ func (bu *BodyweightUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if bu.mutation.DeletedAtCleared() {
 		_spec.ClearField(bodyweight.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := bu.mutation.Weight(); ok {
+		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
+	}
+	if value, ok := bu.mutation.AddedWeight(); ok {
+		_spec.AddField(bodyweight.FieldWeight, field.TypeFloat64, value)
+	}
+	if value, ok := bu.mutation.Unit(); ok {
+		_spec.SetField(bodyweight.FieldUnit, field.TypeString, value)
 	}
 	if bu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -271,6 +271,46 @@ type BodyweightUpdateOne struct {
 	mutation *BodyweightMutation
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (buo *BodyweightUpdateOne) SetCreatedAt(t time.Time) *BodyweightUpdateOne {
+	buo.mutation.SetCreatedAt(t)
+	return buo
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (buo *BodyweightUpdateOne) SetNillableCreatedAt(t *time.Time) *BodyweightUpdateOne {
+	if t != nil {
+		buo.SetCreatedAt(*t)
+	}
+	return buo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (buo *BodyweightUpdateOne) SetUpdatedAt(t time.Time) *BodyweightUpdateOne {
+	buo.mutation.SetUpdatedAt(t)
+	return buo
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (buo *BodyweightUpdateOne) SetDeletedAt(t time.Time) *BodyweightUpdateOne {
+	buo.mutation.SetDeletedAt(t)
+	return buo
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (buo *BodyweightUpdateOne) SetNillableDeletedAt(t *time.Time) *BodyweightUpdateOne {
+	if t != nil {
+		buo.SetDeletedAt(*t)
+	}
+	return buo
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (buo *BodyweightUpdateOne) ClearDeletedAt() *BodyweightUpdateOne {
+	buo.mutation.ClearDeletedAt()
+	return buo
+}
+
 // SetUserID sets the "user_id" field.
 func (buo *BodyweightUpdateOne) SetUserID(u uuid.UUID) *BodyweightUpdateOne {
 	buo.mutation.SetUserID(u)
@@ -317,46 +357,6 @@ func (buo *BodyweightUpdateOne) SetNillableUnit(s *string) *BodyweightUpdateOne 
 	if s != nil {
 		buo.SetUnit(*s)
 	}
-	return buo
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (buo *BodyweightUpdateOne) SetCreatedAt(t time.Time) *BodyweightUpdateOne {
-	buo.mutation.SetCreatedAt(t)
-	return buo
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (buo *BodyweightUpdateOne) SetNillableCreatedAt(t *time.Time) *BodyweightUpdateOne {
-	if t != nil {
-		buo.SetCreatedAt(*t)
-	}
-	return buo
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (buo *BodyweightUpdateOne) SetUpdatedAt(t time.Time) *BodyweightUpdateOne {
-	buo.mutation.SetUpdatedAt(t)
-	return buo
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (buo *BodyweightUpdateOne) SetDeletedAt(t time.Time) *BodyweightUpdateOne {
-	buo.mutation.SetDeletedAt(t)
-	return buo
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (buo *BodyweightUpdateOne) SetNillableDeletedAt(t *time.Time) *BodyweightUpdateOne {
-	if t != nil {
-		buo.SetDeletedAt(*t)
-	}
-	return buo
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (buo *BodyweightUpdateOne) ClearDeletedAt() *BodyweightUpdateOne {
-	buo.mutation.ClearDeletedAt()
 	return buo
 }
 
@@ -472,15 +472,6 @@ func (buo *BodyweightUpdateOne) sqlSave(ctx context.Context) (_node *Bodyweight,
 			}
 		}
 	}
-	if value, ok := buo.mutation.Weight(); ok {
-		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
-	}
-	if value, ok := buo.mutation.AddedWeight(); ok {
-		_spec.AddField(bodyweight.FieldWeight, field.TypeFloat64, value)
-	}
-	if value, ok := buo.mutation.Unit(); ok {
-		_spec.SetField(bodyweight.FieldUnit, field.TypeString, value)
-	}
 	if value, ok := buo.mutation.CreatedAt(); ok {
 		_spec.SetField(bodyweight.FieldCreatedAt, field.TypeTime, value)
 	}
@@ -492,6 +483,15 @@ func (buo *BodyweightUpdateOne) sqlSave(ctx context.Context) (_node *Bodyweight,
 	}
 	if buo.mutation.DeletedAtCleared() {
 		_spec.ClearField(bodyweight.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := buo.mutation.Weight(); ok {
+		_spec.SetField(bodyweight.FieldWeight, field.TypeFloat64, value)
+	}
+	if value, ok := buo.mutation.AddedWeight(); ok {
+		_spec.AddField(bodyweight.FieldWeight, field.TypeFloat64, value)
+	}
+	if value, ok := buo.mutation.Unit(); ok {
+		_spec.SetField(bodyweight.FieldUnit, field.TypeString, value)
 	}
 	if buo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

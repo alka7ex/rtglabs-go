@@ -56,21 +56,6 @@ func IDLTE(id uuid.UUID) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldLTE(FieldID, id))
 }
 
-// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
-func UserID(v uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldEQ(FieldUserID, v))
-}
-
-// Weight applies equality check predicate on the "weight" field. It's identical to WeightEQ.
-func Weight(v float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldEQ(FieldWeight, v))
-}
-
-// Unit applies equality check predicate on the "unit" field. It's identical to UnitEQ.
-func Unit(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldEQ(FieldUnit, v))
-}
-
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldEQ(FieldCreatedAt, v))
@@ -86,129 +71,19 @@ func DeletedAt(v time.Time) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// UserIDEQ applies the EQ predicate on the "user_id" field.
-func UserIDEQ(v uuid.UUID) predicate.Bodyweight {
+// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
+func UserID(v uuid.UUID) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldEQ(FieldUserID, v))
 }
 
-// UserIDNEQ applies the NEQ predicate on the "user_id" field.
-func UserIDNEQ(v uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNEQ(FieldUserID, v))
-}
-
-// UserIDIn applies the In predicate on the "user_id" field.
-func UserIDIn(vs ...uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldIn(FieldUserID, vs...))
-}
-
-// UserIDNotIn applies the NotIn predicate on the "user_id" field.
-func UserIDNotIn(vs ...uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNotIn(FieldUserID, vs...))
-}
-
-// WeightEQ applies the EQ predicate on the "weight" field.
-func WeightEQ(v float64) predicate.Bodyweight {
+// Weight applies equality check predicate on the "weight" field. It's identical to WeightEQ.
+func Weight(v float64) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldEQ(FieldWeight, v))
 }
 
-// WeightNEQ applies the NEQ predicate on the "weight" field.
-func WeightNEQ(v float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNEQ(FieldWeight, v))
-}
-
-// WeightIn applies the In predicate on the "weight" field.
-func WeightIn(vs ...float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldIn(FieldWeight, vs...))
-}
-
-// WeightNotIn applies the NotIn predicate on the "weight" field.
-func WeightNotIn(vs ...float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNotIn(FieldWeight, vs...))
-}
-
-// WeightGT applies the GT predicate on the "weight" field.
-func WeightGT(v float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldGT(FieldWeight, v))
-}
-
-// WeightGTE applies the GTE predicate on the "weight" field.
-func WeightGTE(v float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldGTE(FieldWeight, v))
-}
-
-// WeightLT applies the LT predicate on the "weight" field.
-func WeightLT(v float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldLT(FieldWeight, v))
-}
-
-// WeightLTE applies the LTE predicate on the "weight" field.
-func WeightLTE(v float64) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldLTE(FieldWeight, v))
-}
-
-// UnitEQ applies the EQ predicate on the "unit" field.
-func UnitEQ(v string) predicate.Bodyweight {
+// Unit applies equality check predicate on the "unit" field. It's identical to UnitEQ.
+func Unit(v string) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldEQ(FieldUnit, v))
-}
-
-// UnitNEQ applies the NEQ predicate on the "unit" field.
-func UnitNEQ(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNEQ(FieldUnit, v))
-}
-
-// UnitIn applies the In predicate on the "unit" field.
-func UnitIn(vs ...string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldIn(FieldUnit, vs...))
-}
-
-// UnitNotIn applies the NotIn predicate on the "unit" field.
-func UnitNotIn(vs ...string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNotIn(FieldUnit, vs...))
-}
-
-// UnitGT applies the GT predicate on the "unit" field.
-func UnitGT(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldGT(FieldUnit, v))
-}
-
-// UnitGTE applies the GTE predicate on the "unit" field.
-func UnitGTE(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldGTE(FieldUnit, v))
-}
-
-// UnitLT applies the LT predicate on the "unit" field.
-func UnitLT(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldLT(FieldUnit, v))
-}
-
-// UnitLTE applies the LTE predicate on the "unit" field.
-func UnitLTE(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldLTE(FieldUnit, v))
-}
-
-// UnitContains applies the Contains predicate on the "unit" field.
-func UnitContains(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldContains(FieldUnit, v))
-}
-
-// UnitHasPrefix applies the HasPrefix predicate on the "unit" field.
-func UnitHasPrefix(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldHasPrefix(FieldUnit, v))
-}
-
-// UnitHasSuffix applies the HasSuffix predicate on the "unit" field.
-func UnitHasSuffix(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldHasSuffix(FieldUnit, v))
-}
-
-// UnitEqualFold applies the EqualFold predicate on the "unit" field.
-func UnitEqualFold(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldEqualFold(FieldUnit, v))
-}
-
-// UnitContainsFold applies the ContainsFold predicate on the "unit" field.
-func UnitContainsFold(v string) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldContainsFold(FieldUnit, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
@@ -339,6 +214,131 @@ func DeletedAtIsNil() predicate.Bodyweight {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// UserIDEQ applies the EQ predicate on the "user_id" field.
+func UserIDEQ(v uuid.UUID) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldEQ(FieldUserID, v))
+}
+
+// UserIDNEQ applies the NEQ predicate on the "user_id" field.
+func UserIDNEQ(v uuid.UUID) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldNEQ(FieldUserID, v))
+}
+
+// UserIDIn applies the In predicate on the "user_id" field.
+func UserIDIn(vs ...uuid.UUID) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldIn(FieldUserID, vs...))
+}
+
+// UserIDNotIn applies the NotIn predicate on the "user_id" field.
+func UserIDNotIn(vs ...uuid.UUID) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// WeightEQ applies the EQ predicate on the "weight" field.
+func WeightEQ(v float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldEQ(FieldWeight, v))
+}
+
+// WeightNEQ applies the NEQ predicate on the "weight" field.
+func WeightNEQ(v float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldNEQ(FieldWeight, v))
+}
+
+// WeightIn applies the In predicate on the "weight" field.
+func WeightIn(vs ...float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldIn(FieldWeight, vs...))
+}
+
+// WeightNotIn applies the NotIn predicate on the "weight" field.
+func WeightNotIn(vs ...float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldNotIn(FieldWeight, vs...))
+}
+
+// WeightGT applies the GT predicate on the "weight" field.
+func WeightGT(v float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldGT(FieldWeight, v))
+}
+
+// WeightGTE applies the GTE predicate on the "weight" field.
+func WeightGTE(v float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldGTE(FieldWeight, v))
+}
+
+// WeightLT applies the LT predicate on the "weight" field.
+func WeightLT(v float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldLT(FieldWeight, v))
+}
+
+// WeightLTE applies the LTE predicate on the "weight" field.
+func WeightLTE(v float64) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldLTE(FieldWeight, v))
+}
+
+// UnitEQ applies the EQ predicate on the "unit" field.
+func UnitEQ(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldEQ(FieldUnit, v))
+}
+
+// UnitNEQ applies the NEQ predicate on the "unit" field.
+func UnitNEQ(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldNEQ(FieldUnit, v))
+}
+
+// UnitIn applies the In predicate on the "unit" field.
+func UnitIn(vs ...string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldIn(FieldUnit, vs...))
+}
+
+// UnitNotIn applies the NotIn predicate on the "unit" field.
+func UnitNotIn(vs ...string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldNotIn(FieldUnit, vs...))
+}
+
+// UnitGT applies the GT predicate on the "unit" field.
+func UnitGT(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldGT(FieldUnit, v))
+}
+
+// UnitGTE applies the GTE predicate on the "unit" field.
+func UnitGTE(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldGTE(FieldUnit, v))
+}
+
+// UnitLT applies the LT predicate on the "unit" field.
+func UnitLT(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldLT(FieldUnit, v))
+}
+
+// UnitLTE applies the LTE predicate on the "unit" field.
+func UnitLTE(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldLTE(FieldUnit, v))
+}
+
+// UnitContains applies the Contains predicate on the "unit" field.
+func UnitContains(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldContains(FieldUnit, v))
+}
+
+// UnitHasPrefix applies the HasPrefix predicate on the "unit" field.
+func UnitHasPrefix(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldHasPrefix(FieldUnit, v))
+}
+
+// UnitHasSuffix applies the HasSuffix predicate on the "unit" field.
+func UnitHasSuffix(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldHasSuffix(FieldUnit, v))
+}
+
+// UnitEqualFold applies the EqualFold predicate on the "unit" field.
+func UnitEqualFold(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldEqualFold(FieldUnit, v))
+}
+
+// UnitContainsFold applies the ContainsFold predicate on the "unit" field.
+func UnitContainsFold(v string) predicate.Bodyweight {
+	return predicate.Bodyweight(sql.FieldContainsFold(FieldUnit, v))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

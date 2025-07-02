@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"time"
+	custommixin "rtglabs-go/ent/schema/mixin"
 
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
@@ -12,6 +12,13 @@ import (
 // User holds the schema definition for the User entity.
 type User struct {
 	ent.Schema
+}
+
+func (User) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		custommixin.UUID{},       // Maps to the 'id' primary key
+		custommixin.Timestamps{}, // Maps to 'timestampsTz' and 'softDeletesTz'
+	}
 }
 
 // Fields of the User.
@@ -27,17 +34,6 @@ func (User) Fields() []ent.Field {
 			Sensitive().
 			NotEmpty(),
 		field.Time("email_verified_at").
-			Optional().
-			Nillable(),
-
-		field.Time("created_at").
-			Default(time.Now),
-
-		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
-
-		field.Time("deleted_at").
 			Optional().
 			Nillable(),
 	}

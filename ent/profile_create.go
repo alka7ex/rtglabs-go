@@ -22,6 +22,48 @@ type ProfileCreate struct {
 	hooks    []Hook
 }
 
+// SetCreatedAt sets the "created_at" field.
+func (pc *ProfileCreate) SetCreatedAt(t time.Time) *ProfileCreate {
+	pc.mutation.SetCreatedAt(t)
+	return pc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (pc *ProfileCreate) SetNillableCreatedAt(t *time.Time) *ProfileCreate {
+	if t != nil {
+		pc.SetCreatedAt(*t)
+	}
+	return pc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (pc *ProfileCreate) SetUpdatedAt(t time.Time) *ProfileCreate {
+	pc.mutation.SetUpdatedAt(t)
+	return pc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (pc *ProfileCreate) SetNillableUpdatedAt(t *time.Time) *ProfileCreate {
+	if t != nil {
+		pc.SetUpdatedAt(*t)
+	}
+	return pc
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (pc *ProfileCreate) SetDeletedAt(t time.Time) *ProfileCreate {
+	pc.mutation.SetDeletedAt(t)
+	return pc
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (pc *ProfileCreate) SetNillableDeletedAt(t *time.Time) *ProfileCreate {
+	if t != nil {
+		pc.SetDeletedAt(*t)
+	}
+	return pc
+}
+
 // SetUnits sets the "units" field.
 func (pc *ProfileCreate) SetUnits(i int) *ProfileCreate {
 	pc.mutation.SetUnits(i)
@@ -62,48 +104,6 @@ func (pc *ProfileCreate) SetUserID(u uuid.UUID) *ProfileCreate {
 func (pc *ProfileCreate) SetNillableUserID(u *uuid.UUID) *ProfileCreate {
 	if u != nil {
 		pc.SetUserID(*u)
-	}
-	return pc
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (pc *ProfileCreate) SetCreatedAt(t time.Time) *ProfileCreate {
-	pc.mutation.SetCreatedAt(t)
-	return pc
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (pc *ProfileCreate) SetNillableCreatedAt(t *time.Time) *ProfileCreate {
-	if t != nil {
-		pc.SetCreatedAt(*t)
-	}
-	return pc
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (pc *ProfileCreate) SetUpdatedAt(t time.Time) *ProfileCreate {
-	pc.mutation.SetUpdatedAt(t)
-	return pc
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (pc *ProfileCreate) SetNillableUpdatedAt(t *time.Time) *ProfileCreate {
-	if t != nil {
-		pc.SetUpdatedAt(*t)
-	}
-	return pc
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (pc *ProfileCreate) SetDeletedAt(t time.Time) *ProfileCreate {
-	pc.mutation.SetDeletedAt(t)
-	return pc
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (pc *ProfileCreate) SetNillableDeletedAt(t *time.Time) *ProfileCreate {
-	if t != nil {
-		pc.SetDeletedAt(*t)
 	}
 	return pc
 }
@@ -178,6 +178,12 @@ func (pc *ProfileCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pc *ProfileCreate) check() error {
+	if _, ok := pc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Profile.created_at"`)}
+	}
+	if _, ok := pc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Profile.updated_at"`)}
+	}
 	if _, ok := pc.mutation.Units(); !ok {
 		return &ValidationError{Name: "units", err: errors.New(`ent: missing required field "Profile.units"`)}
 	}
@@ -192,12 +198,6 @@ func (pc *ProfileCreate) check() error {
 	}
 	if _, ok := pc.mutation.Weight(); !ok {
 		return &ValidationError{Name: "weight", err: errors.New(`ent: missing required field "Profile.weight"`)}
-	}
-	if _, ok := pc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Profile.created_at"`)}
-	}
-	if _, ok := pc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Profile.updated_at"`)}
 	}
 	return nil
 }
@@ -234,6 +234,18 @@ func (pc *ProfileCreate) createSpec() (*Profile, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
+	if value, ok := pc.mutation.CreatedAt(); ok {
+		_spec.SetField(profile.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := pc.mutation.UpdatedAt(); ok {
+		_spec.SetField(profile.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := pc.mutation.DeletedAt(); ok {
+		_spec.SetField(profile.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
 	if value, ok := pc.mutation.Units(); ok {
 		_spec.SetField(profile.FieldUnits, field.TypeInt, value)
 		_node.Units = value
@@ -253,18 +265,6 @@ func (pc *ProfileCreate) createSpec() (*Profile, *sqlgraph.CreateSpec) {
 	if value, ok := pc.mutation.Weight(); ok {
 		_spec.SetField(profile.FieldWeight, field.TypeFloat64, value)
 		_node.Weight = value
-	}
-	if value, ok := pc.mutation.CreatedAt(); ok {
-		_spec.SetField(profile.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = &value
-	}
-	if value, ok := pc.mutation.UpdatedAt(); ok {
-		_spec.SetField(profile.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = &value
-	}
-	if value, ok := pc.mutation.DeletedAt(); ok {
-		_spec.SetField(profile.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
 	}
 	if nodes := pc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

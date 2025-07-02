@@ -31,12 +31,6 @@ func (eu *ExerciseUpdate) Where(ps ...predicate.Exercise) *ExerciseUpdate {
 	return eu
 }
 
-// SetUpdateTime sets the "update_time" field.
-func (eu *ExerciseUpdate) SetUpdateTime(t time.Time) *ExerciseUpdate {
-	eu.mutation.SetUpdateTime(t)
-	return eu
-}
-
 // SetCreatedAt sets the "created_at" field.
 func (eu *ExerciseUpdate) SetCreatedAt(t time.Time) *ExerciseUpdate {
 	eu.mutation.SetCreatedAt(t)
@@ -198,10 +192,6 @@ func (eu *ExerciseUpdate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (eu *ExerciseUpdate) defaults() {
-	if _, ok := eu.mutation.UpdateTime(); !ok {
-		v := exercise.UpdateDefaultUpdateTime()
-		eu.mutation.SetUpdateTime(v)
-	}
 	if _, ok := eu.mutation.UpdatedAt(); !ok {
 		v := exercise.UpdateDefaultUpdatedAt()
 		eu.mutation.SetUpdatedAt(v)
@@ -216,9 +206,6 @@ func (eu *ExerciseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := eu.mutation.UpdateTime(); ok {
-		_spec.SetField(exercise.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := eu.mutation.CreatedAt(); ok {
 		_spec.SetField(exercise.FieldCreatedAt, field.TypeTime, value)
@@ -343,12 +330,6 @@ type ExerciseUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ExerciseMutation
-}
-
-// SetUpdateTime sets the "update_time" field.
-func (euo *ExerciseUpdateOne) SetUpdateTime(t time.Time) *ExerciseUpdateOne {
-	euo.mutation.SetUpdateTime(t)
-	return euo
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -525,10 +506,6 @@ func (euo *ExerciseUpdateOne) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (euo *ExerciseUpdateOne) defaults() {
-	if _, ok := euo.mutation.UpdateTime(); !ok {
-		v := exercise.UpdateDefaultUpdateTime()
-		euo.mutation.SetUpdateTime(v)
-	}
 	if _, ok := euo.mutation.UpdatedAt(); !ok {
 		v := exercise.UpdateDefaultUpdatedAt()
 		euo.mutation.SetUpdatedAt(v)
@@ -560,9 +537,6 @@ func (euo *ExerciseUpdateOne) sqlSave(ctx context.Context) (_node *Exercise, err
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := euo.mutation.UpdateTime(); ok {
-		_spec.SetField(exercise.FieldUpdateTime, field.TypeTime, value)
 	}
 	if value, ok := euo.mutation.CreatedAt(); ok {
 		_spec.SetField(exercise.FieldCreatedAt, field.TypeTime, value)

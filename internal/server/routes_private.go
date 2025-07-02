@@ -7,6 +7,7 @@ import (
 	"rtglabs-go/internal/database"
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
+	exercise_handler "rtglabs-go/internal/handlers/exercise"
 )
 
 // registerPrivateRoutes registers all routes that require authentication.
@@ -19,6 +20,8 @@ func (s *Server) registerPrivateRoutes() {
 
 	// Create the bodyweight handler instance using the correct package alias
 	bwHandler := bw_handlers.NewBodyweightHandler(entClient)
+
+	exerciseHandler := exercise_handler.NewExerciseHandler(entClient)
 
 	// FIX 1: Create the group from the server's Echo instance.
 	g := s.echo.Group("/api")
@@ -56,5 +59,7 @@ func (s *Server) registerPrivateRoutes() {
 	g.GET("/bodyweights/:id", bwHandler.GetBodyweight)
 	g.PUT("/bodyweights/:id", bwHandler.UpdateBodyweight)
 	g.DELETE("/bodyweights/:id", bwHandler.DestroyBodyweight)
-}
 
+	// Protected Exercise routes
+	g.GET("/exercise", exerciseHandler.IndexExercise)
+}

@@ -326,14 +326,6 @@ func toBodyweightResponse(bw *ent.Bodyweight) dto.BodyweightResponse {
 	// Safely dereference the pointer fields, assigning a zero value if they are nil.
 	// This prevents a runtime panic.
 	var createdAt time.Time
-	if bw.CreatedAt != nil {
-		createdAt = *bw.CreatedAt
-	}
-
-	var updatedAt time.Time
-	if bw.UpdatedAt != nil {
-		updatedAt = *bw.UpdatedAt
-	}
 
 	// This part is from our previous fix, converting string to int.
 	unit, err := strconv.Atoi(bw.Unit)
@@ -354,8 +346,6 @@ func toBodyweightResponse(bw *ent.Bodyweight) dto.BodyweightResponse {
 		Weight:    bw.Weight,
 		Unit:      unit,
 		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
 		DeletedAt: deletedAt,
 	}
 }
-

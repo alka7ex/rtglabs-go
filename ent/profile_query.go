@@ -299,12 +299,12 @@ func (pq *ProfileQuery) WithUser(opts ...func(*UserQuery)) *ProfileQuery {
 // Example:
 //
 //	var v []struct {
-//		Units int `json:"units,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Profile.Query().
-//		GroupBy(profile.FieldUnits).
+//		GroupBy(profile.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (pq *ProfileQuery) GroupBy(field string, fields ...string) *ProfileGroupBy {
@@ -322,11 +322,11 @@ func (pq *ProfileQuery) GroupBy(field string, fields ...string) *ProfileGroupBy 
 // Example:
 //
 //	var v []struct {
-//		Units int `json:"units,omitempty"`
+//		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
 //	client.Profile.Query().
-//		Select(profile.FieldUnits).
+//		Select(profile.FieldCreatedAt).
 //		Scan(ctx, &v)
 func (pq *ProfileQuery) Select(fields ...string) *ProfileSelect {
 	pq.ctx.Fields = append(pq.ctx.Fields, fields...)
