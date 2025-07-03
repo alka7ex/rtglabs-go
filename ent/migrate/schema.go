@@ -123,6 +123,29 @@ var (
 			},
 		},
 	}
+	// PrivateTokensColumns holds the columns for the "private_tokens" table.
+	PrivateTokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "token", Type: field.TypeString, Unique: true},
+		{Name: "type", Type: field.TypeString},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_private_token", Type: field.TypeUUID},
+	}
+	// PrivateTokensTable holds the schema information for the "private_tokens" table.
+	PrivateTokensTable = &schema.Table{
+		Name:       "private_tokens",
+		Columns:    PrivateTokensColumns,
+		PrimaryKey: []*schema.Column{PrivateTokensColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "private_tokens_users_private_token",
+				Columns:    []*schema.Column{PrivateTokensColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// ProfilesColumns holds the columns for the "profiles" table.
 	ProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
@@ -299,6 +322,7 @@ var (
 		ExercisesTable,
 		ExerciseInstancesTable,
 		ExerciseSetsTable,
+		PrivateTokensTable,
 		ProfilesTable,
 		SessionsTable,
 		UsersTable,
@@ -315,6 +339,7 @@ func init() {
 	ExerciseSetsTable.ForeignKeys[0].RefTable = ExercisesTable
 	ExerciseSetsTable.ForeignKeys[1].RefTable = ExerciseInstancesTable
 	ExerciseSetsTable.ForeignKeys[2].RefTable = WorkoutLogsTable
+	PrivateTokensTable.ForeignKeys[0].RefTable = UsersTable
 	ProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 	WorkoutsTable.ForeignKeys[0].RefTable = UsersTable

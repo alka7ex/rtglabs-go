@@ -39,6 +39,8 @@ const (
 	EdgeWorkouts = "workouts"
 	// EdgeWorkoutLogs holds the string denoting the workout_logs edge name in mutations.
 	EdgeWorkoutLogs = "workout_logs"
+	// EdgePrivateToken holds the string denoting the private_token edge name in mutations.
+	EdgePrivateToken = "private_token"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// BodyweightsTable is the table that holds the bodyweights relation/edge.
@@ -76,6 +78,13 @@ const (
 	WorkoutLogsInverseTable = "workout_logs"
 	// WorkoutLogsColumn is the table column denoting the workout_logs relation/edge.
 	WorkoutLogsColumn = "user_workout_logs"
+	// PrivateTokenTable is the table that holds the private_token relation/edge.
+	PrivateTokenTable = "private_tokens"
+	// PrivateTokenInverseTable is the table name for the PrivateToken entity.
+	// It exists in this package in order to avoid circular dependency with the "privatetoken" package.
+	PrivateTokenInverseTable = "private_tokens"
+	// PrivateTokenColumn is the table column denoting the private_token relation/edge.
+	PrivateTokenColumn = "user_private_token"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -222,6 +231,20 @@ func ByWorkoutLogs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newWorkoutLogsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByPrivateTokenCount orders the results by private_token count.
+func ByPrivateTokenCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPrivateTokenStep(), opts...)
+	}
+}
+
+// ByPrivateToken orders the results by private_token terms.
+func ByPrivateToken(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPrivateTokenStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newBodyweightsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -255,5 +278,12 @@ func newWorkoutLogsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(WorkoutLogsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, WorkoutLogsTable, WorkoutLogsColumn),
+	)
+}
+func newPrivateTokenStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PrivateTokenInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PrivateTokenTable, PrivateTokenColumn),
 	)
 }

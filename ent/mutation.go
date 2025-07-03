@@ -11,6 +11,7 @@ import (
 	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/exerciseset"
 	"rtglabs-go/ent/predicate"
+	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -38,6 +39,7 @@ const (
 	TypeExercise         = "Exercise"
 	TypeExerciseInstance = "ExerciseInstance"
 	TypeExerciseSet      = "ExerciseSet"
+	TypePrivateToken     = "PrivateToken"
 	TypeProfile          = "Profile"
 	TypeSession          = "Session"
 	TypeUser             = "User"
@@ -3361,6 +3363,567 @@ func (m *ExerciseSetMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ExerciseSet edge %s", name)
 }
 
+// PrivateTokenMutation represents an operation that mutates the PrivateToken nodes in the graph.
+type PrivateTokenMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	token         *string
+	_type         *string
+	expires_at    *time.Time
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	user          *uuid.UUID
+	cleareduser   bool
+	done          bool
+	oldValue      func(context.Context) (*PrivateToken, error)
+	predicates    []predicate.PrivateToken
+}
+
+var _ ent.Mutation = (*PrivateTokenMutation)(nil)
+
+// privatetokenOption allows management of the mutation configuration using functional options.
+type privatetokenOption func(*PrivateTokenMutation)
+
+// newPrivateTokenMutation creates new mutation for the PrivateToken entity.
+func newPrivateTokenMutation(c config, op Op, opts ...privatetokenOption) *PrivateTokenMutation {
+	m := &PrivateTokenMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePrivateToken,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPrivateTokenID sets the ID field of the mutation.
+func withPrivateTokenID(id uuid.UUID) privatetokenOption {
+	return func(m *PrivateTokenMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PrivateToken
+		)
+		m.oldValue = func(ctx context.Context) (*PrivateToken, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PrivateToken.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPrivateToken sets the old PrivateToken of the mutation.
+func withPrivateToken(node *PrivateToken) privatetokenOption {
+	return func(m *PrivateTokenMutation) {
+		m.oldValue = func(context.Context) (*PrivateToken, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PrivateTokenMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PrivateTokenMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PrivateToken entities.
+func (m *PrivateTokenMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PrivateTokenMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PrivateTokenMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PrivateToken.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetToken sets the "token" field.
+func (m *PrivateTokenMutation) SetToken(s string) {
+	m.token = &s
+}
+
+// Token returns the value of the "token" field in the mutation.
+func (m *PrivateTokenMutation) Token() (r string, exists bool) {
+	v := m.token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldToken returns the old "token" field's value of the PrivateToken entity.
+// If the PrivateToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateTokenMutation) OldToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldToken: %w", err)
+	}
+	return oldValue.Token, nil
+}
+
+// ResetToken resets all changes to the "token" field.
+func (m *PrivateTokenMutation) ResetToken() {
+	m.token = nil
+}
+
+// SetType sets the "type" field.
+func (m *PrivateTokenMutation) SetType(s string) {
+	m._type = &s
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *PrivateTokenMutation) GetType() (r string, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the PrivateToken entity.
+// If the PrivateToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateTokenMutation) OldType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *PrivateTokenMutation) ResetType() {
+	m._type = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *PrivateTokenMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *PrivateTokenMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the PrivateToken entity.
+// If the PrivateToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateTokenMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *PrivateTokenMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PrivateTokenMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PrivateTokenMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PrivateToken entity.
+// If the PrivateToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrivateTokenMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PrivateTokenMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *PrivateTokenMutation) SetUserID(id uuid.UUID) {
+	m.user = &id
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *PrivateTokenMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *PrivateTokenMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserID returns the "user" edge ID in the mutation.
+func (m *PrivateTokenMutation) UserID() (id uuid.UUID, exists bool) {
+	if m.user != nil {
+		return *m.user, true
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *PrivateTokenMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *PrivateTokenMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// Where appends a list predicates to the PrivateTokenMutation builder.
+func (m *PrivateTokenMutation) Where(ps ...predicate.PrivateToken) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PrivateTokenMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PrivateTokenMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PrivateToken, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PrivateTokenMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PrivateTokenMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PrivateToken).
+func (m *PrivateTokenMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PrivateTokenMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.token != nil {
+		fields = append(fields, privatetoken.FieldToken)
+	}
+	if m._type != nil {
+		fields = append(fields, privatetoken.FieldType)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, privatetoken.FieldExpiresAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, privatetoken.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PrivateTokenMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case privatetoken.FieldToken:
+		return m.Token()
+	case privatetoken.FieldType:
+		return m.GetType()
+	case privatetoken.FieldExpiresAt:
+		return m.ExpiresAt()
+	case privatetoken.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PrivateTokenMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case privatetoken.FieldToken:
+		return m.OldToken(ctx)
+	case privatetoken.FieldType:
+		return m.OldType(ctx)
+	case privatetoken.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case privatetoken.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PrivateToken field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PrivateTokenMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case privatetoken.FieldToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetToken(v)
+		return nil
+	case privatetoken.FieldType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case privatetoken.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case privatetoken.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PrivateToken field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PrivateTokenMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PrivateTokenMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PrivateTokenMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PrivateToken numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PrivateTokenMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PrivateTokenMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PrivateTokenMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PrivateToken nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PrivateTokenMutation) ResetField(name string) error {
+	switch name {
+	case privatetoken.FieldToken:
+		m.ResetToken()
+		return nil
+	case privatetoken.FieldType:
+		m.ResetType()
+		return nil
+	case privatetoken.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case privatetoken.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PrivateToken field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PrivateTokenMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.user != nil {
+		edges = append(edges, privatetoken.EdgeUser)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PrivateTokenMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case privatetoken.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PrivateTokenMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PrivateTokenMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PrivateTokenMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareduser {
+		edges = append(edges, privatetoken.EdgeUser)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PrivateTokenMutation) EdgeCleared(name string) bool {
+	switch name {
+	case privatetoken.EdgeUser:
+		return m.cleareduser
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PrivateTokenMutation) ClearEdge(name string) error {
+	switch name {
+	case privatetoken.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown PrivateToken unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PrivateTokenMutation) ResetEdge(name string) error {
+	switch name {
+	case privatetoken.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
+	return fmt.Errorf("unknown PrivateToken edge %s", name)
+}
+
 // ProfileMutation represents an operation that mutates the Profile nodes in the graph.
 type ProfileMutation struct {
 	config
@@ -4838,34 +5401,37 @@ func (m *SessionMutation) ResetEdge(name string) error {
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *uuid.UUID
-	created_at          *time.Time
-	updated_at          *time.Time
-	deleted_at          *time.Time
-	name                *string
-	email               *string
-	password            *string
-	email_verified_at   *time.Time
-	clearedFields       map[string]struct{}
-	bodyweights         map[uuid.UUID]struct{}
-	removedbodyweights  map[uuid.UUID]struct{}
-	clearedbodyweights  bool
-	sessions            map[uuid.UUID]struct{}
-	removedsessions     map[uuid.UUID]struct{}
-	clearedsessions     bool
-	profile             *uuid.UUID
-	clearedprofile      bool
-	workouts            map[uuid.UUID]struct{}
-	removedworkouts     map[uuid.UUID]struct{}
-	clearedworkouts     bool
-	workout_logs        map[uuid.UUID]struct{}
-	removedworkout_logs map[uuid.UUID]struct{}
-	clearedworkout_logs bool
-	done                bool
-	oldValue            func(context.Context) (*User, error)
-	predicates          []predicate.User
+	op                   Op
+	typ                  string
+	id                   *uuid.UUID
+	created_at           *time.Time
+	updated_at           *time.Time
+	deleted_at           *time.Time
+	name                 *string
+	email                *string
+	password             *string
+	email_verified_at    *time.Time
+	clearedFields        map[string]struct{}
+	bodyweights          map[uuid.UUID]struct{}
+	removedbodyweights   map[uuid.UUID]struct{}
+	clearedbodyweights   bool
+	sessions             map[uuid.UUID]struct{}
+	removedsessions      map[uuid.UUID]struct{}
+	clearedsessions      bool
+	profile              *uuid.UUID
+	clearedprofile       bool
+	workouts             map[uuid.UUID]struct{}
+	removedworkouts      map[uuid.UUID]struct{}
+	clearedworkouts      bool
+	workout_logs         map[uuid.UUID]struct{}
+	removedworkout_logs  map[uuid.UUID]struct{}
+	clearedworkout_logs  bool
+	private_token        map[uuid.UUID]struct{}
+	removedprivate_token map[uuid.UUID]struct{}
+	clearedprivate_token bool
+	done                 bool
+	oldValue             func(context.Context) (*User, error)
+	predicates           []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -5505,6 +6071,60 @@ func (m *UserMutation) ResetWorkoutLogs() {
 	m.removedworkout_logs = nil
 }
 
+// AddPrivateTokenIDs adds the "private_token" edge to the PrivateToken entity by ids.
+func (m *UserMutation) AddPrivateTokenIDs(ids ...uuid.UUID) {
+	if m.private_token == nil {
+		m.private_token = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.private_token[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPrivateToken clears the "private_token" edge to the PrivateToken entity.
+func (m *UserMutation) ClearPrivateToken() {
+	m.clearedprivate_token = true
+}
+
+// PrivateTokenCleared reports if the "private_token" edge to the PrivateToken entity was cleared.
+func (m *UserMutation) PrivateTokenCleared() bool {
+	return m.clearedprivate_token
+}
+
+// RemovePrivateTokenIDs removes the "private_token" edge to the PrivateToken entity by IDs.
+func (m *UserMutation) RemovePrivateTokenIDs(ids ...uuid.UUID) {
+	if m.removedprivate_token == nil {
+		m.removedprivate_token = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.private_token, ids[i])
+		m.removedprivate_token[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPrivateToken returns the removed IDs of the "private_token" edge to the PrivateToken entity.
+func (m *UserMutation) RemovedPrivateTokenIDs() (ids []uuid.UUID) {
+	for id := range m.removedprivate_token {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PrivateTokenIDs returns the "private_token" edge IDs in the mutation.
+func (m *UserMutation) PrivateTokenIDs() (ids []uuid.UUID) {
+	for id := range m.private_token {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPrivateToken resets all changes to the "private_token" edge.
+func (m *UserMutation) ResetPrivateToken() {
+	m.private_token = nil
+	m.clearedprivate_token = false
+	m.removedprivate_token = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -5755,7 +6375,7 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.bodyweights != nil {
 		edges = append(edges, user.EdgeBodyweights)
 	}
@@ -5770,6 +6390,9 @@ func (m *UserMutation) AddedEdges() []string {
 	}
 	if m.workout_logs != nil {
 		edges = append(edges, user.EdgeWorkoutLogs)
+	}
+	if m.private_token != nil {
+		edges = append(edges, user.EdgePrivateToken)
 	}
 	return edges
 }
@@ -5806,13 +6429,19 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgePrivateToken:
+		ids := make([]ent.Value, 0, len(m.private_token))
+		for id := range m.private_token {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedbodyweights != nil {
 		edges = append(edges, user.EdgeBodyweights)
 	}
@@ -5824,6 +6453,9 @@ func (m *UserMutation) RemovedEdges() []string {
 	}
 	if m.removedworkout_logs != nil {
 		edges = append(edges, user.EdgeWorkoutLogs)
+	}
+	if m.removedprivate_token != nil {
+		edges = append(edges, user.EdgePrivateToken)
 	}
 	return edges
 }
@@ -5856,13 +6488,19 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgePrivateToken:
+		ids := make([]ent.Value, 0, len(m.removedprivate_token))
+		for id := range m.removedprivate_token {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedbodyweights {
 		edges = append(edges, user.EdgeBodyweights)
 	}
@@ -5877,6 +6515,9 @@ func (m *UserMutation) ClearedEdges() []string {
 	}
 	if m.clearedworkout_logs {
 		edges = append(edges, user.EdgeWorkoutLogs)
+	}
+	if m.clearedprivate_token {
+		edges = append(edges, user.EdgePrivateToken)
 	}
 	return edges
 }
@@ -5895,6 +6536,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedworkouts
 	case user.EdgeWorkoutLogs:
 		return m.clearedworkout_logs
+	case user.EdgePrivateToken:
+		return m.clearedprivate_token
 	}
 	return false
 }
@@ -5928,6 +6571,9 @@ func (m *UserMutation) ResetEdge(name string) error {
 		return nil
 	case user.EdgeWorkoutLogs:
 		m.ResetWorkoutLogs()
+		return nil
+	case user.EdgePrivateToken:
+		m.ResetPrivateToken()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

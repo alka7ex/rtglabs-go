@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/predicate"
+	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -215,6 +216,21 @@ func (uu *UserUpdate) AddWorkoutLogs(w ...*WorkoutLog) *UserUpdate {
 	return uu.AddWorkoutLogIDs(ids...)
 }
 
+// AddPrivateTokenIDs adds the "private_token" edge to the PrivateToken entity by IDs.
+func (uu *UserUpdate) AddPrivateTokenIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddPrivateTokenIDs(ids...)
+	return uu
+}
+
+// AddPrivateToken adds the "private_token" edges to the PrivateToken entity.
+func (uu *UserUpdate) AddPrivateToken(p ...*PrivateToken) *UserUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uu.AddPrivateTokenIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
@@ -308,6 +324,27 @@ func (uu *UserUpdate) RemoveWorkoutLogs(w ...*WorkoutLog) *UserUpdate {
 		ids[i] = w[i].ID
 	}
 	return uu.RemoveWorkoutLogIDs(ids...)
+}
+
+// ClearPrivateToken clears all "private_token" edges to the PrivateToken entity.
+func (uu *UserUpdate) ClearPrivateToken() *UserUpdate {
+	uu.mutation.ClearPrivateToken()
+	return uu
+}
+
+// RemovePrivateTokenIDs removes the "private_token" edge to PrivateToken entities by IDs.
+func (uu *UserUpdate) RemovePrivateTokenIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemovePrivateTokenIDs(ids...)
+	return uu
+}
+
+// RemovePrivateToken removes "private_token" edges to PrivateToken entities.
+func (uu *UserUpdate) RemovePrivateToken(p ...*PrivateToken) *UserUpdate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uu.RemovePrivateTokenIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -614,6 +651,51 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if uu.mutation.PrivateTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PrivateTokenTable,
+			Columns: []string{user.PrivateTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(privatetoken.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedPrivateTokenIDs(); len(nodes) > 0 && !uu.mutation.PrivateTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PrivateTokenTable,
+			Columns: []string{user.PrivateTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(privatetoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.PrivateTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PrivateTokenTable,
+			Columns: []string{user.PrivateTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(privatetoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -815,6 +897,21 @@ func (uuo *UserUpdateOne) AddWorkoutLogs(w ...*WorkoutLog) *UserUpdateOne {
 	return uuo.AddWorkoutLogIDs(ids...)
 }
 
+// AddPrivateTokenIDs adds the "private_token" edge to the PrivateToken entity by IDs.
+func (uuo *UserUpdateOne) AddPrivateTokenIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddPrivateTokenIDs(ids...)
+	return uuo
+}
+
+// AddPrivateToken adds the "private_token" edges to the PrivateToken entity.
+func (uuo *UserUpdateOne) AddPrivateToken(p ...*PrivateToken) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uuo.AddPrivateTokenIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
@@ -908,6 +1005,27 @@ func (uuo *UserUpdateOne) RemoveWorkoutLogs(w ...*WorkoutLog) *UserUpdateOne {
 		ids[i] = w[i].ID
 	}
 	return uuo.RemoveWorkoutLogIDs(ids...)
+}
+
+// ClearPrivateToken clears all "private_token" edges to the PrivateToken entity.
+func (uuo *UserUpdateOne) ClearPrivateToken() *UserUpdateOne {
+	uuo.mutation.ClearPrivateToken()
+	return uuo
+}
+
+// RemovePrivateTokenIDs removes the "private_token" edge to PrivateToken entities by IDs.
+func (uuo *UserUpdateOne) RemovePrivateTokenIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemovePrivateTokenIDs(ids...)
+	return uuo
+}
+
+// RemovePrivateToken removes "private_token" edges to PrivateToken entities.
+func (uuo *UserUpdateOne) RemovePrivateToken(p ...*PrivateToken) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uuo.RemovePrivateTokenIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -1237,6 +1355,51 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(workoutlog.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.PrivateTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PrivateTokenTable,
+			Columns: []string{user.PrivateTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(privatetoken.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedPrivateTokenIDs(); len(nodes) > 0 && !uuo.mutation.PrivateTokenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PrivateTokenTable,
+			Columns: []string{user.PrivateTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(privatetoken.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.PrivateTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PrivateTokenTable,
+			Columns: []string{user.PrivateTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(privatetoken.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

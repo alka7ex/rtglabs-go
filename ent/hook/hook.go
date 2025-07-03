@@ -56,6 +56,18 @@ func (f ExerciseSetFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ExerciseSetMutation", m)
 }
 
+// The PrivateTokenFunc type is an adapter to allow the use of ordinary
+// function as PrivateToken mutator.
+type PrivateTokenFunc func(context.Context, *ent.PrivateTokenMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PrivateTokenFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PrivateTokenMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PrivateTokenMutation", m)
+}
+
 // The ProfileFunc type is an adapter to allow the use of ordinary
 // function as Profile mutator.
 type ProfileFunc func(context.Context, *ent.ProfileMutation) (ent.Value, error)

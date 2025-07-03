@@ -16,6 +16,8 @@ func (s *Server) registerPublicRoutes() {
 	// Initialize Ent Client here if needed for handlers
 	entClient := database.NewEntClient() // Assuming you need this for auth handler
 
+	forgotPasswordHandler := handlers.NewForgotPasswordHandler(s.entClient, s.emailSender, s.appBaseURL)
+
 	// Public static file server
 	fileServer := http.FileServer(http.FS(web.Files))
 	s.echo.GET("/assets/*", echo.WrapHandler(fileServer))
@@ -32,4 +34,7 @@ func (s *Server) registerPublicRoutes() {
 	authHandler := handlers.NewAuthHandler(entClient)
 	s.echo.POST("/api/register", authHandler.StoreRegister) // Use the new name
 	s.echo.POST("/api/login", authHandler.StoreLogin)       // Use the new name
+
+	s.echo.POST("/api/forgot-password", forgotPasswordHandler.ForgotPassword)
+	s.echo.POST("/api/reset-password", forgotPasswordHandler.ResetPassword)
 }

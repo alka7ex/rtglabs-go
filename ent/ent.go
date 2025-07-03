@@ -11,6 +11,7 @@ import (
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/exerciseset"
+	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -86,6 +87,7 @@ func checkColumn(table, column string) error {
 			exercise.Table:         exercise.ValidColumn,
 			exerciseinstance.Table: exerciseinstance.ValidColumn,
 			exerciseset.Table:      exerciseset.ValidColumn,
+			privatetoken.Table:     privatetoken.ValidColumn,
 			profile.Table:          profile.ValidColumn,
 			session.Table:          session.ValidColumn,
 			user.Table:             user.ValidColumn,

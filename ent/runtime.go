@@ -7,6 +7,7 @@ import (
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/exerciseset"
+	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/schema"
 	"rtglabs-go/ent/session"
@@ -119,6 +120,24 @@ func init() {
 	exercisesetDescID := exercisesetMixinFields0[0].Descriptor()
 	// exerciseset.DefaultID holds the default value on creation for the id field.
 	exerciseset.DefaultID = exercisesetDescID.Default.(func() uuid.UUID)
+	privatetokenFields := schema.PrivateToken{}.Fields()
+	_ = privatetokenFields
+	// privatetokenDescToken is the schema descriptor for token field.
+	privatetokenDescToken := privatetokenFields[1].Descriptor()
+	// privatetoken.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	privatetoken.TokenValidator = privatetokenDescToken.Validators[0].(func(string) error)
+	// privatetokenDescType is the schema descriptor for type field.
+	privatetokenDescType := privatetokenFields[2].Descriptor()
+	// privatetoken.TypeValidator is a validator for the "type" field. It is called by the builders before save.
+	privatetoken.TypeValidator = privatetokenDescType.Validators[0].(func(string) error)
+	// privatetokenDescCreatedAt is the schema descriptor for created_at field.
+	privatetokenDescCreatedAt := privatetokenFields[4].Descriptor()
+	// privatetoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	privatetoken.DefaultCreatedAt = privatetokenDescCreatedAt.Default.(func() time.Time)
+	// privatetokenDescID is the schema descriptor for id field.
+	privatetokenDescID := privatetokenFields[0].Descriptor()
+	// privatetoken.DefaultID holds the default value on creation for the id field.
+	privatetoken.DefaultID = privatetokenDescID.Default.(func() uuid.UUID)
 	profileMixin := schema.Profile{}.Mixin()
 	profileMixinFields0 := profileMixin[0].Fields()
 	_ = profileMixinFields0

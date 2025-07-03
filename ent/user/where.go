@@ -581,6 +581,29 @@ func HasWorkoutLogsWith(preds ...predicate.WorkoutLog) predicate.User {
 	})
 }
 
+// HasPrivateToken applies the HasEdge predicate on the "private_token" edge.
+func HasPrivateToken() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PrivateTokenTable, PrivateTokenColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPrivateTokenWith applies the HasEdge predicate on the "private_token" edge with a given conditions (other predicates).
+func HasPrivateTokenWith(preds ...predicate.PrivateToken) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newPrivateTokenStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

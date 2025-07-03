@@ -22,6 +22,8 @@ type Tx struct {
 	ExerciseInstance *ExerciseInstanceClient
 	// ExerciseSet is the client for interacting with the ExerciseSet builders.
 	ExerciseSet *ExerciseSetClient
+	// PrivateToken is the client for interacting with the PrivateToken builders.
+	PrivateToken *PrivateTokenClient
 	// Profile is the client for interacting with the Profile builders.
 	Profile *ProfileClient
 	// Session is the client for interacting with the Session builders.
@@ -169,6 +171,7 @@ func (tx *Tx) init() {
 	tx.Exercise = NewExerciseClient(tx.config)
 	tx.ExerciseInstance = NewExerciseInstanceClient(tx.config)
 	tx.ExerciseSet = NewExerciseSetClient(tx.config)
+	tx.PrivateToken = NewPrivateTokenClient(tx.config)
 	tx.Profile = NewProfileClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.User = NewUserClient(tx.config)

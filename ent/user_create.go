@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"rtglabs-go/ent/bodyweight"
+	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -191,6 +192,21 @@ func (uc *UserCreate) AddWorkoutLogs(w ...*WorkoutLog) *UserCreate {
 		ids[i] = w[i].ID
 	}
 	return uc.AddWorkoutLogIDs(ids...)
+}
+
+// AddPrivateTokenIDs adds the "private_token" edge to the PrivateToken entity by IDs.
+func (uc *UserCreate) AddPrivateTokenIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddPrivateTokenIDs(ids...)
+	return uc
+}
+
+// AddPrivateToken adds the "private_token" edges to the PrivateToken entity.
+func (uc *UserCreate) AddPrivateToken(p ...*PrivateToken) *UserCreate {
+	ids := make([]uuid.UUID, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return uc.AddPrivateTokenIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -410,6 +426,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(workoutlog.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.PrivateTokenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PrivateTokenTable,
+			Columns: []string{user.PrivateTokenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(privatetoken.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

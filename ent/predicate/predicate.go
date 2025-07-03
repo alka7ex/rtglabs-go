@@ -18,6 +18,9 @@ type ExerciseInstance func(*sql.Selector)
 // ExerciseSet is the predicate function for exerciseset builders.
 type ExerciseSet func(*sql.Selector)
 
+// PrivateToken is the predicate function for privatetoken builders.
+type PrivateToken func(*sql.Selector)
+
 // Profile is the predicate function for profile builders.
 type Profile func(*sql.Selector)
 

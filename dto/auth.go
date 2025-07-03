@@ -53,3 +53,15 @@ type LoginResponse struct {
 	Token     string                  `json:"token"`
 	ExpiresAt string                  `json:"expires_at"` // Using a string to format the time
 }
+
+// ForgotPasswordRequest for the forgot password endpoint
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// ResetPasswordRequest for the reset password endpoint
+type ResetPasswordRequest struct {
+	Token              string `json:"token" validate:"required"`
+	NewPassword        string `json:"new_password" validate:"required,min=8"` // Example validation
+	ConfirmNewPassword string `json:"confirm_new_password" validate:"required,eqfield=NewPassword"`
+}

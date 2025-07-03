@@ -15,6 +15,7 @@ import (
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/exerciseset"
+	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -44,6 +45,8 @@ type Client struct {
 	ExerciseInstance *ExerciseInstanceClient
 	// ExerciseSet is the client for interacting with the ExerciseSet builders.
 	ExerciseSet *ExerciseSetClient
+	// PrivateToken is the client for interacting with the PrivateToken builders.
+	PrivateToken *PrivateTokenClient
 	// Profile is the client for interacting with the Profile builders.
 	Profile *ProfileClient
 	// Session is the client for interacting with the Session builders.
@@ -71,6 +74,7 @@ func (c *Client) init() {
 	c.Exercise = NewExerciseClient(c.config)
 	c.ExerciseInstance = NewExerciseInstanceClient(c.config)
 	c.ExerciseSet = NewExerciseSetClient(c.config)
+	c.PrivateToken = NewPrivateTokenClient(c.config)
 	c.Profile = NewProfileClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -173,6 +177,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Exercise:         NewExerciseClient(cfg),
 		ExerciseInstance: NewExerciseInstanceClient(cfg),
 		ExerciseSet:      NewExerciseSetClient(cfg),
+		PrivateToken:     NewPrivateTokenClient(cfg),
 		Profile:          NewProfileClient(cfg),
 		Session:          NewSessionClient(cfg),
 		User:             NewUserClient(cfg),
@@ -202,6 +207,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Exercise:         NewExerciseClient(cfg),
 		ExerciseInstance: NewExerciseInstanceClient(cfg),
 		ExerciseSet:      NewExerciseSetClient(cfg),
+		PrivateToken:     NewPrivateTokenClient(cfg),
 		Profile:          NewProfileClient(cfg),
 		Session:          NewSessionClient(cfg),
 		User:             NewUserClient(cfg),
@@ -237,8 +243,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.ExerciseSet, c.Profile,
-		c.Session, c.User, c.Workout, c.WorkoutExercise, c.WorkoutLog,
+		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.ExerciseSet, c.PrivateToken,
+		c.Profile, c.Session, c.User, c.Workout, c.WorkoutExercise, c.WorkoutLog,
 	} {
 		n.Use(hooks...)
 	}
@@ -248,8 +254,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.ExerciseSet, c.Profile,
-		c.Session, c.User, c.Workout, c.WorkoutExercise, c.WorkoutLog,
+		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.ExerciseSet, c.PrivateToken,
+		c.Profile, c.Session, c.User, c.Workout, c.WorkoutExercise, c.WorkoutLog,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -266,6 +272,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ExerciseInstance.mutate(ctx, m)
 	case *ExerciseSetMutation:
 		return c.ExerciseSet.mutate(ctx, m)
+	case *PrivateTokenMutation:
+		return c.PrivateToken.mutate(ctx, m)
 	case *ProfileMutation:
 		return c.Profile.mutate(ctx, m)
 	case *SessionMutation:
@@ -991,6 +999,155 @@ func (c *ExerciseSetClient) mutate(ctx context.Context, m *ExerciseSetMutation) 
 	}
 }
 
+// PrivateTokenClient is a client for the PrivateToken schema.
+type PrivateTokenClient struct {
+	config
+}
+
+// NewPrivateTokenClient returns a client for the PrivateToken from the given config.
+func NewPrivateTokenClient(c config) *PrivateTokenClient {
+	return &PrivateTokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `privatetoken.Hooks(f(g(h())))`.
+func (c *PrivateTokenClient) Use(hooks ...Hook) {
+	c.hooks.PrivateToken = append(c.hooks.PrivateToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `privatetoken.Intercept(f(g(h())))`.
+func (c *PrivateTokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PrivateToken = append(c.inters.PrivateToken, interceptors...)
+}
+
+// Create returns a builder for creating a PrivateToken entity.
+func (c *PrivateTokenClient) Create() *PrivateTokenCreate {
+	mutation := newPrivateTokenMutation(c.config, OpCreate)
+	return &PrivateTokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PrivateToken entities.
+func (c *PrivateTokenClient) CreateBulk(builders ...*PrivateTokenCreate) *PrivateTokenCreateBulk {
+	return &PrivateTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PrivateTokenClient) MapCreateBulk(slice any, setFunc func(*PrivateTokenCreate, int)) *PrivateTokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PrivateTokenCreateBulk{err: fmt.Errorf("calling to PrivateTokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PrivateTokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PrivateTokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PrivateToken.
+func (c *PrivateTokenClient) Update() *PrivateTokenUpdate {
+	mutation := newPrivateTokenMutation(c.config, OpUpdate)
+	return &PrivateTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PrivateTokenClient) UpdateOne(pt *PrivateToken) *PrivateTokenUpdateOne {
+	mutation := newPrivateTokenMutation(c.config, OpUpdateOne, withPrivateToken(pt))
+	return &PrivateTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PrivateTokenClient) UpdateOneID(id uuid.UUID) *PrivateTokenUpdateOne {
+	mutation := newPrivateTokenMutation(c.config, OpUpdateOne, withPrivateTokenID(id))
+	return &PrivateTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PrivateToken.
+func (c *PrivateTokenClient) Delete() *PrivateTokenDelete {
+	mutation := newPrivateTokenMutation(c.config, OpDelete)
+	return &PrivateTokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PrivateTokenClient) DeleteOne(pt *PrivateToken) *PrivateTokenDeleteOne {
+	return c.DeleteOneID(pt.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PrivateTokenClient) DeleteOneID(id uuid.UUID) *PrivateTokenDeleteOne {
+	builder := c.Delete().Where(privatetoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PrivateTokenDeleteOne{builder}
+}
+
+// Query returns a query builder for PrivateToken.
+func (c *PrivateTokenClient) Query() *PrivateTokenQuery {
+	return &PrivateTokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePrivateToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PrivateToken entity by its id.
+func (c *PrivateTokenClient) Get(ctx context.Context, id uuid.UUID) (*PrivateToken, error) {
+	return c.Query().Where(privatetoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PrivateTokenClient) GetX(ctx context.Context, id uuid.UUID) *PrivateToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a PrivateToken.
+func (c *PrivateTokenClient) QueryUser(pt *PrivateToken) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pt.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(privatetoken.Table, privatetoken.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, privatetoken.UserTable, privatetoken.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(pt.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PrivateTokenClient) Hooks() []Hook {
+	return c.hooks.PrivateToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *PrivateTokenClient) Interceptors() []Interceptor {
+	return c.inters.PrivateToken
+}
+
+func (c *PrivateTokenClient) mutate(ctx context.Context, m *PrivateTokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PrivateTokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PrivateTokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PrivateTokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PrivateTokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PrivateToken mutation op: %q", m.Op())
+	}
+}
+
 // ProfileClient is a client for the Profile schema.
 type ProfileClient struct {
 	config
@@ -1470,6 +1627,22 @@ func (c *UserClient) QueryWorkoutLogs(u *User) *WorkoutLogQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.WorkoutLogsTable, user.WorkoutLogsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPrivateToken queries the private_token edge of a User.
+func (c *UserClient) QueryPrivateToken(u *User) *PrivateTokenQuery {
+	query := (&PrivateTokenClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(privatetoken.Table, privatetoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PrivateTokenTable, user.PrivateTokenColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -2064,12 +2237,12 @@ func (c *WorkoutLogClient) mutate(ctx context.Context, m *WorkoutLogMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Bodyweight, Exercise, ExerciseInstance, ExerciseSet, Profile, Session, User,
-		Workout, WorkoutExercise, WorkoutLog []ent.Hook
+		Bodyweight, Exercise, ExerciseInstance, ExerciseSet, PrivateToken, Profile,
+		Session, User, Workout, WorkoutExercise, WorkoutLog []ent.Hook
 	}
 	inters struct {
-		Bodyweight, Exercise, ExerciseInstance, ExerciseSet, Profile, Session, User,
-		Workout, WorkoutExercise, WorkoutLog []ent.Interceptor
+		Bodyweight, Exercise, ExerciseInstance, ExerciseSet, PrivateToken, Profile,
+		Session, User, Workout, WorkoutExercise, WorkoutLog []ent.Interceptor
 	}
 )
 

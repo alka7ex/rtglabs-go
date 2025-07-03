@@ -9,6 +9,7 @@ import (
 	"math"
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/predicate"
+	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
@@ -25,15 +26,16 @@ import (
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	ctx             *QueryContext
-	order           []user.OrderOption
-	inters          []Interceptor
-	predicates      []predicate.User
-	withBodyweights *BodyweightQuery
-	withSessions    *SessionQuery
-	withProfile     *ProfileQuery
-	withWorkouts    *WorkoutQuery
-	withWorkoutLogs *WorkoutLogQuery
+	ctx              *QueryContext
+	order            []user.OrderOption
+	inters           []Interceptor
+	predicates       []predicate.User
+	withBodyweights  *BodyweightQuery
+	withSessions     *SessionQuery
+	withProfile      *ProfileQuery
+	withWorkouts     *WorkoutQuery
+	withWorkoutLogs  *WorkoutLogQuery
+	withPrivateToken *PrivateTokenQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -173,6 +175,28 @@ func (uq *UserQuery) QueryWorkoutLogs() *WorkoutLogQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.WorkoutLogsTable, user.WorkoutLogsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPrivateToken chains the current query on the "private_token" edge.
+func (uq *UserQuery) QueryPrivateToken() *PrivateTokenQuery {
+	query := (&PrivateTokenClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(privatetoken.Table, privatetoken.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PrivateTokenTable, user.PrivateTokenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -367,16 +391,17 @@ func (uq *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:          uq.config,
-		ctx:             uq.ctx.Clone(),
-		order:           append([]user.OrderOption{}, uq.order...),
-		inters:          append([]Interceptor{}, uq.inters...),
-		predicates:      append([]predicate.User{}, uq.predicates...),
-		withBodyweights: uq.withBodyweights.Clone(),
-		withSessions:    uq.withSessions.Clone(),
-		withProfile:     uq.withProfile.Clone(),
-		withWorkouts:    uq.withWorkouts.Clone(),
-		withWorkoutLogs: uq.withWorkoutLogs.Clone(),
+		config:           uq.config,
+		ctx:              uq.ctx.Clone(),
+		order:            append([]user.OrderOption{}, uq.order...),
+		inters:           append([]Interceptor{}, uq.inters...),
+		predicates:       append([]predicate.User{}, uq.predicates...),
+		withBodyweights:  uq.withBodyweights.Clone(),
+		withSessions:     uq.withSessions.Clone(),
+		withProfile:      uq.withProfile.Clone(),
+		withWorkouts:     uq.withWorkouts.Clone(),
+		withWorkoutLogs:  uq.withWorkoutLogs.Clone(),
+		withPrivateToken: uq.withPrivateToken.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
@@ -435,6 +460,17 @@ func (uq *UserQuery) WithWorkoutLogs(opts ...func(*WorkoutLogQuery)) *UserQuery 
 		opt(query)
 	}
 	uq.withWorkoutLogs = query
+	return uq
+}
+
+// WithPrivateToken tells the query-builder to eager-load the nodes that are connected to
+// the "private_token" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithPrivateToken(opts ...func(*PrivateTokenQuery)) *UserQuery {
+	query := (&PrivateTokenClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withPrivateToken = query
 	return uq
 }
 
@@ -516,12 +552,13 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			uq.withBodyweights != nil,
 			uq.withSessions != nil,
 			uq.withProfile != nil,
 			uq.withWorkouts != nil,
 			uq.withWorkoutLogs != nil,
+			uq.withPrivateToken != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -573,6 +610,13 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadWorkoutLogs(ctx, query, nodes,
 			func(n *User) { n.Edges.WorkoutLogs = []*WorkoutLog{} },
 			func(n *User, e *WorkoutLog) { n.Edges.WorkoutLogs = append(n.Edges.WorkoutLogs, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withPrivateToken; query != nil {
+		if err := uq.loadPrivateToken(ctx, query, nodes,
+			func(n *User) { n.Edges.PrivateToken = []*PrivateToken{} },
+			func(n *User, e *PrivateToken) { n.Edges.PrivateToken = append(n.Edges.PrivateToken, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -726,6 +770,37 @@ func (uq *UserQuery) loadWorkoutLogs(ctx context.Context, query *WorkoutLogQuery
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "user_workout_logs" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadPrivateToken(ctx context.Context, query *PrivateTokenQuery, nodes []*User, init func(*User), assign func(*User, *PrivateToken)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.PrivateToken(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.PrivateTokenColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_private_token
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_private_token" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_private_token" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
