@@ -1,4 +1,4 @@
-// dto/workoutlog.go (or similar)
+// dto/workoutlog.go
 package dto
 
 import (
@@ -15,9 +15,20 @@ type CreateWorkoutLogRequest struct {
 	WorkoutID uuid.UUID `json:"workout_id" validate:"required"` // The ID of the workout template
 }
 
+// ListWorkoutLogRequest defines the query parameters for listing workout logs.
+type ListWorkoutLogRequest struct {
+	Page      int        `query:"page" validate:"min=1"`
+	Limit     int        `query:"limit" validate:"min=1,max=100"`
+	SortBy    string     `query:"sort_by"`    // e.g., "created_at", "started_at", "status"
+	Order     string     `query:"order"`      // "asc" or "desc"
+	WorkoutID *uuid.UUID `query:"workout_id"` // Optional: filter by workout template ID
+	Status    *int       `query:"status"`     // Optional: filter by workout log status
+}
+
 // --- Response DTOs ---
 
 // WorkoutLogResponse represents a single workout log entry for read operations.
+// This is the core structure for a workout log when returned in full detail.
 type WorkoutLogResponse struct {
 	ID                         uuid.UUID             `json:"id"`
 	UserID                     uuid.UUID             `json:"user_id"`
@@ -82,6 +93,6 @@ type ListWorkoutLogResponse struct {
 	provider.PaginationResponse                      // Embed common pagination fields
 }
 
-// Assuming these already exist or need to be created based on your schemas
-// WorkoutResponse (from workout.go or similar)
-// ExerciseResponse (from exercise.go or similar)
+// WorkoutLogDetailResponse represents the response for fetching a single workout log.
+// This is a type alias to WorkoutLogResponse, reflecting the Zod schema's definition.
+type WorkoutLogDetailResponse WorkoutLogResponse

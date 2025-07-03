@@ -77,6 +77,7 @@ func (s *Server) registerPrivateRoutes() {
 	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
 	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout) // Delete (Soft Delete)
 
+	g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
 	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
 	g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
 	g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
