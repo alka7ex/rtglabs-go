@@ -28,6 +28,7 @@ type WorkoutQuery struct {
 	predicates           []predicate.Workout
 	withUser             *UserQuery
 	withWorkoutExercises *WorkoutExerciseQuery
+	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -407,12 +408,19 @@ func (wq *WorkoutQuery) prepareQuery(ctx context.Context) error {
 func (wq *WorkoutQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Workout, error) {
 	var (
 		nodes       = []*Workout{}
+		withFKs     = wq.withFKs
 		_spec       = wq.querySpec()
 		loadedTypes = [2]bool{
 			wq.withUser != nil,
 			wq.withWorkoutExercises != nil,
 		}
 	)
+	if wq.withUser != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, workout.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Workout).scanValues(nil, columns)
 	}
@@ -451,7 +459,10 @@ func (wq *WorkoutQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Workout)
 	for i := range nodes {
-		fk := nodes[i].UserID
+		if nodes[i].user_workouts == nil {
+			continue
+		}
+		fk := *nodes[i].user_workouts
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -468,7 +479,7 @@ func (wq *WorkoutQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_workouts" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -486,9 +497,7 @@ func (wq *WorkoutQuery) loadWorkoutExercises(ctx context.Context, query *Workout
 			init(nodes[i])
 		}
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(workoutexercise.FieldWorkoutID)
-	}
+	query.withFKs = true
 	query.Where(predicate.WorkoutExercise(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(workout.WorkoutExercisesColumn), fks...))
 	}))
@@ -497,10 +506,13 @@ func (wq *WorkoutQuery) loadWorkoutExercises(ctx context.Context, query *Workout
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.WorkoutID
-		node, ok := nodeids[fk]
+		fk := n.workout_workout_exercises
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "workout_workout_exercises" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "workout_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "workout_workout_exercises" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -531,9 +543,6 @@ func (wq *WorkoutQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != workout.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if wq.withUser != nil {
-			_spec.Node.AddColumnOnce(workout.FieldUserID)
 		}
 	}
 	if ps := wq.predicates; len(ps) > 0 {

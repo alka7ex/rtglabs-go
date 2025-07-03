@@ -45,7 +45,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "bodyweight" package.
 	BodyweightsInverseTable = "bodyweights"
 	// BodyweightsColumn is the table column denoting the bodyweights relation/edge.
-	BodyweightsColumn = "user_id"
+	BodyweightsColumn = "user_bodyweights"
 	// SessionsTable is the table that holds the sessions relation/edge.
 	SessionsTable = "sessions"
 	// SessionsInverseTable is the table name for the Session entity.
@@ -59,14 +59,14 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "profile" package.
 	ProfileInverseTable = "profiles"
 	// ProfileColumn is the table column denoting the profile relation/edge.
-	ProfileColumn = "user_id"
+	ProfileColumn = "user_profile"
 	// WorkoutsTable is the table that holds the workouts relation/edge.
 	WorkoutsTable = "workouts"
 	// WorkoutsInverseTable is the table name for the Workout entity.
 	// It exists in this package in order to avoid circular dependency with the "workout" package.
 	WorkoutsInverseTable = "workouts"
 	// WorkoutsColumn is the table column denoting the workouts relation/edge.
-	WorkoutsColumn = "user_id"
+	WorkoutsColumn = "user_workouts"
 )
 
 // Columns holds all SQL columns for user fields.

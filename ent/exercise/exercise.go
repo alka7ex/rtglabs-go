@@ -42,7 +42,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "workoutexercise" package.
 	WorkoutExercisesInverseTable = "workout_exercises"
 	// WorkoutExercisesColumn is the table column denoting the workout_exercises relation/edge.
-	WorkoutExercisesColumn = "exercise_id"
+	WorkoutExercisesColumn = "exercise_workout_exercises"
 )
 
 // Columns holds all SQL columns for exercise fields.

@@ -6,7 +6,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"github.com/google/uuid"
 )
 
 // User holds the schema definition for the User entity.
@@ -16,15 +15,14 @@ type User struct {
 
 func (User) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		custommixin.UUID{},       // Maps to the 'id' primary key
-		custommixin.Timestamps{}, // Maps to 'timestampsTz' and 'softDeletesTz'
+		custommixin.UUID{},       // Provides the 'id' field (uuid.UUID)
+		custommixin.Timestamps{}, // Provides created_at, updated_at, deleted_at
 	}
 }
 
 // Fields of the User.
 func (User) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.New()).Default(uuid.New).Unique(),
 		field.String("name").
 			NotEmpty(),
 		field.String("email").
@@ -42,7 +40,6 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		// edge.To("workouts", Workout.Type),
 		edge.To("bodyweights", Bodyweight.Type),
 		edge.To("sessions", Session.Type),
 		edge.To("profile", Profile.Type).Unique(),

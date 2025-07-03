@@ -35,11 +35,10 @@ type Profile struct {
 	Gender int `json:"gender,omitempty"`
 	// Weight holds the value of the "weight" field.
 	Weight float64 `json:"weight,omitempty"`
-	// UserID holds the value of the "user_id" field.
-	UserID *uuid.UUID `json:"user_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProfileQuery when eager-loading is set.
 	Edges        ProfileEdges `json:"edges"`
+	user_profile *uuid.UUID
 	selectValues sql.SelectValues
 }
 
@@ -68,8 +67,6 @@ func (*Profile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case profile.FieldUserID:
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case profile.FieldHeight, profile.FieldWeight:
 			values[i] = new(sql.NullFloat64)
 		case profile.FieldUnits, profile.FieldAge, profile.FieldGender:
@@ -78,6 +75,8 @@ func (*Profile) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case profile.FieldID:
 			values[i] = new(uuid.UUID)
+		case profile.ForeignKeys[0]: // user_profile
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -148,12 +147,12 @@ func (pr *Profile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				pr.Weight = value.Float64
 			}
-		case profile.FieldUserID:
+		case profile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field user_id", values[i])
+				return fmt.Errorf("unexpected type %T for field user_profile", values[i])
 			} else if value.Valid {
-				pr.UserID = new(uuid.UUID)
-				*pr.UserID = *value.S.(*uuid.UUID)
+				pr.user_profile = new(uuid.UUID)
+				*pr.user_profile = *value.S.(*uuid.UUID)
 			}
 		default:
 			pr.selectValues.Set(columns[i], values[i])
@@ -221,11 +220,6 @@ func (pr *Profile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("weight=")
 	builder.WriteString(fmt.Sprintf("%v", pr.Weight))
-	builder.WriteString(", ")
-	if v := pr.UserID; v != nil {
-		builder.WriteString("user_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -123,6 +123,11 @@ func (su *SessionUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (su *SessionUpdate) check() error {
+	if v, ok := su.mutation.Token(); ok {
+		if err := session.TokenValidator(v); err != nil {
+			return &ValidationError{Name: "token", err: fmt.Errorf(`ent: validator failed for field "Session.token": %w`, err)}
+		}
+	}
 	if su.mutation.UserCleared() && len(su.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Session.user"`)
 	}
@@ -305,6 +310,11 @@ func (suo *SessionUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (suo *SessionUpdateOne) check() error {
+	if v, ok := suo.mutation.Token(); ok {
+		if err := session.TokenValidator(v); err != nil {
+			return &ValidationError{Name: "token", err: fmt.Errorf(`ent: validator failed for field "Session.token": %w`, err)}
+		}
+	}
 	if suo.mutation.UserCleared() && len(suo.mutation.UserIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Session.user"`)
 	}

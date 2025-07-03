@@ -27,12 +27,11 @@ type Workout struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
-	// UserID holds the value of the "user_id" field.
-	UserID uuid.UUID `json:"user_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the WorkoutQuery when eager-loading is set.
-	Edges        WorkoutEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges         WorkoutEdges `json:"edges"`
+	user_workouts *uuid.UUID
+	selectValues  sql.SelectValues
 }
 
 // WorkoutEdges holds the relations/edges for other nodes in the graph.
@@ -75,8 +74,10 @@ func (*Workout) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case workout.FieldCreatedAt, workout.FieldUpdatedAt, workout.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case workout.FieldID, workout.FieldUserID:
+		case workout.FieldID:
 			values[i] = new(uuid.UUID)
+		case workout.ForeignKeys[0]: // user_workouts
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -123,11 +124,12 @@ func (w *Workout) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				w.Name = value.String
 			}
-		case workout.FieldUserID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
-				return fmt.Errorf("unexpected type %T for field user_id", values[i])
-			} else if value != nil {
-				w.UserID = *value
+		case workout.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field user_workouts", values[i])
+			} else if value.Valid {
+				w.user_workouts = new(uuid.UUID)
+				*w.user_workouts = *value.S.(*uuid.UUID)
 			}
 		default:
 			w.selectValues.Set(columns[i], values[i])
@@ -188,9 +190,6 @@ func (w *Workout) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(w.Name)
-	builder.WriteString(", ")
-	builder.WriteString("user_id=")
-	builder.WriteString(fmt.Sprintf("%v", w.UserID))
 	builder.WriteByte(')')
 	return builder.String()
 }

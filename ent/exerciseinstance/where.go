@@ -71,16 +71,6 @@ func DeletedAt(v time.Time) predicate.ExerciseInstance {
 	return predicate.ExerciseInstance(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// WorkoutLogID applies equality check predicate on the "workout_log_id" field. It's identical to WorkoutLogIDEQ.
-func WorkoutLogID(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldEQ(FieldWorkoutLogID, v))
-}
-
-// ExerciseID applies equality check predicate on the "exercise_id" field. It's identical to ExerciseIDEQ.
-func ExerciseID(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldEQ(FieldExerciseID, v))
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.ExerciseInstance {
 	return predicate.ExerciseInstance(sql.FieldEQ(FieldCreatedAt, v))
@@ -211,94 +201,27 @@ func DeletedAtNotNil() predicate.ExerciseInstance {
 	return predicate.ExerciseInstance(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// WorkoutLogIDEQ applies the EQ predicate on the "workout_log_id" field.
-func WorkoutLogIDEQ(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldEQ(FieldWorkoutLogID, v))
+// HasExercise applies the HasEdge predicate on the "exercise" edge.
+func HasExercise() predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ExerciseTable, ExerciseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
 }
 
-// WorkoutLogIDNEQ applies the NEQ predicate on the "workout_log_id" field.
-func WorkoutLogIDNEQ(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldNEQ(FieldWorkoutLogID, v))
-}
-
-// WorkoutLogIDIn applies the In predicate on the "workout_log_id" field.
-func WorkoutLogIDIn(vs ...uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldIn(FieldWorkoutLogID, vs...))
-}
-
-// WorkoutLogIDNotIn applies the NotIn predicate on the "workout_log_id" field.
-func WorkoutLogIDNotIn(vs ...uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldNotIn(FieldWorkoutLogID, vs...))
-}
-
-// WorkoutLogIDGT applies the GT predicate on the "workout_log_id" field.
-func WorkoutLogIDGT(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldGT(FieldWorkoutLogID, v))
-}
-
-// WorkoutLogIDGTE applies the GTE predicate on the "workout_log_id" field.
-func WorkoutLogIDGTE(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldGTE(FieldWorkoutLogID, v))
-}
-
-// WorkoutLogIDLT applies the LT predicate on the "workout_log_id" field.
-func WorkoutLogIDLT(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldLT(FieldWorkoutLogID, v))
-}
-
-// WorkoutLogIDLTE applies the LTE predicate on the "workout_log_id" field.
-func WorkoutLogIDLTE(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldLTE(FieldWorkoutLogID, v))
-}
-
-// WorkoutLogIDIsNil applies the IsNil predicate on the "workout_log_id" field.
-func WorkoutLogIDIsNil() predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldIsNull(FieldWorkoutLogID))
-}
-
-// WorkoutLogIDNotNil applies the NotNil predicate on the "workout_log_id" field.
-func WorkoutLogIDNotNil() predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldNotNull(FieldWorkoutLogID))
-}
-
-// ExerciseIDEQ applies the EQ predicate on the "exercise_id" field.
-func ExerciseIDEQ(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldEQ(FieldExerciseID, v))
-}
-
-// ExerciseIDNEQ applies the NEQ predicate on the "exercise_id" field.
-func ExerciseIDNEQ(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldNEQ(FieldExerciseID, v))
-}
-
-// ExerciseIDIn applies the In predicate on the "exercise_id" field.
-func ExerciseIDIn(vs ...uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldIn(FieldExerciseID, vs...))
-}
-
-// ExerciseIDNotIn applies the NotIn predicate on the "exercise_id" field.
-func ExerciseIDNotIn(vs ...uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldNotIn(FieldExerciseID, vs...))
-}
-
-// ExerciseIDGT applies the GT predicate on the "exercise_id" field.
-func ExerciseIDGT(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldGT(FieldExerciseID, v))
-}
-
-// ExerciseIDGTE applies the GTE predicate on the "exercise_id" field.
-func ExerciseIDGTE(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldGTE(FieldExerciseID, v))
-}
-
-// ExerciseIDLT applies the LT predicate on the "exercise_id" field.
-func ExerciseIDLT(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldLT(FieldExerciseID, v))
-}
-
-// ExerciseIDLTE applies the LTE predicate on the "exercise_id" field.
-func ExerciseIDLTE(v uuid.UUID) predicate.ExerciseInstance {
-	return predicate.ExerciseInstance(sql.FieldLTE(FieldExerciseID, v))
+// HasExerciseWith applies the HasEdge predicate on the "exercise" edge with a given conditions (other predicates).
+func HasExerciseWith(preds ...predicate.Exercise) predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := newExerciseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // HasWorkoutExercises applies the HasEdge predicate on the "workout_exercises" edge.

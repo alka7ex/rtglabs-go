@@ -123,6 +123,11 @@ func (sc *SessionCreate) check() error {
 	if _, ok := sc.mutation.Token(); !ok {
 		return &ValidationError{Name: "token", err: errors.New(`ent: missing required field "Session.token"`)}
 	}
+	if v, ok := sc.mutation.Token(); ok {
+		if err := session.TokenValidator(v); err != nil {
+			return &ValidationError{Name: "token", err: fmt.Errorf(`ent: validator failed for field "Session.token": %w`, err)}
+		}
+	}
 	if _, ok := sc.mutation.ExpiresAt(); !ok {
 		return &ValidationError{Name: "expires_at", err: errors.New(`ent: missing required field "Session.expires_at"`)}
 	}

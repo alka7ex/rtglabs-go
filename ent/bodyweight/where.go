@@ -71,11 +71,6 @@ func DeletedAt(v time.Time) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
-func UserID(v uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldEQ(FieldUserID, v))
-}
-
 // Weight applies equality check predicate on the "weight" field. It's identical to WeightEQ.
 func Weight(v float64) predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldEQ(FieldWeight, v))
@@ -214,26 +209,6 @@ func DeletedAtIsNil() predicate.Bodyweight {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.Bodyweight {
 	return predicate.Bodyweight(sql.FieldNotNull(FieldDeletedAt))
-}
-
-// UserIDEQ applies the EQ predicate on the "user_id" field.
-func UserIDEQ(v uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldEQ(FieldUserID, v))
-}
-
-// UserIDNEQ applies the NEQ predicate on the "user_id" field.
-func UserIDNEQ(v uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNEQ(FieldUserID, v))
-}
-
-// UserIDIn applies the In predicate on the "user_id" field.
-func UserIDIn(vs ...uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldIn(FieldUserID, vs...))
-}
-
-// UserIDNotIn applies the NotIn predicate on the "user_id" field.
-func UserIDNotIn(vs ...uuid.UUID) predicate.Bodyweight {
-	return predicate.Bodyweight(sql.FieldNotIn(FieldUserID, vs...))
 }
 
 // WeightEQ applies the EQ predicate on the "weight" field.

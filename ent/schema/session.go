@@ -16,15 +16,21 @@ type Session struct {
 
 func (Session) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.New()).Default(uuid.New).Unique(),
-		field.String("token").Unique(),
+		field.UUID("id", uuid.New()).Default(uuid.New).Unique(), // Or use a mixin
+		field.String("token").
+			NotEmpty().
+			Unique(),
 		field.Time("expires_at"),
-		field.Time("created_at").Default(time.Now),
+		field.Time("created_at").
+			Default(time.Now),
 	}
 }
 
 func (Session) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("user", User.Type).Ref("sessions").Unique().Required(),
+		edge.From("user", User.Type).
+			Ref("sessions").
+			Unique().
+			Required(),
 	}
 }

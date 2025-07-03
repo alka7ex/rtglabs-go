@@ -545,9 +545,7 @@ func (uq *UserQuery) loadBodyweights(ctx context.Context, query *BodyweightQuery
 			init(nodes[i])
 		}
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(bodyweight.FieldUserID)
-	}
+	query.withFKs = true
 	query.Where(predicate.Bodyweight(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.BodyweightsColumn), fks...))
 	}))
@@ -556,10 +554,13 @@ func (uq *UserQuery) loadBodyweights(ctx context.Context, query *BodyweightQuery
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.UserID
-		node, ok := nodeids[fk]
+		fk := n.user_bodyweights
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_bodyweights" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_bodyweights" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -603,9 +604,7 @@ func (uq *UserQuery) loadProfile(ctx context.Context, query *ProfileQuery, nodes
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(profile.FieldUserID)
-	}
+	query.withFKs = true
 	query.Where(predicate.Profile(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.ProfileColumn), fks...))
 	}))
@@ -614,13 +613,13 @@ func (uq *UserQuery) loadProfile(ctx context.Context, query *ProfileQuery, nodes
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.UserID
+		fk := n.user_profile
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_id" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "user_profile" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_profile" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -636,9 +635,7 @@ func (uq *UserQuery) loadWorkouts(ctx context.Context, query *WorkoutQuery, node
 			init(nodes[i])
 		}
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(workout.FieldUserID)
-	}
+	query.withFKs = true
 	query.Where(predicate.Workout(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(user.WorkoutsColumn), fks...))
 	}))
@@ -647,10 +644,13 @@ func (uq *UserQuery) loadWorkouts(ctx context.Context, query *WorkoutQuery, node
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.UserID
-		node, ok := nodeids[fk]
+		fk := n.user_workouts
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_workouts" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_workouts" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

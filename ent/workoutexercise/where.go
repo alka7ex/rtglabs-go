@@ -71,21 +71,6 @@ func DeletedAt(v time.Time) predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// WorkoutID applies equality check predicate on the "workout_id" field. It's identical to WorkoutIDEQ.
-func WorkoutID(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldEQ(FieldWorkoutID, v))
-}
-
-// ExerciseID applies equality check predicate on the "exercise_id" field. It's identical to ExerciseIDEQ.
-func ExerciseID(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldEQ(FieldExerciseID, v))
-}
-
-// ExerciseInstanceID applies equality check predicate on the "exercise_instance_id" field. It's identical to ExerciseInstanceIDEQ.
-func ExerciseInstanceID(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldEQ(FieldExerciseInstanceID, v))
-}
-
 // Order applies equality check predicate on the "order" field. It's identical to OrderEQ.
 func Order(v uint) predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldEQ(FieldOrder, v))
@@ -234,76 +219,6 @@ func DeletedAtIsNil() predicate.WorkoutExercise {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.WorkoutExercise {
 	return predicate.WorkoutExercise(sql.FieldNotNull(FieldDeletedAt))
-}
-
-// WorkoutIDEQ applies the EQ predicate on the "workout_id" field.
-func WorkoutIDEQ(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldEQ(FieldWorkoutID, v))
-}
-
-// WorkoutIDNEQ applies the NEQ predicate on the "workout_id" field.
-func WorkoutIDNEQ(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldNEQ(FieldWorkoutID, v))
-}
-
-// WorkoutIDIn applies the In predicate on the "workout_id" field.
-func WorkoutIDIn(vs ...uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldIn(FieldWorkoutID, vs...))
-}
-
-// WorkoutIDNotIn applies the NotIn predicate on the "workout_id" field.
-func WorkoutIDNotIn(vs ...uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldNotIn(FieldWorkoutID, vs...))
-}
-
-// ExerciseIDEQ applies the EQ predicate on the "exercise_id" field.
-func ExerciseIDEQ(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldEQ(FieldExerciseID, v))
-}
-
-// ExerciseIDNEQ applies the NEQ predicate on the "exercise_id" field.
-func ExerciseIDNEQ(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldNEQ(FieldExerciseID, v))
-}
-
-// ExerciseIDIn applies the In predicate on the "exercise_id" field.
-func ExerciseIDIn(vs ...uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldIn(FieldExerciseID, vs...))
-}
-
-// ExerciseIDNotIn applies the NotIn predicate on the "exercise_id" field.
-func ExerciseIDNotIn(vs ...uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldNotIn(FieldExerciseID, vs...))
-}
-
-// ExerciseInstanceIDEQ applies the EQ predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDEQ(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldEQ(FieldExerciseInstanceID, v))
-}
-
-// ExerciseInstanceIDNEQ applies the NEQ predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDNEQ(v uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldNEQ(FieldExerciseInstanceID, v))
-}
-
-// ExerciseInstanceIDIn applies the In predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDIn(vs ...uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldIn(FieldExerciseInstanceID, vs...))
-}
-
-// ExerciseInstanceIDNotIn applies the NotIn predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDNotIn(vs ...uuid.UUID) predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldNotIn(FieldExerciseInstanceID, vs...))
-}
-
-// ExerciseInstanceIDIsNil applies the IsNil predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDIsNil() predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldIsNull(FieldExerciseInstanceID))
-}
-
-// ExerciseInstanceIDNotNil applies the NotNil predicate on the "exercise_instance_id" field.
-func ExerciseInstanceIDNotNil() predicate.WorkoutExercise {
-	return predicate.WorkoutExercise(sql.FieldNotNull(FieldExerciseInstanceID))
 }
 
 // OrderEQ applies the EQ predicate on the "order" field.

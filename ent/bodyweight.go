@@ -25,16 +25,15 @@ type Bodyweight struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// UserID holds the value of the "user_id" field.
-	UserID uuid.UUID `json:"user_id,omitempty"`
 	// Weight holds the value of the "weight" field.
 	Weight float64 `json:"weight,omitempty"`
 	// Unit holds the value of the "unit" field.
 	Unit string `json:"unit,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BodyweightQuery when eager-loading is set.
-	Edges        BodyweightEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges            BodyweightEdges `json:"edges"`
+	user_bodyweights *uuid.UUID
+	selectValues     sql.SelectValues
 }
 
 // BodyweightEdges holds the relations/edges for other nodes in the graph.
@@ -68,8 +67,10 @@ func (*Bodyweight) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case bodyweight.FieldCreatedAt, bodyweight.FieldUpdatedAt, bodyweight.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case bodyweight.FieldID, bodyweight.FieldUserID:
+		case bodyweight.FieldID:
 			values[i] = new(uuid.UUID)
+		case bodyweight.ForeignKeys[0]: // user_bodyweights
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -110,12 +111,6 @@ func (b *Bodyweight) assignValues(columns []string, values []any) error {
 				b.DeletedAt = new(time.Time)
 				*b.DeletedAt = value.Time
 			}
-		case bodyweight.FieldUserID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
-				return fmt.Errorf("unexpected type %T for field user_id", values[i])
-			} else if value != nil {
-				b.UserID = *value
-			}
 		case bodyweight.FieldWeight:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field weight", values[i])
@@ -127,6 +122,13 @@ func (b *Bodyweight) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field unit", values[i])
 			} else if value.Valid {
 				b.Unit = value.String
+			}
+		case bodyweight.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field user_bodyweights", values[i])
+			} else if value.Valid {
+				b.user_bodyweights = new(uuid.UUID)
+				*b.user_bodyweights = *value.S.(*uuid.UUID)
 			}
 		default:
 			b.selectValues.Set(columns[i], values[i])
@@ -179,9 +181,6 @@ func (b *Bodyweight) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
-	builder.WriteString(", ")
-	builder.WriteString("user_id=")
-	builder.WriteString(fmt.Sprintf("%v", b.UserID))
 	builder.WriteString(", ")
 	builder.WriteString("weight=")
 	builder.WriteString(fmt.Sprintf("%v", b.Weight))

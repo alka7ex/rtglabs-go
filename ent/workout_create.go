@@ -71,12 +71,6 @@ func (wc *WorkoutCreate) SetName(s string) *WorkoutCreate {
 	return wc
 }
 
-// SetUserID sets the "user_id" field.
-func (wc *WorkoutCreate) SetUserID(u uuid.UUID) *WorkoutCreate {
-	wc.mutation.SetUserID(u)
-	return wc
-}
-
 // SetID sets the "id" field.
 func (wc *WorkoutCreate) SetID(u uuid.UUID) *WorkoutCreate {
 	wc.mutation.SetID(u)
@@ -88,6 +82,12 @@ func (wc *WorkoutCreate) SetNillableID(u *uuid.UUID) *WorkoutCreate {
 	if u != nil {
 		wc.SetID(*u)
 	}
+	return wc
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (wc *WorkoutCreate) SetUserID(id uuid.UUID) *WorkoutCreate {
+	wc.mutation.SetUserID(id)
 	return wc
 }
 
@@ -171,9 +171,6 @@ func (wc *WorkoutCreate) check() error {
 	if _, ok := wc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Workout.name"`)}
 	}
-	if _, ok := wc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Workout.user_id"`)}
-	}
 	if len(wc.mutation.UserIDs()) == 0 {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "Workout.user"`)}
 	}
@@ -242,7 +239,7 @@ func (wc *WorkoutCreate) createSpec() (*Workout, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.UserID = nodes[0]
+		_node.user_workouts = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := wc.mutation.WorkoutExercisesIDs(); len(nodes) > 0 {

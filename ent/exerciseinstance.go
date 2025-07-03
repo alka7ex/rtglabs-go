@@ -4,6 +4,7 @@ package ent
 
 import (
 	"fmt"
+	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
 	"strings"
 	"time"
@@ -24,10 +25,6 @@ type ExerciseInstance struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// WorkoutLogID holds the value of the "workout_log_id" field.
-	WorkoutLogID *uuid.UUID `json:"workout_log_id,omitempty"`
-	// ExerciseID holds the value of the "exercise_id" field.
-	ExerciseID uuid.UUID `json:"exercise_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ExerciseInstanceQuery when eager-loading is set.
 	Edges                       ExerciseInstanceEdges `json:"edges"`
@@ -37,17 +34,30 @@ type ExerciseInstance struct {
 
 // ExerciseInstanceEdges holds the relations/edges for other nodes in the graph.
 type ExerciseInstanceEdges struct {
+	// Exercise holds the value of the exercise edge.
+	Exercise *Exercise `json:"exercise,omitempty"`
 	// WorkoutExercises holds the value of the workout_exercises edge.
 	WorkoutExercises []*WorkoutExercise `json:"workout_exercises,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
+}
+
+// ExerciseOrErr returns the Exercise value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ExerciseInstanceEdges) ExerciseOrErr() (*Exercise, error) {
+	if e.Exercise != nil {
+		return e.Exercise, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: exercise.Label}
+	}
+	return nil, &NotLoadedError{edge: "exercise"}
 }
 
 // WorkoutExercisesOrErr returns the WorkoutExercises value or an error if the edge
 // was not loaded in eager-loading.
 func (e ExerciseInstanceEdges) WorkoutExercisesOrErr() ([]*WorkoutExercise, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		return e.WorkoutExercises, nil
 	}
 	return nil, &NotLoadedError{edge: "workout_exercises"}
@@ -58,11 +68,9 @@ func (*ExerciseInstance) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case exerciseinstance.FieldWorkoutLogID:
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case exerciseinstance.FieldCreatedAt, exerciseinstance.FieldUpdatedAt, exerciseinstance.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case exerciseinstance.FieldID, exerciseinstance.FieldExerciseID:
+		case exerciseinstance.FieldID:
 			values[i] = new(uuid.UUID)
 		case exerciseinstance.ForeignKeys[0]: // exercise_exercise_instances
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
@@ -106,19 +114,6 @@ func (ei *ExerciseInstance) assignValues(columns []string, values []any) error {
 				ei.DeletedAt = new(time.Time)
 				*ei.DeletedAt = value.Time
 			}
-		case exerciseinstance.FieldWorkoutLogID:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field workout_log_id", values[i])
-			} else if value.Valid {
-				ei.WorkoutLogID = new(uuid.UUID)
-				*ei.WorkoutLogID = *value.S.(*uuid.UUID)
-			}
-		case exerciseinstance.FieldExerciseID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
-				return fmt.Errorf("unexpected type %T for field exercise_id", values[i])
-			} else if value != nil {
-				ei.ExerciseID = *value
-			}
 		case exerciseinstance.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field exercise_exercise_instances", values[i])
@@ -137,6 +132,11 @@ func (ei *ExerciseInstance) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (ei *ExerciseInstance) Value(name string) (ent.Value, error) {
 	return ei.selectValues.Get(name)
+}
+
+// QueryExercise queries the "exercise" edge of the ExerciseInstance entity.
+func (ei *ExerciseInstance) QueryExercise() *ExerciseQuery {
+	return NewExerciseInstanceClient(ei.config).QueryExercise(ei)
 }
 
 // QueryWorkoutExercises queries the "workout_exercises" edge of the ExerciseInstance entity.
@@ -177,14 +177,6 @@ func (ei *ExerciseInstance) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
-	builder.WriteString(", ")
-	if v := ei.WorkoutLogID; v != nil {
-		builder.WriteString("workout_log_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("exercise_id=")
-	builder.WriteString(fmt.Sprintf("%v", ei.ExerciseID))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -687,6 +687,22 @@ func (c *ExerciseInstanceClient) GetX(ctx context.Context, id uuid.UUID) *Exerci
 	return obj
 }
 
+// QueryExercise queries the exercise edge of a ExerciseInstance.
+func (c *ExerciseInstanceClient) QueryExercise(ei *ExerciseInstance) *ExerciseQuery {
+	query := (&ExerciseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ei.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseinstance.Table, exerciseinstance.FieldID, id),
+			sqlgraph.To(exercise.Table, exercise.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, exerciseinstance.ExerciseTable, exerciseinstance.ExerciseColumn),
+		)
+		fromV = sqlgraph.Neighbors(ei.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryWorkoutExercises queries the workout_exercises edge of a ExerciseInstance.
 func (c *ExerciseInstanceClient) QueryWorkoutExercises(ei *ExerciseInstance) *WorkoutExerciseQuery {
 	query := (&WorkoutExerciseClient{config: c.config}).Query()

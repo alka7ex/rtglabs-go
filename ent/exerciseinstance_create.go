@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
 	"rtglabs-go/ent/workoutexercise"
 	"time"
@@ -64,26 +65,6 @@ func (eic *ExerciseInstanceCreate) SetNillableDeletedAt(t *time.Time) *ExerciseI
 	return eic
 }
 
-// SetWorkoutLogID sets the "workout_log_id" field.
-func (eic *ExerciseInstanceCreate) SetWorkoutLogID(u uuid.UUID) *ExerciseInstanceCreate {
-	eic.mutation.SetWorkoutLogID(u)
-	return eic
-}
-
-// SetNillableWorkoutLogID sets the "workout_log_id" field if the given value is not nil.
-func (eic *ExerciseInstanceCreate) SetNillableWorkoutLogID(u *uuid.UUID) *ExerciseInstanceCreate {
-	if u != nil {
-		eic.SetWorkoutLogID(*u)
-	}
-	return eic
-}
-
-// SetExerciseID sets the "exercise_id" field.
-func (eic *ExerciseInstanceCreate) SetExerciseID(u uuid.UUID) *ExerciseInstanceCreate {
-	eic.mutation.SetExerciseID(u)
-	return eic
-}
-
 // SetID sets the "id" field.
 func (eic *ExerciseInstanceCreate) SetID(u uuid.UUID) *ExerciseInstanceCreate {
 	eic.mutation.SetID(u)
@@ -96,6 +77,17 @@ func (eic *ExerciseInstanceCreate) SetNillableID(u *uuid.UUID) *ExerciseInstance
 		eic.SetID(*u)
 	}
 	return eic
+}
+
+// SetExerciseID sets the "exercise" edge to the Exercise entity by ID.
+func (eic *ExerciseInstanceCreate) SetExerciseID(id uuid.UUID) *ExerciseInstanceCreate {
+	eic.mutation.SetExerciseID(id)
+	return eic
+}
+
+// SetExercise sets the "exercise" edge to the Exercise entity.
+func (eic *ExerciseInstanceCreate) SetExercise(e *Exercise) *ExerciseInstanceCreate {
+	return eic.SetExerciseID(e.ID)
 }
 
 // AddWorkoutExerciseIDs adds the "workout_exercises" edge to the WorkoutExercise entity by IDs.
@@ -170,8 +162,8 @@ func (eic *ExerciseInstanceCreate) check() error {
 	if _, ok := eic.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ExerciseInstance.updated_at"`)}
 	}
-	if _, ok := eic.mutation.ExerciseID(); !ok {
-		return &ValidationError{Name: "exercise_id", err: errors.New(`ent: missing required field "ExerciseInstance.exercise_id"`)}
+	if len(eic.mutation.ExerciseIDs()) == 0 {
+		return &ValidationError{Name: "exercise", err: errors.New(`ent: missing required edge "ExerciseInstance.exercise"`)}
 	}
 	return nil
 }
@@ -220,13 +212,22 @@ func (eic *ExerciseInstanceCreate) createSpec() (*ExerciseInstance, *sqlgraph.Cr
 		_spec.SetField(exerciseinstance.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := eic.mutation.WorkoutLogID(); ok {
-		_spec.SetField(exerciseinstance.FieldWorkoutLogID, field.TypeUUID, value)
-		_node.WorkoutLogID = &value
-	}
-	if value, ok := eic.mutation.ExerciseID(); ok {
-		_spec.SetField(exerciseinstance.FieldExerciseID, field.TypeUUID, value)
-		_node.ExerciseID = value
+	if nodes := eic.mutation.ExerciseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   exerciseinstance.ExerciseTable,
+			Columns: []string{exerciseinstance.ExerciseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.exercise_exercise_instances = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := eic.mutation.WorkoutExercisesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

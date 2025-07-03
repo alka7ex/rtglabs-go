@@ -70,20 +70,6 @@ func (bu *BodyweightUpdate) ClearDeletedAt() *BodyweightUpdate {
 	return bu
 }
 
-// SetUserID sets the "user_id" field.
-func (bu *BodyweightUpdate) SetUserID(u uuid.UUID) *BodyweightUpdate {
-	bu.mutation.SetUserID(u)
-	return bu
-}
-
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (bu *BodyweightUpdate) SetNillableUserID(u *uuid.UUID) *BodyweightUpdate {
-	if u != nil {
-		bu.SetUserID(*u)
-	}
-	return bu
-}
-
 // SetWeight sets the "weight" field.
 func (bu *BodyweightUpdate) SetWeight(f float64) *BodyweightUpdate {
 	bu.mutation.ResetWeight()
@@ -116,6 +102,12 @@ func (bu *BodyweightUpdate) SetNillableUnit(s *string) *BodyweightUpdate {
 	if s != nil {
 		bu.SetUnit(*s)
 	}
+	return bu
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (bu *BodyweightUpdate) SetUserID(id uuid.UUID) *BodyweightUpdate {
+	bu.mutation.SetUserID(id)
 	return bu
 }
 
@@ -311,20 +303,6 @@ func (buo *BodyweightUpdateOne) ClearDeletedAt() *BodyweightUpdateOne {
 	return buo
 }
 
-// SetUserID sets the "user_id" field.
-func (buo *BodyweightUpdateOne) SetUserID(u uuid.UUID) *BodyweightUpdateOne {
-	buo.mutation.SetUserID(u)
-	return buo
-}
-
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (buo *BodyweightUpdateOne) SetNillableUserID(u *uuid.UUID) *BodyweightUpdateOne {
-	if u != nil {
-		buo.SetUserID(*u)
-	}
-	return buo
-}
-
 // SetWeight sets the "weight" field.
 func (buo *BodyweightUpdateOne) SetWeight(f float64) *BodyweightUpdateOne {
 	buo.mutation.ResetWeight()
@@ -357,6 +335,12 @@ func (buo *BodyweightUpdateOne) SetNillableUnit(s *string) *BodyweightUpdateOne 
 	if s != nil {
 		buo.SetUnit(*s)
 	}
+	return buo
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (buo *BodyweightUpdateOne) SetUserID(id uuid.UUID) *BodyweightUpdateOne {
+	buo.mutation.SetUserID(id)
 	return buo
 }
 

@@ -22,6 +22,8 @@ import (
 // to their package variables.
 func init() {
 	bodyweightMixin := schema.Bodyweight{}.Mixin()
+	bodyweightMixinFields0 := bodyweightMixin[0].Fields()
+	_ = bodyweightMixinFields0
 	bodyweightMixinFields1 := bodyweightMixin[1].Fields()
 	_ = bodyweightMixinFields1
 	bodyweightFields := schema.Bodyweight{}.Fields()
@@ -37,15 +39,15 @@ func init() {
 	// bodyweight.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	bodyweight.UpdateDefaultUpdatedAt = bodyweightDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// bodyweightDescWeight is the schema descriptor for weight field.
-	bodyweightDescWeight := bodyweightFields[2].Descriptor()
+	bodyweightDescWeight := bodyweightFields[0].Descriptor()
 	// bodyweight.WeightValidator is a validator for the "weight" field. It is called by the builders before save.
 	bodyweight.WeightValidator = bodyweightDescWeight.Validators[0].(func(float64) error)
 	// bodyweightDescUnit is the schema descriptor for unit field.
-	bodyweightDescUnit := bodyweightFields[3].Descriptor()
+	bodyweightDescUnit := bodyweightFields[1].Descriptor()
 	// bodyweight.UnitValidator is a validator for the "unit" field. It is called by the builders before save.
 	bodyweight.UnitValidator = bodyweightDescUnit.Validators[0].(func(string) error)
 	// bodyweightDescID is the schema descriptor for id field.
-	bodyweightDescID := bodyweightFields[0].Descriptor()
+	bodyweightDescID := bodyweightMixinFields0[0].Descriptor()
 	// bodyweight.DefaultID holds the default value on creation for the id field.
 	bodyweight.DefaultID = bodyweightDescID.Default.(func() uuid.UUID)
 	exerciseMixin := schema.Exercise{}.Mixin()
@@ -91,6 +93,8 @@ func init() {
 	// exerciseinstance.DefaultID holds the default value on creation for the id field.
 	exerciseinstance.DefaultID = exerciseinstanceDescID.Default.(func() uuid.UUID)
 	profileMixin := schema.Profile{}.Mixin()
+	profileMixinFields0 := profileMixin[0].Fields()
+	_ = profileMixinFields0
 	profileMixinFields1 := profileMixin[1].Fields()
 	_ = profileMixinFields1
 	profileFields := schema.Profile{}.Fields()
@@ -106,11 +110,15 @@ func init() {
 	// profile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	profile.UpdateDefaultUpdatedAt = profileDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// profileDescID is the schema descriptor for id field.
-	profileDescID := profileFields[0].Descriptor()
+	profileDescID := profileMixinFields0[0].Descriptor()
 	// profile.DefaultID holds the default value on creation for the id field.
 	profile.DefaultID = profileDescID.Default.(func() uuid.UUID)
 	sessionFields := schema.Session{}.Fields()
 	_ = sessionFields
+	// sessionDescToken is the schema descriptor for token field.
+	sessionDescToken := sessionFields[1].Descriptor()
+	// session.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	session.TokenValidator = sessionDescToken.Validators[0].(func(string) error)
 	// sessionDescCreatedAt is the schema descriptor for created_at field.
 	sessionDescCreatedAt := sessionFields[3].Descriptor()
 	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
@@ -120,6 +128,8 @@ func init() {
 	// session.DefaultID holds the default value on creation for the id field.
 	session.DefaultID = sessionDescID.Default.(func() uuid.UUID)
 	userMixin := schema.User{}.Mixin()
+	userMixinFields0 := userMixin[0].Fields()
+	_ = userMixinFields0
 	userMixinFields1 := userMixin[1].Fields()
 	_ = userMixinFields1
 	userFields := schema.User{}.Fields()
@@ -135,19 +145,19 @@ func init() {
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// userDescName is the schema descriptor for name field.
-	userDescName := userFields[1].Descriptor()
+	userDescName := userFields[0].Descriptor()
 	// user.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	user.NameValidator = userDescName.Validators[0].(func(string) error)
 	// userDescEmail is the schema descriptor for email field.
-	userDescEmail := userFields[2].Descriptor()
+	userDescEmail := userFields[1].Descriptor()
 	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
 	// userDescPassword is the schema descriptor for password field.
-	userDescPassword := userFields[3].Descriptor()
+	userDescPassword := userFields[2].Descriptor()
 	// user.PasswordValidator is a validator for the "password" field. It is called by the builders before save.
 	user.PasswordValidator = userDescPassword.Validators[0].(func(string) error)
 	// userDescID is the schema descriptor for id field.
-	userDescID := userFields[0].Descriptor()
+	userDescID := userMixinFields0[0].Descriptor()
 	// user.DefaultID holds the default value on creation for the id field.
 	user.DefaultID = userDescID.Default.(func() uuid.UUID)
 	workoutMixin := schema.Workout{}.Mixin()

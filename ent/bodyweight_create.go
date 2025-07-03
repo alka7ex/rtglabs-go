@@ -64,12 +64,6 @@ func (bc *BodyweightCreate) SetNillableDeletedAt(t *time.Time) *BodyweightCreate
 	return bc
 }
 
-// SetUserID sets the "user_id" field.
-func (bc *BodyweightCreate) SetUserID(u uuid.UUID) *BodyweightCreate {
-	bc.mutation.SetUserID(u)
-	return bc
-}
-
 // SetWeight sets the "weight" field.
 func (bc *BodyweightCreate) SetWeight(f float64) *BodyweightCreate {
 	bc.mutation.SetWeight(f)
@@ -93,6 +87,12 @@ func (bc *BodyweightCreate) SetNillableID(u *uuid.UUID) *BodyweightCreate {
 	if u != nil {
 		bc.SetID(*u)
 	}
+	return bc
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (bc *BodyweightCreate) SetUserID(id uuid.UUID) *BodyweightCreate {
+	bc.mutation.SetUserID(id)
 	return bc
 }
 
@@ -157,9 +157,6 @@ func (bc *BodyweightCreate) check() error {
 	}
 	if _, ok := bc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Bodyweight.updated_at"`)}
-	}
-	if _, ok := bc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Bodyweight.user_id"`)}
 	}
 	if _, ok := bc.mutation.Weight(); !ok {
 		return &ValidationError{Name: "weight", err: errors.New(`ent: missing required field "Bodyweight.weight"`)}
@@ -249,7 +246,7 @@ func (bc *BodyweightCreate) createSpec() (*Bodyweight, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.UserID = nodes[0]
+		_node.user_bodyweights = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

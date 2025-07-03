@@ -6,8 +6,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-
-	"github.com/google/uuid"
 )
 
 // Bodyweight holds the schema definition for the Bodyweight entity.
@@ -17,18 +15,13 @@ type Bodyweight struct {
 
 func (Bodyweight) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		custommixin.UUID{},       // Maps to the 'id' primary key
-		custommixin.Timestamps{}, // Maps to 'timestampsTz' and 'softDeletesTz'
+		custommixin.UUID{},       // Provides the 'id' field
+		custommixin.Timestamps{}, // Provides created_at, updated_at, deleted_at
 	}
 }
 
-// Fields of the Bodyweight.
 func (Bodyweight) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).
-			Default(uuid.New).
-			Unique(),
-		field.UUID("user_id", uuid.UUID{}),
 		field.Float("weight").
 			Positive(),
 		field.String("unit").
@@ -36,13 +29,12 @@ func (Bodyweight) Fields() []ent.Field {
 	}
 }
 
-// Edges of the Bodyweight.
 func (Bodyweight) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).
 			Ref("bodyweights").
-			Field("user_id").
 			Unique().
 			Required(),
 	}
 }
+

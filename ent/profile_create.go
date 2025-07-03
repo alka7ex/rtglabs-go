@@ -94,20 +94,6 @@ func (pc *ProfileCreate) SetWeight(f float64) *ProfileCreate {
 	return pc
 }
 
-// SetUserID sets the "user_id" field.
-func (pc *ProfileCreate) SetUserID(u uuid.UUID) *ProfileCreate {
-	pc.mutation.SetUserID(u)
-	return pc
-}
-
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (pc *ProfileCreate) SetNillableUserID(u *uuid.UUID) *ProfileCreate {
-	if u != nil {
-		pc.SetUserID(*u)
-	}
-	return pc
-}
-
 // SetID sets the "id" field.
 func (pc *ProfileCreate) SetID(u uuid.UUID) *ProfileCreate {
 	pc.mutation.SetID(u)
@@ -118,6 +104,20 @@ func (pc *ProfileCreate) SetID(u uuid.UUID) *ProfileCreate {
 func (pc *ProfileCreate) SetNillableID(u *uuid.UUID) *ProfileCreate {
 	if u != nil {
 		pc.SetID(*u)
+	}
+	return pc
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (pc *ProfileCreate) SetUserID(id uuid.UUID) *ProfileCreate {
+	pc.mutation.SetUserID(id)
+	return pc
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (pc *ProfileCreate) SetNillableUserID(id *uuid.UUID) *ProfileCreate {
+	if id != nil {
+		pc = pc.SetUserID(*id)
 	}
 	return pc
 }
@@ -280,7 +280,7 @@ func (pc *ProfileCreate) createSpec() (*Profile, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.UserID = &nodes[0]
+		_node.user_profile = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

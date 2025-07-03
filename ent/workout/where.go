@@ -76,11 +76,6 @@ func Name(v string) predicate.Workout {
 	return predicate.Workout(sql.FieldEQ(FieldName, v))
 }
 
-// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
-func UserID(v uuid.UUID) predicate.Workout {
-	return predicate.Workout(sql.FieldEQ(FieldUserID, v))
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Workout {
 	return predicate.Workout(sql.FieldEQ(FieldCreatedAt, v))
@@ -274,26 +269,6 @@ func NameEqualFold(v string) predicate.Workout {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.Workout {
 	return predicate.Workout(sql.FieldContainsFold(FieldName, v))
-}
-
-// UserIDEQ applies the EQ predicate on the "user_id" field.
-func UserIDEQ(v uuid.UUID) predicate.Workout {
-	return predicate.Workout(sql.FieldEQ(FieldUserID, v))
-}
-
-// UserIDNEQ applies the NEQ predicate on the "user_id" field.
-func UserIDNEQ(v uuid.UUID) predicate.Workout {
-	return predicate.Workout(sql.FieldNEQ(FieldUserID, v))
-}
-
-// UserIDIn applies the In predicate on the "user_id" field.
-func UserIDIn(vs ...uuid.UUID) predicate.Workout {
-	return predicate.Workout(sql.FieldIn(FieldUserID, vs...))
-}
-
-// UserIDNotIn applies the NotIn predicate on the "user_id" field.
-func UserIDNotIn(vs ...uuid.UUID) predicate.Workout {
-	return predicate.Workout(sql.FieldNotIn(FieldUserID, vs...))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

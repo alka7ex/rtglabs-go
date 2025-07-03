@@ -96,11 +96,6 @@ func Weight(v float64) predicate.Profile {
 	return predicate.Profile(sql.FieldEQ(FieldWeight, v))
 }
 
-// UserID applies equality check predicate on the "user_id" field. It's identical to UserIDEQ.
-func UserID(v uuid.UUID) predicate.Profile {
-	return predicate.Profile(sql.FieldEQ(FieldUserID, v))
-}
-
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Profile {
 	return predicate.Profile(sql.FieldEQ(FieldCreatedAt, v))
@@ -429,36 +424,6 @@ func WeightLT(v float64) predicate.Profile {
 // WeightLTE applies the LTE predicate on the "weight" field.
 func WeightLTE(v float64) predicate.Profile {
 	return predicate.Profile(sql.FieldLTE(FieldWeight, v))
-}
-
-// UserIDEQ applies the EQ predicate on the "user_id" field.
-func UserIDEQ(v uuid.UUID) predicate.Profile {
-	return predicate.Profile(sql.FieldEQ(FieldUserID, v))
-}
-
-// UserIDNEQ applies the NEQ predicate on the "user_id" field.
-func UserIDNEQ(v uuid.UUID) predicate.Profile {
-	return predicate.Profile(sql.FieldNEQ(FieldUserID, v))
-}
-
-// UserIDIn applies the In predicate on the "user_id" field.
-func UserIDIn(vs ...uuid.UUID) predicate.Profile {
-	return predicate.Profile(sql.FieldIn(FieldUserID, vs...))
-}
-
-// UserIDNotIn applies the NotIn predicate on the "user_id" field.
-func UserIDNotIn(vs ...uuid.UUID) predicate.Profile {
-	return predicate.Profile(sql.FieldNotIn(FieldUserID, vs...))
-}
-
-// UserIDIsNil applies the IsNil predicate on the "user_id" field.
-func UserIDIsNil() predicate.Profile {
-	return predicate.Profile(sql.FieldIsNull(FieldUserID))
-}
-
-// UserIDNotNil applies the NotNil predicate on the "user_id" field.
-func UserIDNotNil() predicate.Profile {
-	return predicate.Profile(sql.FieldNotNull(FieldUserID))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

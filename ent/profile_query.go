@@ -25,6 +25,7 @@ type ProfileQuery struct {
 	inters     []Interceptor
 	predicates []predicate.Profile
 	withUser   *UserQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -370,11 +371,18 @@ func (pq *ProfileQuery) prepareQuery(ctx context.Context) error {
 func (pq *ProfileQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Profile, error) {
 	var (
 		nodes       = []*Profile{}
+		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
 		loadedTypes = [1]bool{
 			pq.withUser != nil,
 		}
 	)
+	if pq.withUser != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, profile.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Profile).scanValues(nil, columns)
 	}
@@ -406,10 +414,10 @@ func (pq *ProfileQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*Profile)
 	for i := range nodes {
-		if nodes[i].UserID == nil {
+		if nodes[i].user_profile == nil {
 			continue
 		}
-		fk := *nodes[i].UserID
+		fk := *nodes[i].user_profile
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -426,7 +434,7 @@ func (pq *ProfileQuery) loadUser(ctx context.Context, query *UserQuery, nodes []
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_profile" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -459,9 +467,6 @@ func (pq *ProfileQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != profile.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if pq.withUser != nil {
-			_spec.Node.AddColumnOnce(profile.FieldUserID)
 		}
 	}
 	if ps := pq.predicates; len(ps) > 0 {

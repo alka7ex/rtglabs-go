@@ -66,32 +66,6 @@ func (wec *WorkoutExerciseCreate) SetNillableDeletedAt(t *time.Time) *WorkoutExe
 	return wec
 }
 
-// SetWorkoutID sets the "workout_id" field.
-func (wec *WorkoutExerciseCreate) SetWorkoutID(u uuid.UUID) *WorkoutExerciseCreate {
-	wec.mutation.SetWorkoutID(u)
-	return wec
-}
-
-// SetExerciseID sets the "exercise_id" field.
-func (wec *WorkoutExerciseCreate) SetExerciseID(u uuid.UUID) *WorkoutExerciseCreate {
-	wec.mutation.SetExerciseID(u)
-	return wec
-}
-
-// SetExerciseInstanceID sets the "exercise_instance_id" field.
-func (wec *WorkoutExerciseCreate) SetExerciseInstanceID(u uuid.UUID) *WorkoutExerciseCreate {
-	wec.mutation.SetExerciseInstanceID(u)
-	return wec
-}
-
-// SetNillableExerciseInstanceID sets the "exercise_instance_id" field if the given value is not nil.
-func (wec *WorkoutExerciseCreate) SetNillableExerciseInstanceID(u *uuid.UUID) *WorkoutExerciseCreate {
-	if u != nil {
-		wec.SetExerciseInstanceID(*u)
-	}
-	return wec
-}
-
 // SetOrder sets the "order" field.
 func (wec *WorkoutExerciseCreate) SetOrder(u uint) *WorkoutExerciseCreate {
 	wec.mutation.SetOrder(u)
@@ -162,14 +136,40 @@ func (wec *WorkoutExerciseCreate) SetNillableID(u *uuid.UUID) *WorkoutExerciseCr
 	return wec
 }
 
+// SetWorkoutID sets the "workout" edge to the Workout entity by ID.
+func (wec *WorkoutExerciseCreate) SetWorkoutID(id uuid.UUID) *WorkoutExerciseCreate {
+	wec.mutation.SetWorkoutID(id)
+	return wec
+}
+
 // SetWorkout sets the "workout" edge to the Workout entity.
 func (wec *WorkoutExerciseCreate) SetWorkout(w *Workout) *WorkoutExerciseCreate {
 	return wec.SetWorkoutID(w.ID)
 }
 
+// SetExerciseID sets the "exercise" edge to the Exercise entity by ID.
+func (wec *WorkoutExerciseCreate) SetExerciseID(id uuid.UUID) *WorkoutExerciseCreate {
+	wec.mutation.SetExerciseID(id)
+	return wec
+}
+
 // SetExercise sets the "exercise" edge to the Exercise entity.
 func (wec *WorkoutExerciseCreate) SetExercise(e *Exercise) *WorkoutExerciseCreate {
 	return wec.SetExerciseID(e.ID)
+}
+
+// SetExerciseInstanceID sets the "exercise_instance" edge to the ExerciseInstance entity by ID.
+func (wec *WorkoutExerciseCreate) SetExerciseInstanceID(id uuid.UUID) *WorkoutExerciseCreate {
+	wec.mutation.SetExerciseInstanceID(id)
+	return wec
+}
+
+// SetNillableExerciseInstanceID sets the "exercise_instance" edge to the ExerciseInstance entity by ID if the given value is not nil.
+func (wec *WorkoutExerciseCreate) SetNillableExerciseInstanceID(id *uuid.UUID) *WorkoutExerciseCreate {
+	if id != nil {
+		wec = wec.SetExerciseInstanceID(*id)
+	}
+	return wec
 }
 
 // SetExerciseInstance sets the "exercise_instance" edge to the ExerciseInstance entity.
@@ -233,12 +233,6 @@ func (wec *WorkoutExerciseCreate) check() error {
 	}
 	if _, ok := wec.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "WorkoutExercise.updated_at"`)}
-	}
-	if _, ok := wec.mutation.WorkoutID(); !ok {
-		return &ValidationError{Name: "workout_id", err: errors.New(`ent: missing required field "WorkoutExercise.workout_id"`)}
-	}
-	if _, ok := wec.mutation.ExerciseID(); !ok {
-		return &ValidationError{Name: "exercise_id", err: errors.New(`ent: missing required field "WorkoutExercise.exercise_id"`)}
 	}
 	if len(wec.mutation.WorkoutIDs()) == 0 {
 		return &ValidationError{Name: "workout", err: errors.New(`ent: missing required edge "WorkoutExercise.workout"`)}
@@ -323,7 +317,7 @@ func (wec *WorkoutExerciseCreate) createSpec() (*WorkoutExercise, *sqlgraph.Crea
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.WorkoutID = nodes[0]
+		_node.workout_workout_exercises = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := wec.mutation.ExerciseIDs(); len(nodes) > 0 {
@@ -340,7 +334,7 @@ func (wec *WorkoutExerciseCreate) createSpec() (*WorkoutExercise, *sqlgraph.Crea
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.ExerciseID = nodes[0]
+		_node.exercise_workout_exercises = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := wec.mutation.ExerciseInstanceIDs(); len(nodes) > 0 {
@@ -357,7 +351,7 @@ func (wec *WorkoutExerciseCreate) createSpec() (*WorkoutExercise, *sqlgraph.Crea
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.ExerciseInstanceID = &nodes[0]
+		_node.exercise_instance_workout_exercises = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

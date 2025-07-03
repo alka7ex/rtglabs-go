@@ -175,23 +175,17 @@ func (pu *ProfileUpdate) AddWeight(f float64) *ProfileUpdate {
 	return pu
 }
 
-// SetUserID sets the "user_id" field.
-func (pu *ProfileUpdate) SetUserID(u uuid.UUID) *ProfileUpdate {
-	pu.mutation.SetUserID(u)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (pu *ProfileUpdate) SetUserID(id uuid.UUID) *ProfileUpdate {
+	pu.mutation.SetUserID(id)
 	return pu
 }
 
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (pu *ProfileUpdate) SetNillableUserID(u *uuid.UUID) *ProfileUpdate {
-	if u != nil {
-		pu.SetUserID(*u)
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (pu *ProfileUpdate) SetNillableUserID(id *uuid.UUID) *ProfileUpdate {
+	if id != nil {
+		pu = pu.SetUserID(*id)
 	}
-	return pu
-}
-
-// ClearUserID clears the value of the "user_id" field.
-func (pu *ProfileUpdate) ClearUserID() *ProfileUpdate {
-	pu.mutation.ClearUserID()
 	return pu
 }
 
@@ -492,23 +486,17 @@ func (puo *ProfileUpdateOne) AddWeight(f float64) *ProfileUpdateOne {
 	return puo
 }
 
-// SetUserID sets the "user_id" field.
-func (puo *ProfileUpdateOne) SetUserID(u uuid.UUID) *ProfileUpdateOne {
-	puo.mutation.SetUserID(u)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (puo *ProfileUpdateOne) SetUserID(id uuid.UUID) *ProfileUpdateOne {
+	puo.mutation.SetUserID(id)
 	return puo
 }
 
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (puo *ProfileUpdateOne) SetNillableUserID(u *uuid.UUID) *ProfileUpdateOne {
-	if u != nil {
-		puo.SetUserID(*u)
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (puo *ProfileUpdateOne) SetNillableUserID(id *uuid.UUID) *ProfileUpdateOne {
+	if id != nil {
+		puo = puo.SetUserID(*id)
 	}
-	return puo
-}
-
-// ClearUserID clears the value of the "user_id" field.
-func (puo *ProfileUpdateOne) ClearUserID() *ProfileUpdateOne {
-	puo.mutation.ClearUserID()
 	return puo
 }
 

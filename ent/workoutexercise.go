@@ -27,12 +27,6 @@ type WorkoutExercise struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// WorkoutID holds the value of the "workout_id" field.
-	WorkoutID uuid.UUID `json:"workout_id,omitempty"`
-	// ExerciseID holds the value of the "exercise_id" field.
-	ExerciseID uuid.UUID `json:"exercise_id,omitempty"`
-	// ExerciseInstanceID holds the value of the "exercise_instance_id" field.
-	ExerciseInstanceID *uuid.UUID `json:"exercise_instance_id,omitempty"`
 	// Order holds the value of the "order" field.
 	Order *uint `json:"order,omitempty"`
 	// Sets holds the value of the "sets" field.
@@ -43,8 +37,11 @@ type WorkoutExercise struct {
 	Reps *uint `json:"reps,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the WorkoutExerciseQuery when eager-loading is set.
-	Edges        WorkoutExerciseEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges                               WorkoutExerciseEdges `json:"edges"`
+	exercise_workout_exercises          *uuid.UUID
+	exercise_instance_workout_exercises *uuid.UUID
+	workout_workout_exercises           *uuid.UUID
+	selectValues                        sql.SelectValues
 }
 
 // WorkoutExerciseEdges holds the relations/edges for other nodes in the graph.
@@ -98,16 +95,20 @@ func (*WorkoutExercise) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case workoutexercise.FieldExerciseInstanceID:
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case workoutexercise.FieldWeight:
 			values[i] = new(sql.NullFloat64)
 		case workoutexercise.FieldOrder, workoutexercise.FieldSets, workoutexercise.FieldReps:
 			values[i] = new(sql.NullInt64)
 		case workoutexercise.FieldCreatedAt, workoutexercise.FieldUpdatedAt, workoutexercise.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case workoutexercise.FieldID, workoutexercise.FieldWorkoutID, workoutexercise.FieldExerciseID:
+		case workoutexercise.FieldID:
 			values[i] = new(uuid.UUID)
+		case workoutexercise.ForeignKeys[0]: // exercise_workout_exercises
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case workoutexercise.ForeignKeys[1]: // exercise_instance_workout_exercises
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case workoutexercise.ForeignKeys[2]: // workout_workout_exercises
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -148,25 +149,6 @@ func (we *WorkoutExercise) assignValues(columns []string, values []any) error {
 				we.DeletedAt = new(time.Time)
 				*we.DeletedAt = value.Time
 			}
-		case workoutexercise.FieldWorkoutID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
-				return fmt.Errorf("unexpected type %T for field workout_id", values[i])
-			} else if value != nil {
-				we.WorkoutID = *value
-			}
-		case workoutexercise.FieldExerciseID:
-			if value, ok := values[i].(*uuid.UUID); !ok {
-				return fmt.Errorf("unexpected type %T for field exercise_id", values[i])
-			} else if value != nil {
-				we.ExerciseID = *value
-			}
-		case workoutexercise.FieldExerciseInstanceID:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field exercise_instance_id", values[i])
-			} else if value.Valid {
-				we.ExerciseInstanceID = new(uuid.UUID)
-				*we.ExerciseInstanceID = *value.S.(*uuid.UUID)
-			}
 		case workoutexercise.FieldOrder:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field order", values[i])
@@ -194,6 +176,27 @@ func (we *WorkoutExercise) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				we.Reps = new(uint)
 				*we.Reps = uint(value.Int64)
+			}
+		case workoutexercise.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field exercise_workout_exercises", values[i])
+			} else if value.Valid {
+				we.exercise_workout_exercises = new(uuid.UUID)
+				*we.exercise_workout_exercises = *value.S.(*uuid.UUID)
+			}
+		case workoutexercise.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field exercise_instance_workout_exercises", values[i])
+			} else if value.Valid {
+				we.exercise_instance_workout_exercises = new(uuid.UUID)
+				*we.exercise_instance_workout_exercises = *value.S.(*uuid.UUID)
+			}
+		case workoutexercise.ForeignKeys[2]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field workout_workout_exercises", values[i])
+			} else if value.Valid {
+				we.workout_workout_exercises = new(uuid.UUID)
+				*we.workout_workout_exercises = *value.S.(*uuid.UUID)
 			}
 		default:
 			we.selectValues.Set(columns[i], values[i])
@@ -255,17 +258,6 @@ func (we *WorkoutExercise) String() string {
 	if v := we.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("workout_id=")
-	builder.WriteString(fmt.Sprintf("%v", we.WorkoutID))
-	builder.WriteString(", ")
-	builder.WriteString("exercise_id=")
-	builder.WriteString(fmt.Sprintf("%v", we.ExerciseID))
-	builder.WriteString(", ")
-	if v := we.ExerciseInstanceID; v != nil {
-		builder.WriteString("exercise_instance_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	if v := we.Order; v != nil {

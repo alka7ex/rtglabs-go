@@ -21,12 +21,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldWorkoutID holds the string denoting the workout_id field in the database.
-	FieldWorkoutID = "workout_id"
-	// FieldExerciseID holds the string denoting the exercise_id field in the database.
-	FieldExerciseID = "exercise_id"
-	// FieldExerciseInstanceID holds the string denoting the exercise_instance_id field in the database.
-	FieldExerciseInstanceID = "exercise_instance_id"
 	// FieldOrder holds the string denoting the order field in the database.
 	FieldOrder = "order"
 	// FieldSets holds the string denoting the sets field in the database.
@@ -49,21 +43,21 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "workout" package.
 	WorkoutInverseTable = "workouts"
 	// WorkoutColumn is the table column denoting the workout relation/edge.
-	WorkoutColumn = "workout_id"
+	WorkoutColumn = "workout_workout_exercises"
 	// ExerciseTable is the table that holds the exercise relation/edge.
 	ExerciseTable = "workout_exercises"
 	// ExerciseInverseTable is the table name for the Exercise entity.
 	// It exists in this package in order to avoid circular dependency with the "exercise" package.
 	ExerciseInverseTable = "exercises"
 	// ExerciseColumn is the table column denoting the exercise relation/edge.
-	ExerciseColumn = "exercise_id"
+	ExerciseColumn = "exercise_workout_exercises"
 	// ExerciseInstanceTable is the table that holds the exercise_instance relation/edge.
 	ExerciseInstanceTable = "workout_exercises"
 	// ExerciseInstanceInverseTable is the table name for the ExerciseInstance entity.
 	// It exists in this package in order to avoid circular dependency with the "exerciseinstance" package.
 	ExerciseInstanceInverseTable = "exercise_instances"
 	// ExerciseInstanceColumn is the table column denoting the exercise_instance relation/edge.
-	ExerciseInstanceColumn = "exercise_instance_id"
+	ExerciseInstanceColumn = "exercise_instance_workout_exercises"
 )
 
 // Columns holds all SQL columns for workoutexercise fields.
@@ -72,19 +66,29 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldWorkoutID,
-	FieldExerciseID,
-	FieldExerciseInstanceID,
 	FieldOrder,
 	FieldSets,
 	FieldWeight,
 	FieldReps,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the "workout_exercises"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"exercise_workout_exercises",
+	"exercise_instance_workout_exercises",
+	"workout_workout_exercises",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -123,21 +127,6 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
-}
-
-// ByWorkoutID orders the results by the workout_id field.
-func ByWorkoutID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWorkoutID, opts...).ToFunc()
-}
-
-// ByExerciseID orders the results by the exercise_id field.
-func ByExerciseID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExerciseID, opts...).ToFunc()
-}
-
-// ByExerciseInstanceID orders the results by the exercise_instance_id field.
-func ByExerciseInstanceID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExerciseInstanceID, opts...).ToFunc()
 }
 
 // ByOrder orders the results by the order field.

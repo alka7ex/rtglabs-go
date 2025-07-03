@@ -21,21 +21,26 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldWorkoutLogID holds the string denoting the workout_log_id field in the database.
-	FieldWorkoutLogID = "workout_log_id"
-	// FieldExerciseID holds the string denoting the exercise_id field in the database.
-	FieldExerciseID = "exercise_id"
+	// EdgeExercise holds the string denoting the exercise edge name in mutations.
+	EdgeExercise = "exercise"
 	// EdgeWorkoutExercises holds the string denoting the workout_exercises edge name in mutations.
 	EdgeWorkoutExercises = "workout_exercises"
 	// Table holds the table name of the exerciseinstance in the database.
 	Table = "exercise_instances"
+	// ExerciseTable is the table that holds the exercise relation/edge.
+	ExerciseTable = "exercise_instances"
+	// ExerciseInverseTable is the table name for the Exercise entity.
+	// It exists in this package in order to avoid circular dependency with the "exercise" package.
+	ExerciseInverseTable = "exercises"
+	// ExerciseColumn is the table column denoting the exercise relation/edge.
+	ExerciseColumn = "exercise_exercise_instances"
 	// WorkoutExercisesTable is the table that holds the workout_exercises relation/edge.
 	WorkoutExercisesTable = "workout_exercises"
 	// WorkoutExercisesInverseTable is the table name for the WorkoutExercise entity.
 	// It exists in this package in order to avoid circular dependency with the "workoutexercise" package.
 	WorkoutExercisesInverseTable = "workout_exercises"
 	// WorkoutExercisesColumn is the table column denoting the workout_exercises relation/edge.
-	WorkoutExercisesColumn = "exercise_instance_id"
+	WorkoutExercisesColumn = "exercise_instance_workout_exercises"
 )
 
 // Columns holds all SQL columns for exerciseinstance fields.
@@ -44,8 +49,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldWorkoutLogID,
-	FieldExerciseID,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "exercise_instances"
@@ -103,14 +106,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByWorkoutLogID orders the results by the workout_log_id field.
-func ByWorkoutLogID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldWorkoutLogID, opts...).ToFunc()
-}
-
-// ByExerciseID orders the results by the exercise_id field.
-func ByExerciseID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExerciseID, opts...).ToFunc()
+// ByExerciseField orders the results by exercise field.
+func ByExerciseField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newExerciseStep(), sql.OrderByField(field, opts...))
+	}
 }
 
 // ByWorkoutExercisesCount orders the results by workout_exercises count.
@@ -125,6 +125,13 @@ func ByWorkoutExercises(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newWorkoutExercisesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
+}
+func newExerciseStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ExerciseInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ExerciseTable, ExerciseColumn),
+	)
 }
 func newWorkoutExercisesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

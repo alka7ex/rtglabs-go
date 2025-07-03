@@ -29,6 +29,7 @@ type WorkoutExerciseQuery struct {
 	withWorkout          *WorkoutQuery
 	withExercise         *ExerciseQuery
 	withExerciseInstance *ExerciseInstanceQuery
+	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -442,6 +443,7 @@ func (weq *WorkoutExerciseQuery) prepareQuery(ctx context.Context) error {
 func (weq *WorkoutExerciseQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*WorkoutExercise, error) {
 	var (
 		nodes       = []*WorkoutExercise{}
+		withFKs     = weq.withFKs
 		_spec       = weq.querySpec()
 		loadedTypes = [3]bool{
 			weq.withWorkout != nil,
@@ -449,6 +451,12 @@ func (weq *WorkoutExerciseQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			weq.withExerciseInstance != nil,
 		}
 	)
+	if weq.withWorkout != nil || weq.withExercise != nil || weq.withExerciseInstance != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, workoutexercise.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*WorkoutExercise).scanValues(nil, columns)
 	}
@@ -492,7 +500,10 @@ func (weq *WorkoutExerciseQuery) loadWorkout(ctx context.Context, query *Workout
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*WorkoutExercise)
 	for i := range nodes {
-		fk := nodes[i].WorkoutID
+		if nodes[i].workout_workout_exercises == nil {
+			continue
+		}
+		fk := *nodes[i].workout_workout_exercises
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -509,7 +520,7 @@ func (weq *WorkoutExerciseQuery) loadWorkout(ctx context.Context, query *Workout
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "workout_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "workout_workout_exercises" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -521,7 +532,10 @@ func (weq *WorkoutExerciseQuery) loadExercise(ctx context.Context, query *Exerci
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*WorkoutExercise)
 	for i := range nodes {
-		fk := nodes[i].ExerciseID
+		if nodes[i].exercise_workout_exercises == nil {
+			continue
+		}
+		fk := *nodes[i].exercise_workout_exercises
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -538,7 +552,7 @@ func (weq *WorkoutExerciseQuery) loadExercise(ctx context.Context, query *Exerci
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "exercise_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "exercise_workout_exercises" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -550,10 +564,10 @@ func (weq *WorkoutExerciseQuery) loadExerciseInstance(ctx context.Context, query
 	ids := make([]uuid.UUID, 0, len(nodes))
 	nodeids := make(map[uuid.UUID][]*WorkoutExercise)
 	for i := range nodes {
-		if nodes[i].ExerciseInstanceID == nil {
+		if nodes[i].exercise_instance_workout_exercises == nil {
 			continue
 		}
-		fk := *nodes[i].ExerciseInstanceID
+		fk := *nodes[i].exercise_instance_workout_exercises
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -570,7 +584,7 @@ func (weq *WorkoutExerciseQuery) loadExerciseInstance(ctx context.Context, query
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "exercise_instance_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "exercise_instance_workout_exercises" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -603,15 +617,6 @@ func (weq *WorkoutExerciseQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != workoutexercise.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if weq.withWorkout != nil {
-			_spec.Node.AddColumnOnce(workoutexercise.FieldWorkoutID)
-		}
-		if weq.withExercise != nil {
-			_spec.Node.AddColumnOnce(workoutexercise.FieldExerciseID)
-		}
-		if weq.withExerciseInstance != nil {
-			_spec.Node.AddColumnOnce(workoutexercise.FieldExerciseInstanceID)
 		}
 	}
 	if ps := weq.predicates; len(ps) > 0 {

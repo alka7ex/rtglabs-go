@@ -23,8 +23,6 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
-	// FieldUserID holds the string denoting the user_id field in the database.
-	FieldUserID = "user_id"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeWorkoutExercises holds the string denoting the workout_exercises edge name in mutations.
@@ -37,14 +35,14 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
-	UserColumn = "user_id"
+	UserColumn = "user_workouts"
 	// WorkoutExercisesTable is the table that holds the workout_exercises relation/edge.
 	WorkoutExercisesTable = "workout_exercises"
 	// WorkoutExercisesInverseTable is the table name for the WorkoutExercise entity.
 	// It exists in this package in order to avoid circular dependency with the "workoutexercise" package.
 	WorkoutExercisesInverseTable = "workout_exercises"
 	// WorkoutExercisesColumn is the table column denoting the workout_exercises relation/edge.
-	WorkoutExercisesColumn = "workout_id"
+	WorkoutExercisesColumn = "workout_workout_exercises"
 )
 
 // Columns holds all SQL columns for workout fields.
@@ -54,13 +52,23 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldName,
-	FieldUserID,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "workouts"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"user_workouts",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -104,11 +112,6 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
-}
-
-// ByUserID orders the results by the user_id field.
-func ByUserID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldUserID, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.
