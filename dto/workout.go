@@ -14,12 +14,13 @@ type CreateWorkoutRequest struct {
 
 // CreateWorkoutExerciseRequest represents a single exercise within a workout creation request.
 type CreateWorkoutExerciseRequest struct {
-	ExerciseID               uuid.UUID `json:"exercise_id" validate:"required,uuid"`
-	Order                    *uint     `json:"order" validate:"omitempty,min=1"`
-	Sets                     *uint     `json:"sets" validate:"omitempty,min=0"`
-	Weight                   *float64  `json:"weight" validate:"omitempty,min=0"`
-	Reps                     *uint     `json:"reps" validate:"omitempty,min=0"`
-	ExerciseInstanceClientID *string   `json:"exercise_instance_client_id,omitempty"` // Client-side temp ID for grouping
+	ID                       *uuid.UUID `json:"id" validate:"omitempty,uuid"`
+	ExerciseID               uuid.UUID  `json:"exercise_id" validate:"required,uuid"`
+	Order                    *uint      `json:"order" validate:"omitempty,min=1"`
+	Sets                     *uint      `json:"sets" validate:"omitempty,min=0"`
+	Weight                   *float64   `json:"weight" validate:"omitempty,min=0"`
+	Reps                     *uint      `json:"reps" validate:"omitempty,min=0"`
+	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id,omitempty"` // Client-side temp ID for grouping
 }
 
 // WorkoutResponse represents the full workout details to be returned in a response.
@@ -87,4 +88,3 @@ type ListWorkoutResponse struct {
 type DeleteWorkoutResponse struct {
 	Message string `json:"message"`
 }
-
