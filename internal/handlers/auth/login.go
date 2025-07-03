@@ -13,16 +13,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Login handles user login and session creation (maps to MVC 'Store' or 'Post').
+// Login handles user login and session creation
 func (h *AuthHandler) StoreLogin(c echo.Context) error {
 	var req dto.LoginRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid input")
 	}
 
+	// Eager-load profile and profile's user
 	entUser, err := h.Client.User.Query().
 		Where(user.EmailEQ(req.Email)).
-		WithProfile(). // Eager-load the profile
+		WithProfile(func(q *ent.ProfileQuery) {
+			q.WithUser()
+		}).
 		Only(c.Request().Context())
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -32,10 +35,12 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to authenticate")
 	}
 
+	// Validate password
 	if err := bcrypt.CompareHashAndPassword([]byte(entUser.Password), []byte(req.Password)); err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Invalid email or password")
 	}
 
+	// Generate token and session
 	token := uuid.New().String()
 	expiry := time.Now().Add(7 * 24 * time.Hour)
 
@@ -49,7 +54,7 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create session")
 	}
 
-	// Build the response DTO from the fetched Ent entity.
+	// Base user response
 	responseUser := dto.UserWithProfileResponse{
 		BaseUserResponse: dto.BaseUserResponse{
 			ID:              entUser.ID,
@@ -61,8 +66,8 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		},
 	}
 
-	// Check if the profile edge was loaded and populate the Profile DTO.
-	if profile, err := entUser.Edges.ProfileOrErr(); err == nil && profile != nil {
+	// Populate profile if loaded
+	if profile := entUser.Edges.Profile; profile != nil && profile.Edges.User != nil {
 		responseUser.Profile = &dto.ProfileResponse{
 			ID:        profile.ID,
 			UserID:    profile.Edges.User.ID,
@@ -76,7 +81,7 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		}
 	}
 
-	// Create the final response object.
+	// Final response
 	response := dto.LoginResponse{
 		Message:   "Logged in successfully!",
 		User:      responseUser,

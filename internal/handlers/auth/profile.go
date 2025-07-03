@@ -22,10 +22,12 @@ func (h *AuthHandler) GetProfile(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User ID not found in context")
 	}
 
-	// 2. Query the user and eager-load the profile.
+	// 2. Query the user and eager-load the profile (which also loads its user).
 	entUser, err := h.Client.User.Query().
 		Where(user.IDEQ(userID)).
-		WithProfile().
+		WithProfile(func(pq *ent.ProfileQuery) {
+			pq.WithUser()
+		}).
 		Only(c.Request().Context())
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -37,7 +39,7 @@ func (h *AuthHandler) GetProfile(c echo.Context) error {
 
 	// 3. Build the Profile DTO from the loaded edge.
 	var profileResponse *dto.ProfileResponse
-	if profile, err := entUser.Edges.ProfileOrErr(); err == nil && profile != nil {
+	if profile := entUser.Edges.Profile; profile != nil && profile.Edges.User != nil {
 		profileResponse = &dto.ProfileResponse{
 			ID:        profile.ID,
 			UserID:    profile.Edges.User.ID,
@@ -80,9 +82,10 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 	var updatedProfile *ent.Profile
 	var err error
 
-	// 3. Try to find the user's existing profile.
+	// 3. Try to find the user's existing profile and eager-load User edge
 	entProfile, err := h.Client.Profile.Query().
 		Where(profile.HasUserWith(user.IDEQ(userID))).
+		WithUser().
 		Only(c.Request().Context())
 
 	if ent.IsNotFound(err) {
@@ -96,9 +99,20 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 			SetGender(req.Gender).
 			SetWeight(req.Weight).
 			Save(c.Request().Context())
+
 		if err != nil {
 			c.Logger().Error("Failed to create new profile:", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create profile")
+		}
+
+		// Eager-load User edge after create
+		updatedProfile, err = h.Client.Profile.Query().
+			Where(profile.IDEQ(updatedProfile.ID)).
+			WithUser().
+			Only(c.Request().Context())
+		if err != nil {
+			c.Logger().Error("Failed to re-fetch created profile with user edge:", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load profile user")
 		}
 	} else if err != nil {
 		// Handle other database errors
@@ -117,6 +131,16 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 		if err != nil {
 			c.Logger().Error("Failed to update profile:", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update profile")
+		}
+
+		// Eager-load User edge after update
+		updatedProfile, err = h.Client.Profile.Query().
+			Where(profile.IDEQ(updatedProfile.ID)).
+			WithUser().
+			Only(c.Request().Context())
+		if err != nil {
+			c.Logger().Error("Failed to re-fetch updated profile with user edge:", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load profile user")
 		}
 	}
 
