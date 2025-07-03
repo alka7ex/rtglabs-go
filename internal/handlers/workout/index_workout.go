@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"rtglabs-go/dto"
 	"rtglabs-go/ent"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
+	"rtglabs-go/provider"
 	"strconv"
 
 	"entgo.io/ent/dialect/sql"
@@ -42,9 +42,9 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		).
 		WithWorkoutExercises(func(wq *ent.WorkoutExerciseQuery) {
 			wq.WithExercise()
-			wq.WithWorkout() // 👈 ADD THIS
+			wq.WithWorkout()
 			wq.WithExerciseInstance(func(eiq *ent.ExerciseInstanceQuery) {
-				eiq.WithExercise() // ✅ Preload fix
+				eiq.WithExercise()
 			})
 			wq.Where(workoutexercise.DeletedAtIsNil())
 		})
@@ -68,49 +68,23 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		dtoWorkouts[i] = toWorkoutResponse(w)
 	}
 
-	lastPage := (totalCount + limit - 1) / limit
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
 
-	buildPageURL := func(p int) string {
-		queryParams.Set("page", strconv.Itoa(p))
-		queryParams.Set("limit", strconv.Itoa(limit))
-		return fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
-	}
+	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
 
-	var links []dto.Link
-	for i := 1; i <= lastPage; i++ {
-		url := buildPageURL(i)
-		links = append(links, dto.Link{
-			URL:    &url,
-			Label:  strconv.Itoa(i),
-			Active: i == page,
-		})
-	}
-
-	var prevURL, nextURL *string
-	if page > 1 {
-		url := buildPageURL(page - 1)
-		prevURL = &url
-	}
-	if page < lastPage {
-		url := buildPageURL(page + 1)
-		nextURL = &url
+	// Update the 'To' field based on the actual number of items in the current response
+	actualItemsCount := len(dtoWorkouts)
+	if actualItemsCount > 0 {
+		tempTo := offset + actualItemsCount
+		paginationData.To = &tempTo
+	} else {
+		zero := 0
+		paginationData.To = &zero // If no items, 'to' should be 0 or nil
 	}
 
 	return c.JSON(http.StatusOK, dto.ListWorkoutResponse{
-		CurrentPage:  page,
-		Data:         dtoWorkouts,
-		FirstPageURL: buildPageURL(1),
-		From:         &offset,
-		LastPage:     lastPage,
-		LastPageURL:  buildPageURL(lastPage),
-		Links:        links,
-		NextPageURL:  nextURL,
-		Path:         baseURL,
-		PerPage:      limit,
-		PrevPageURL:  prevURL,
-		To:           &offset,
-		Total:        totalCount,
+		Data:               dtoWorkouts,
+		PaginationResponse: paginationData, // Embed the pagination data
 	})
 }

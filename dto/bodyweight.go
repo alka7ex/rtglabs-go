@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"rtglabs-go/provider"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,18 +57,8 @@ type DeleteBodyweightResponse struct {
 // --- Pagination DTOs ---
 
 // ListBodyweightResponse defines the structure for a paginated list of bodyweight records.
+// It now embeds the util.PaginationResponse.
 type ListBodyweightResponse struct {
-	CurrentPage  int                  `json:"current_page"`
-	Data         []BodyweightResponse `json:"data"`
-	FirstPageURL string               `json:"first_page_url"`
-	From         *int                 `json:"from"` // Use a pointer for nullable field
-	LastPage     int                  `json:"last_page"`
-	LastPageURL  string               `json:"last_page_url"`
-	Links        []Link               `json:"links"`
-	NextPageURL  *string              `json:"next_page_url"` // Use a pointer for nullable field
-	Path         string               `json:"path"`
-	PerPage      int                  `json:"per_page"`
-	PrevPageURL  *string              `json:"prev_page_url"` // Use a pointer for nullable field
-	To           *int                 `json:"to"`            // Use a pointer for nullable field
-	Total        int                  `json:"total"`
+	Data                        []BodyweightResponse `json:"data"`
+	provider.PaginationResponse                      // Embed the common pagination fields
 }

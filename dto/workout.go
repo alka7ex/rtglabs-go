@@ -1,14 +1,15 @@
 package dto
 
 import (
+	"rtglabs-go/provider"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// --- Common Reusables / Auxiliary DTOs (from your other DTO file) ---
-// Assuming these are also in the same dto package
 // ExerciseResponse represents the response structure for a single exercise.
+// You need to define this struct, as it's used in WorkoutExerciseResponse.
+
 // ExerciseInstanceResponse represents an ExerciseInstance record.
 type ExerciseInstanceResponse struct {
 	ID           uuid.UUID  `json:"id"`
@@ -18,8 +19,6 @@ type ExerciseInstanceResponse struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
 }
-
-// Link is a helper for pagination links.
 
 // --- End Common Reusables ---
 
@@ -75,20 +74,16 @@ type CreateWorkoutResponse struct {
 }
 
 // ListWorkoutResponse represents the paginated list response for workouts.
+// It now embeds the util.PaginationResponse.
 type ListWorkoutResponse struct {
-	CurrentPage  int               `json:"current_page"`
-	Data         []WorkoutResponse `json:"data"`
-	FirstPageURL string            `json:"first_page_url"`
-	From         *int              `json:"from"`
-	LastPage     int               `json:"last_page"`
-	LastPageURL  string            `json:"last_page_url"`
-	Links        []Link            `json:"links"`
-	NextPageURL  *string           `json:"next_page_url"`
-	Path         string            `json:"path"`
-	PerPage      int               `json:"per_page"`
-	PrevPageURL  *string           `json:"prev_page_url"`
-	To           *int              `json:"to"`
-	Total        int               `json:"total"`
+	Data []WorkoutResponse `json:"data"`
+	provider.PaginationResponse
+}
+
+// GenericListResponse can be used for any paginated list, making it even more reusable.
+type GenericListResponse[T any] struct {
+	Data []T `json:"data"`
+	provider.PaginationResponse
 }
 
 // DeleteWorkoutResponse is the response for a successful workout deletion.

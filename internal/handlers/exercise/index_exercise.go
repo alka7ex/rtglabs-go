@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"rtglabs-go/dto"
 	"rtglabs-go/ent/exercise"
+	"rtglabs-go/provider"
 	"strconv"
 
 	"entgo.io/ent/dialect/sql"
@@ -14,13 +14,11 @@ import (
 // IndexExercise lists exercise records with optional filtering and pagination.
 func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 	// --- Pagination Parameters ---
-	pageStr := c.QueryParam("page")
-	limitStr := c.QueryParam("limit")
-	page, _ := strconv.Atoi(pageStr)
+	page, _ := strconv.Atoi(c.QueryParam("page"))
 	if page < 1 {
 		page = 1 // Default to first page
 	}
-	limit, _ := strconv.Atoi(limitStr)
+	limit, _ := strconv.Atoi(c.QueryParam("limit"))
 	if limit < 1 {
 		limit = 15 // Default limit per page
 	}
@@ -60,58 +58,30 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 		dtoExercises[i] = toExerciseResponse(ex)
 	}
 
-	// 5. Build the pagination response DTO.
-	totalPages := (totalCount + limit - 1) / limit
-	lastPage := totalPages
-
-	// Build URLs for pagination
+	// 5. Use the new pagination utility function
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
 
-	nextPageURL := ""
-	if page < lastPage {
-		queryParams.Set("page", strconv.Itoa(page+1))
-		nextPageURL = fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
-	}
-	prevPageURL := ""
-	if page > 1 {
-		queryParams.Set("page", strconv.Itoa(page-1))
-		prevPageURL = fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
+	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
+
+	// Adjust the 'To' field in paginationData based on the actual number of items returned
+	actualItemsCount := len(dtoExercises)
+	if actualItemsCount > 0 {
+		tempTo := offset + actualItemsCount
+		paginationData.To = &tempTo
+	} else {
+		zero := 0 // If no items, 'to' should be 0 or nil
+		paginationData.To = &zero
 	}
 
-	// Set nullable pointers to nil if they are empty
-	var nextPageURLPtr, prevPageURLPtr *string
-	if nextPageURL != "" {
-		nextPageURLPtr = &nextPageURL
-	}
-	if prevPageURL != "" {
-		prevPageURLPtr = &prevPageURL
-	}
-
-	// Create links array
-	var links []dto.Link
-	links = append(links, dto.Link{URL: prevPageURLPtr, Label: "&laquo; Previous", Active: page > 1})
-	for i := 1; i <= totalPages; i++ {
-		pageURL := fmt.Sprintf("%s?page=%d&limit=%d", baseURL, i, limit)
-		links = append(links, dto.Link{URL: &pageURL, Label: strconv.Itoa(i), Active: i == page})
-	}
-	links = append(links, dto.Link{URL: nextPageURLPtr, Label: "Next &raquo;", Active: page < lastPage})
-
-	response := dto.ListExerciseResponse{ // Assuming you'll create this DTO
-		CurrentPage:  page,
-		Data:         dtoExercises,
-		FirstPageURL: fmt.Sprintf("%s?page=1&limit=%d", baseURL, limit),
-		From:         &offset,
-		LastPage:     lastPage,
-		LastPageURL:  fmt.Sprintf("%s?page=%d&limit=%d", baseURL, lastPage, limit),
-		Links:        links,
-		NextPageURL:  nextPageURLPtr,
-		Path:         baseURL,
-		PerPage:      limit,
-		PrevPageURL:  prevPageURLPtr,
-		To:           &offset, // Note: 'to' is typically offset + count, but this is a simple approximation
-		Total:        totalCount,
-	}
-
-	return c.JSON(http.StatusOK, response)
+	// 6. Return the response using the embedded pagination DTO
+	return c.JSON(http.StatusOK, dto.ListExerciseResponse{
+		Data:               dtoExercises,
+		PaginationResponse: paginationData, // Embed the generated pagination data
+	})
 }
+
+// Assume toExerciseResponse function exists elsewhere in your handlers package
+// func toExerciseResponse(entExercise *ent.Exercise) dto.ExerciseResponse {
+//     // ... conversion logic
+// }

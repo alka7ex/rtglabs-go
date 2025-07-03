@@ -3,6 +3,8 @@ package dto
 import (
 	"time"
 
+	"rtglabs-go/provider"
+
 	"github.com/google/uuid"
 )
 
@@ -16,25 +18,8 @@ type ExerciseResponse struct {
 }
 
 // ListExerciseResponse represents the paginated list response for exercises.
+// It now embeds the util.PaginationResponse.
 type ListExerciseResponse struct {
-	CurrentPage  int                `json:"current_page"`
-	Data         []ExerciseResponse `json:"data"`
-	FirstPageURL string             `json:"first_page_url"`
-	From         *int               `json:"from"`
-	LastPage     int                `json:"last_page"`
-	LastPageURL  string             `json:"last_page_url"`
-	Links        []Link             `json:"links"`
-	NextPageURL  *string            `json:"next_page_url"`
-	Path         string             `json:"path"`
-	PerPage      int                `json:"per_page"`
-	PrevPageURL  *string            `json:"prev_page_url"`
-	To           *int               `json:"to"`
-	Total        int                `json:"total"`
-}
-
-// Link is a helper for pagination links.
-type Link struct {
-	URL    *string `json:"url"`
-	Label  string  `json:"label"`
-	Active bool    `json:"active"`
+	Data                        []ExerciseResponse `json:"data"`
+	provider.PaginationResponse                    // Embed the common pagination fields
 }
