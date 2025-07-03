@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"rtglabs-go/dto"
 	"rtglabs-go/ent/exercise"
-	"rtglabs-go/provider"
+	"rtglabs-go/provider" // Assuming provider still contains GeneratePaginationData and related DTOs
 	"strconv"
 
-	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql" // Still needed for OrderDesc
 	"github.com/labstack/echo/v4"
 )
 
@@ -28,10 +28,19 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 	offset := (page - 1) * limit
 	// --- End Pagination Parameters ---
 
-	// 1. Base query for Exercise. No UserID filtering as it's assumed master data.
+	// 1. Base query for Exercise.
 	query := h.Client.Exercise.
 		Query().
 		Where(exercise.DeletedAtIsNil()) // Filter out soft-deleted records
+
+	// --- Add Query Param Filtering ---
+	// Get the 'name' query parameter
+	searchName := c.QueryParam("name")
+	if searchName != "" {
+		// Apply a case-insensitive 'contains' filter on the 'name' field
+		query = query.Where(exercise.NameContainsFold(searchName))
+	}
+	// --- End Query Param Filtering ---
 
 	// 2. Get total count BEFORE applying limit and offset.
 	totalCount, err := query.Count(c.Request().Context())
@@ -61,6 +70,11 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 	// 5. Use the new pagination utility function
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
+
+	// Ensure the 'name' query parameter is included in the queryParams for pagination links
+	if searchName != "" {
+		queryParams.Set("name", searchName)
+	}
 
 	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
 

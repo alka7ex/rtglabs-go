@@ -49,6 +49,14 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 			wq.Where(workoutexercise.DeletedAtIsNil())
 		})
 
+	// --- Add Query Param Filtering for 'name' ---
+	searchName := c.QueryParam("name")
+	if searchName != "" {
+		// Apply a case-insensitive 'contains' filter on the 'name' field of the workout
+		query = query.Where(workout.NameContainsFold(searchName))
+	}
+	// --- End Query Param Filtering ---
+
 	totalCount, err := query.Count(c.Request().Context())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count workouts")
@@ -71,6 +79,11 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
 
+	// Ensure the 'name' query parameter is included in the queryParams for pagination links
+	if searchName != "" {
+		queryParams.Set("name", searchName)
+	}
+
 	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
 
 	// Update the 'To' field based on the actual number of items in the current response
@@ -79,8 +92,8 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		tempTo := offset + actualItemsCount
 		paginationData.To = &tempTo
 	} else {
-		zero := 0
-		paginationData.To = &zero // If no items, 'to' should be 0 or nil
+		zero := 0 // If no items, 'to' should be 0 or nil
+		paginationData.To = &zero
 	}
 
 	return c.JSON(http.StatusOK, dto.ListWorkoutResponse{
@@ -88,3 +101,4 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		PaginationResponse: paginationData, // Embed the pagination data
 	})
 }
+

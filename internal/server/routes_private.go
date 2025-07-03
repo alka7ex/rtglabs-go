@@ -8,6 +8,7 @@ import (
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
 	exercise_handler "rtglabs-go/internal/handlers/exercise"
 	workout_handler "rtglabs-go/internal/handlers/workout"
+	workout_log_handler "rtglabs-go/internal/handlers/workout_log"
 
 	"github.com/labstack/echo/v4"
 )
@@ -26,6 +27,8 @@ func (s *Server) registerPrivateRoutes() {
 	exerciseHandler := exercise_handler.NewExerciseHandler(entClient)
 
 	workoutHandler := workout_handler.NewWorkoutHandler(entClient)
+
+	workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(entClient)
 
 	// FIX 1: Create the group from the server's Echo instance.
 	g := s.echo.Group("/api")
@@ -73,4 +76,6 @@ func (s *Server) registerPrivateRoutes() {
 	g.GET("/workouts/:id", workoutHandler.GetWorkout) // Get (Show)
 	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
 	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout) // Delete (Soft Delete)
+
+	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog) // Delete (Soft Delete)
 }
