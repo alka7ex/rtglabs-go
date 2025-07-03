@@ -133,3 +133,4 @@ func toExerciseInstanceResponse(ei *ent.ExerciseInstance) dto.ExerciseInstanceRe
 		DeletedAt:    deletedAt,
 	}
 }
+

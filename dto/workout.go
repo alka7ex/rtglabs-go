@@ -6,6 +6,23 @@ import (
 	"github.com/google/uuid"
 )
 
+// --- Common Reusables / Auxiliary DTOs (from your other DTO file) ---
+// Assuming these are also in the same dto package
+// ExerciseResponse represents the response structure for a single exercise.
+// ExerciseInstanceResponse represents an ExerciseInstance record.
+type ExerciseInstanceResponse struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkoutLogID *uuid.UUID `json:"workout_log_id,omitempty"`
+	ExerciseID   uuid.UUID  `json:"exercise_id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+}
+
+// Link is a helper for pagination links.
+
+// --- End Common Reusables ---
+
 // CreateWorkoutRequest represents the request body for creating a new workout.
 type CreateWorkoutRequest struct {
 	Name      string                         `json:"name" validate:"required,max=255"`
@@ -14,13 +31,13 @@ type CreateWorkoutRequest struct {
 
 // CreateWorkoutExerciseRequest represents a single exercise within a workout creation request.
 type CreateWorkoutExerciseRequest struct {
-	ID                       *uuid.UUID `json:"id" validate:"omitempty,uuid"`
+	ID                       *uuid.UUID `json:"id,omitempty" validate:"omitempty,uuid"`
 	ExerciseID               uuid.UUID  `json:"exercise_id" validate:"required,uuid"`
-	Order                    *uint      `json:"order" validate:"omitempty,min=1"`
-	Sets                     *uint      `json:"sets" validate:"omitempty,min=0"`
-	Weight                   *float64   `json:"weight" validate:"omitempty,min=0"`
-	Reps                     *uint      `json:"reps" validate:"omitempty,min=0"`
-	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id,omitempty"` // Client-side temp ID for grouping
+	Order                    *uint      `json:"order,omitempty" validate:"omitempty,min=1"`  // Pointers
+	Sets                     *uint      `json:"sets,omitempty" validate:"omitempty,min=0"`   // Pointers
+	Weight                   *float64   `json:"weight,omitempty" validate:"omitempty,min=0"` // Pointers
+	Reps                     *uint      `json:"reps,omitempty" validate:"omitempty,min=0"`   // Pointers
+	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id,omitempty"`       // As per your original DTO
 }
 
 // WorkoutResponse represents the full workout details to be returned in a response.
@@ -39,26 +56,16 @@ type WorkoutExerciseResponse struct {
 	ID                 uuid.UUID                 `json:"id"`
 	WorkoutID          uuid.UUID                 `json:"workout_id"`
 	ExerciseID         uuid.UUID                 `json:"exercise_id"`
-	ExerciseInstanceID *uuid.UUID                `json:"exercise_instance_id,omitempty"`
-	Order              *uint                     `json:"order,omitempty"`
-	Sets               *uint                     `json:"sets,omitempty"`
-	Weight             *float64                  `json:"weight,omitempty"`
-	Reps               *uint                     `json:"reps,omitempty"`
+	ExerciseInstanceID *uuid.UUID                `json:"exercise_instance_id,omitempty"` // Pointer
+	Order              *uint                     `json:"order,omitempty"`                // Pointer
+	Sets               *uint                     `json:"sets,omitempty"`                 // Pointer
+	Weight             *float64                  `json:"weight,omitempty"`               // Pointer
+	Reps               *uint                     `json:"reps,omitempty"`                 // Pointer
 	CreatedAt          time.Time                 `json:"created_at"`
 	UpdatedAt          time.Time                 `json:"updated_at"`
 	DeletedAt          *time.Time                `json:"deleted_at,omitempty"`
-	Exercise           *ExerciseResponse         `json:"exercise,omitempty"`          // Eager loaded
-	ExerciseInstance   *ExerciseInstanceResponse `json:"exercise_instance,omitempty"` // Eager loaded
-}
-
-// ExerciseInstanceResponse represents an ExerciseInstance record.
-type ExerciseInstanceResponse struct {
-	ID           uuid.UUID  `json:"id"`
-	WorkoutLogID *uuid.UUID `json:"workout_log_id,omitempty"`
-	ExerciseID   uuid.UUID  `json:"exercise_id"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+	Exercise           *ExerciseResponse         `json:"exercise,omitempty"`
+	ExerciseInstance   *ExerciseInstanceResponse `json:"exercise_instance,omitempty"`
 }
 
 // CreateWorkoutResponse is the response for a successful workout creation.
@@ -87,4 +94,22 @@ type ListWorkoutResponse struct {
 // DeleteWorkoutResponse is the response for a successful workout deletion.
 type DeleteWorkoutResponse struct {
 	Message string `json:"message"`
+}
+
+// UpdateWorkoutRequest represents the request body for updating a workout.
+type UpdateWorkoutRequest struct {
+	Name      string                         `json:"name" validate:"required,max=255"`
+	Exercises []UpdateWorkoutExerciseRequest `json:"exercises" validate:"required,min=1,dive"`
+}
+
+// UpdateWorkoutExerciseRequest represents a single exercise within a workout update request.
+type UpdateWorkoutExerciseRequest struct {
+	ID                       *uuid.UUID `json:"id,omitempty" validate:"omitempty,uuid"`
+	ExerciseID               uuid.UUID  `json:"exercise_id" validate:"required,uuid"`
+	Order                    *uint      `json:"order,omitempty" validate:"omitempty,min=1"`
+	Sets                     *uint      `json:"sets,omitempty" validate:"omitempty,min=0"`
+	Weight                   *float64   `json:"weight,omitempty" validate:"omitempty,min=0"`
+	Reps                     *uint      `json:"reps,omitempty" validate:"omitempty,min=0"`
+	ExerciseInstanceID       *uuid.UUID `json:"exercise_instance_id,omitempty" validate:"omitempty,uuid"`
+	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id,omitempty"` // Use string as per your original DTO
 }
