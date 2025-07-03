@@ -65,7 +65,7 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 	if profile, err := entUser.Edges.ProfileOrErr(); err == nil && profile != nil {
 		responseUser.Profile = &dto.ProfileResponse{
 			ID:        profile.ID,
-			UserID:    profile.UserID,
+			UserID:    profile.Edges.User.ID,
 			Units:     profile.Units,
 			Gender:    profile.Gender,
 			Age:       profile.Age,

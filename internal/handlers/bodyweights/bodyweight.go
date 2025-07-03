@@ -6,6 +6,7 @@ import (
 	"rtglabs-go/dto"
 	"rtglabs-go/ent"
 	"rtglabs-go/ent/bodyweight"
+	"rtglabs-go/ent/user"
 	"strconv"
 	"time"
 
@@ -91,7 +92,7 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 		Query().
 		Where(
 			bodyweight.DeletedAtIsNil(),
-			bodyweight.UserIDEQ(userID), // Filter by authenticated user's ID
+			bodyweight.HasUserWith(user.IDEQ(userID)), // ✅ query by edge condition
 		)
 
 	// 3. Get total count BEFORE applying limit and offset.
@@ -194,7 +195,7 @@ func (h *BodyweightHandler) GetBodyweight(c echo.Context) error {
 		Query().
 		Where(
 			bodyweight.IDEQ(id),
-			bodyweight.UserIDEQ(userID), // Filter by authenticated user's ID
+			bodyweight.HasUserWith(user.IDEQ(userID)), // ✅ query by edge condition
 			bodyweight.DeletedAtIsNil(),
 		).
 		Only(c.Request().Context())
@@ -240,7 +241,7 @@ func (h *BodyweightHandler) UpdateBodyweight(c echo.Context) error {
 		Update().
 		Where(
 			bodyweight.IDEQ(id),
-			bodyweight.UserIDEQ(userID), // Filter by authenticated user's ID
+			bodyweight.HasUserWith(user.IDEQ(userID)), // ✅ query by edge condition
 		).
 		SetWeight(req.Weight).
 		SetUnit(strconv.Itoa(*req.Unit)). // <-- FIX: Dereference the pointer and convert to string
@@ -263,7 +264,7 @@ func (h *BodyweightHandler) UpdateBodyweight(c echo.Context) error {
 		Query().
 		Where(
 			bodyweight.IDEQ(id),
-			bodyweight.UserIDEQ(userID),
+			bodyweight.HasUserWith(user.IDEQ(userID)), // ✅ query by edge condition
 		).
 		Only(c.Request().Context())
 	if err != nil {
@@ -300,7 +301,7 @@ func (h *BodyweightHandler) DestroyBodyweight(c echo.Context) error {
 		Update().
 		Where(
 			bodyweight.IDEQ(id),
-			bodyweight.UserIDEQ(userID), // Filter by authenticated user's ID
+			bodyweight.HasUserWith(user.IDEQ(userID)), // ✅ query by edge condition
 			bodyweight.DeletedAtIsNil(),
 		).
 		SetDeletedAt(now).
@@ -342,7 +343,7 @@ func toBodyweightResponse(bw *ent.Bodyweight) dto.BodyweightResponse {
 
 	return dto.BodyweightResponse{
 		ID:        bw.ID,
-		UserID:    bw.UserID,
+		UserID:    bw.Edges.User.ID,
 		Weight:    bw.Weight,
 		Unit:      unit,
 		CreatedAt: createdAt,

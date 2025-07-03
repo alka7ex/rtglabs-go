@@ -12,15 +12,15 @@ type GetProfileResponse struct {
 
 // Adjusted ProfileResponse for consistency
 type ProfileResponse struct {
-	ID        uuid.UUID  `json:"id"`
-	UserID    *uuid.UUID `json:"user_id,omitempty"`
-	Units     int        `json:"units"`
-	Gender    int        `json:"gender"`
-	Age       int        `json:"age"`
-	Height    float64    `json:"height"` // Change back to float64 to match your request
-	Weight    float64    `json:"weight"` // Change back to float64 to match your request
-	CreatedAt string     `json:"created_at"`
-	UpdatedAt string     `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id,omitempty"`
+	Units     int       `json:"units"`
+	Gender    int       `json:"gender"`
+	Age       int       `json:"age"`
+	Height    float64   `json:"height"` // Change back to float64 to match your request
+	Weight    float64   `json:"weight"` // Change back to float64 to match your request
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
 }
 
 // UpdateProfileRequest represents the request body for updating a profile.

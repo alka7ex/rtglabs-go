@@ -8,6 +8,7 @@ import (
 	"rtglabs-go/ent"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
 	"strconv"
@@ -235,7 +236,7 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		Query().
 		Where(
 			workout.DeletedAtIsNil(),
-			workout.UserIDEQ(userID), // Filter by authenticated user's ID
+			workout.HasUserWith(user.IDEQ(userID)), // Filter by authenticated user's ID
 		)
 
 	// Eager-load workoutExercises and their nested relationships for the index response
@@ -342,7 +343,7 @@ func (h *WorkoutHandler) GetWorkout(c echo.Context) error {
 		Query().
 		Where(
 			workout.IDEQ(workoutID),
-			workout.UserIDEQ(userID), // Ensure ownership
+			workout.HasUserWith(user.IDEQ(userID)),
 			workout.DeletedAtIsNil(), // Only retrieve non-deleted workouts
 		).
 		WithWorkoutExercises(func(wq *ent.WorkoutExerciseQuery) {
@@ -397,7 +398,7 @@ func (h *WorkoutHandler) DestroyWorkout(c echo.Context) error {
 		existingWorkout, err := tx.Workout.Query().
 			Where(
 				workout.IDEQ(workoutID),
-				workout.UserIDEQ(userID),
+				workout.HasUserWith(user.IDEQ(userID)),
 				workout.DeletedAtIsNil(),
 			).
 			WithWorkoutExercises(). // Eager load workout exercises to get their IDs
@@ -419,8 +420,9 @@ func (h *WorkoutHandler) DestroyWorkout(c echo.Context) error {
 			for _, we := range existingWorkout.Edges.WorkoutExercises {
 				workoutExerciseIDs = append(workoutExerciseIDs, we.ID)
 				// --- FIX START ---
-				if we.ExerciseInstanceID != nil { // Check if the pointer is not nil
-					instanceIDsToDeleteCandidates = append(instanceIDsToDeleteCandidates, *we.ExerciseInstanceID) // Dereference the pointer
+
+				if we.Edges.ExerciseInstance != nil {
+					instanceIDsToDeleteCandidates = append(instanceIDsToDeleteCandidates, we.Edges.ExerciseInstance.ID)
 				}
 				// --- FIX END ---
 			}
@@ -429,7 +431,7 @@ func (h *WorkoutHandler) DestroyWorkout(c echo.Context) error {
 			_, err = tx.WorkoutExercise.Update().
 				Where(
 					workoutexercise.IDIn(workoutExerciseIDs...),
-					workoutexercise.WorkoutIDEQ(workoutID), // Safety check
+					workoutexercise.HasWorkoutWith(workout.IDEQ(workoutID)),
 					workoutexercise.DeletedAtIsNil(),
 				).
 				SetDeletedAt(now).
@@ -453,9 +455,11 @@ func (h *WorkoutHandler) DestroyWorkout(c echo.Context) error {
 			// that does NOT belong to the workout being deleted.
 			isReferencedByOtherWorkoutExercises, err := tx.WorkoutExercise.Query().
 				Where(
-					workoutexercise.ExerciseInstanceIDEQ(instanceID),
-					workoutexercise.Not(workoutexercise.WorkoutIDEQ(workoutID)), // Referenced by another workout
-					workoutexercise.DeletedAtIsNil(),                            // And that reference is not soft-deleted
+					workoutexercise.HasExerciseInstanceWith(exerciseinstance.IDEQ(instanceID)),
+					workoutexercise.Not(
+						workoutexercise.HasWorkoutWith(workout.IDEQ(workoutID)),
+					),
+					workoutexercise.DeletedAtIsNil(), // And that reference is not soft-deleted
 				).
 				Exist(ctx)
 			if err != nil {
@@ -487,7 +491,7 @@ func (h *WorkoutHandler) DestroyWorkout(c echo.Context) error {
 		_, err = tx.Workout.Update().
 			Where(
 				workout.IDEQ(workoutID),
-				workout.UserIDEQ(userID),
+				workout.HasUserWith(user.IDEQ(userID)),
 				workout.DeletedAtIsNil(),
 			).
 			SetDeletedAt(now).
@@ -540,7 +544,7 @@ func toWorkoutResponse(w *ent.Workout) dto.WorkoutResponse {
 
 	return dto.WorkoutResponse{
 		ID:               w.ID,
-		UserID:           w.UserID,
+		UserID:           w.Edges.User.ID,
 		Name:             w.Name,
 		CreatedAt:        w.CreatedAt,
 		UpdatedAt:        w.UpdatedAt,
@@ -576,8 +580,8 @@ func toWorkoutExerciseResponse(we *ent.WorkoutExercise) dto.WorkoutExerciseRespo
 
 	return dto.WorkoutExerciseResponse{
 		ID:                 we.ID,
-		WorkoutID:          we.WorkoutID,
-		ExerciseID:         we.ExerciseID,
+		WorkoutID:          we.Edges.Workout.ID,
+		ExerciseID:         we.Edges.Exercise.ID,
 		ExerciseInstanceID: exerciseInstanceID,
 		Order:              we.Order,
 		Sets:               we.Sets,
@@ -607,17 +611,19 @@ func toExerciseResponse(ex *ent.Exercise) dto.ExerciseResponse {
 
 func toExerciseInstanceResponse(ei *ent.ExerciseInstance) dto.ExerciseInstanceResponse {
 	var workoutLogID *uuid.UUID
-	if ei.WorkoutLogID != nil && *ei.WorkoutLogID != uuid.Nil {
-		workoutLogID = ei.WorkoutLogID
+	if ei.Edges.WorkoutLog != nil {
+		workoutLogID = &ei.Edges.WorkoutLog.ID
 	}
+
 	var deletedAt *time.Time
 	if ei.DeletedAt != nil {
 		deletedAt = ei.DeletedAt
 	}
+
 	return dto.ExerciseInstanceResponse{
 		ID:           ei.ID,
 		WorkoutLogID: workoutLogID,
-		ExerciseID:   ei.ExerciseID,
+		ExerciseID:   ei.Edges.Exercise.ID,
 		CreatedAt:    ei.CreatedAt,
 		UpdatedAt:    ei.UpdatedAt,
 		DeletedAt:    deletedAt,

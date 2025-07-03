@@ -40,7 +40,7 @@ func (h *AuthHandler) GetProfile(c echo.Context) error {
 	if profile, err := entUser.Edges.ProfileOrErr(); err == nil && profile != nil {
 		profileResponse = &dto.ProfileResponse{
 			ID:        profile.ID,
-			UserID:    profile.UserID,
+			UserID:    profile.Edges.User.ID,
 			Units:     profile.Units,
 			Gender:    profile.Gender,
 			Age:       profile.Age,
@@ -123,7 +123,7 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 	// 4. Build the response DTO from the updated/created profile.
 	responseProfile := dto.ProfileResponse{
 		ID:        updatedProfile.ID,
-		UserID:    updatedProfile.UserID,
+		UserID:    updatedProfile.Edges.User.ID,
 		Units:     updatedProfile.Units,
 		Age:       updatedProfile.Age,
 		Height:    updatedProfile.Height,
