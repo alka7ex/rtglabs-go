@@ -247,6 +247,52 @@ func HasWorkoutExercisesWith(preds ...predicate.WorkoutExercise) predicate.Exerc
 	})
 }
 
+// HasExerciseSets applies the HasEdge predicate on the "exercise_sets" edge.
+func HasExerciseSets() predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ExerciseSetsTable, ExerciseSetsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasExerciseSetsWith applies the HasEdge predicate on the "exercise_sets" edge with a given conditions (other predicates).
+func HasExerciseSetsWith(preds ...predicate.ExerciseSet) predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := newExerciseSetsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasWorkoutLog applies the HasEdge predicate on the "workout_log" edge.
+func HasWorkoutLog() predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, WorkoutLogTable, WorkoutLogColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWorkoutLogWith applies the HasEdge predicate on the "workout_log" edge with a given conditions (other predicates).
+func HasWorkoutLogWith(preds ...predicate.WorkoutLog) predicate.ExerciseInstance {
+	return predicate.ExerciseInstance(func(s *sql.Selector) {
+		step := newWorkoutLogStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ExerciseInstance) predicate.ExerciseInstance {
 	return predicate.ExerciseInstance(sql.AndPredicates(predicates...))

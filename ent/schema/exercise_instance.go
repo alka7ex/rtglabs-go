@@ -4,6 +4,7 @@ import (
 	custommixin "rtglabs-go/ent/schema/mixin"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 )
 
@@ -36,6 +37,13 @@ func (ExerciseInstance) Edges() []ent.Edge {
 			Required(), // remove this if exercise_id is nullable
 
 		edge.To("workout_exercises", WorkoutExercise.Type),
+		edge.To("exercise_sets", ExerciseSet.Type), // 👈 ADD THIS LINE
+		edge.From("workout_log", WorkoutLog.Type).
+			Ref("exercise_instances").
+			Unique().
+			Annotations(
+				entsql.OnDelete(entsql.SetNull),
+			),
 	}
 }
 

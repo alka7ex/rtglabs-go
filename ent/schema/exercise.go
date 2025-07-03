@@ -32,5 +32,7 @@ func (Exercise) Edges() []ent.Edge {
 		// Ent will create reverse foreign keys in the other tables.
 		edge.To("exercise_instances", ExerciseInstance.Type),
 		edge.To("workout_exercises", WorkoutExercise.Type),
+		edge.To("exercise_sets", ExerciseSet.Type),
 	}
 }
+

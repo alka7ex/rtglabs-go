@@ -49,9 +49,11 @@ type UserEdges struct {
 	Profile *Profile `json:"profile,omitempty"`
 	// Workouts holds the value of the workouts edge.
 	Workouts []*Workout `json:"workouts,omitempty"`
+	// WorkoutLogs holds the value of the workout_logs edge.
+	WorkoutLogs []*WorkoutLog `json:"workout_logs,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // BodyweightsOrErr returns the Bodyweights value or an error if the edge
@@ -90,6 +92,15 @@ func (e UserEdges) WorkoutsOrErr() ([]*Workout, error) {
 		return e.Workouts, nil
 	}
 	return nil, &NotLoadedError{edge: "workouts"}
+}
+
+// WorkoutLogsOrErr returns the WorkoutLogs value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) WorkoutLogsOrErr() ([]*WorkoutLog, error) {
+	if e.loadedTypes[4] {
+		return e.WorkoutLogs, nil
+	}
+	return nil, &NotLoadedError{edge: "workout_logs"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -199,6 +210,11 @@ func (u *User) QueryProfile() *ProfileQuery {
 // QueryWorkouts queries the "workouts" edge of the User entity.
 func (u *User) QueryWorkouts() *WorkoutQuery {
 	return NewUserClient(u.config).QueryWorkouts(u)
+}
+
+// QueryWorkoutLogs queries the "workout_logs" edge of the User entity.
+func (u *User) QueryWorkoutLogs() *WorkoutLogQuery {
+	return NewUserClient(u.config).QueryWorkoutLogs(u)
 }
 
 // Update returns a builder for updating this User.

@@ -34,6 +34,6 @@ func (Workout) Edges() []ent.Edge {
 			Required().
 			Immutable(),
 		edge.To("workout_exercises", WorkoutExercise.Type),
+		edge.To("workout_logs", WorkoutLog.Type),
 	}
 }
-

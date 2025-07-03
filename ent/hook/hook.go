@@ -44,6 +44,18 @@ func (f ExerciseInstanceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ExerciseInstanceMutation", m)
 }
 
+// The ExerciseSetFunc type is an adapter to allow the use of ordinary
+// function as ExerciseSet mutator.
+type ExerciseSetFunc func(context.Context, *ent.ExerciseSetMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ExerciseSetFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ExerciseSetMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ExerciseSetMutation", m)
+}
+
 // The ProfileFunc type is an adapter to allow the use of ordinary
 // function as Profile mutator.
 type ProfileFunc func(context.Context, *ent.ProfileMutation) (ent.Value, error)
@@ -102,6 +114,18 @@ func (f WorkoutExerciseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkoutExerciseMutation", m)
+}
+
+// The WorkoutLogFunc type is an adapter to allow the use of ordinary
+// function as WorkoutLog mutator.
+type WorkoutLogFunc func(context.Context, *ent.WorkoutLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkoutLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WorkoutLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkoutLogMutation", m)
 }
 
 // Condition is a hook condition function.

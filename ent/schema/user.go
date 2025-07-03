@@ -44,5 +44,6 @@ func (User) Edges() []ent.Edge {
 		edge.To("sessions", Session.Type),
 		edge.To("profile", Profile.Type).Unique(),
 		edge.To("workouts", Workout.Type),
+		edge.To("workout_logs", WorkoutLog.Type),
 	}
 }

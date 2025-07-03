@@ -9,8 +9,10 @@ import (
 	"math"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/exerciseset"
 	"rtglabs-go/ent/predicate"
 	"rtglabs-go/ent/workoutexercise"
+	"rtglabs-go/ent/workoutlog"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -28,6 +30,8 @@ type ExerciseInstanceQuery struct {
 	predicates           []predicate.ExerciseInstance
 	withExercise         *ExerciseQuery
 	withWorkoutExercises *WorkoutExerciseQuery
+	withExerciseSets     *ExerciseSetQuery
+	withWorkoutLog       *WorkoutLogQuery
 	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -102,6 +106,50 @@ func (eiq *ExerciseInstanceQuery) QueryWorkoutExercises() *WorkoutExerciseQuery 
 			sqlgraph.From(exerciseinstance.Table, exerciseinstance.FieldID, selector),
 			sqlgraph.To(workoutexercise.Table, workoutexercise.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, exerciseinstance.WorkoutExercisesTable, exerciseinstance.WorkoutExercisesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eiq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryExerciseSets chains the current query on the "exercise_sets" edge.
+func (eiq *ExerciseInstanceQuery) QueryExerciseSets() *ExerciseSetQuery {
+	query := (&ExerciseSetClient{config: eiq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eiq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eiq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseinstance.Table, exerciseinstance.FieldID, selector),
+			sqlgraph.To(exerciseset.Table, exerciseset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, exerciseinstance.ExerciseSetsTable, exerciseinstance.ExerciseSetsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eiq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryWorkoutLog chains the current query on the "workout_log" edge.
+func (eiq *ExerciseInstanceQuery) QueryWorkoutLog() *WorkoutLogQuery {
+	query := (&WorkoutLogClient{config: eiq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eiq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eiq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseinstance.Table, exerciseinstance.FieldID, selector),
+			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, exerciseinstance.WorkoutLogTable, exerciseinstance.WorkoutLogColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eiq.driver.Dialect(), step)
 		return fromU, nil
@@ -303,6 +351,8 @@ func (eiq *ExerciseInstanceQuery) Clone() *ExerciseInstanceQuery {
 		predicates:           append([]predicate.ExerciseInstance{}, eiq.predicates...),
 		withExercise:         eiq.withExercise.Clone(),
 		withWorkoutExercises: eiq.withWorkoutExercises.Clone(),
+		withExerciseSets:     eiq.withExerciseSets.Clone(),
+		withWorkoutLog:       eiq.withWorkoutLog.Clone(),
 		// clone intermediate query.
 		sql:  eiq.sql.Clone(),
 		path: eiq.path,
@@ -328,6 +378,28 @@ func (eiq *ExerciseInstanceQuery) WithWorkoutExercises(opts ...func(*WorkoutExer
 		opt(query)
 	}
 	eiq.withWorkoutExercises = query
+	return eiq
+}
+
+// WithExerciseSets tells the query-builder to eager-load the nodes that are connected to
+// the "exercise_sets" edge. The optional arguments are used to configure the query builder of the edge.
+func (eiq *ExerciseInstanceQuery) WithExerciseSets(opts ...func(*ExerciseSetQuery)) *ExerciseInstanceQuery {
+	query := (&ExerciseSetClient{config: eiq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eiq.withExerciseSets = query
+	return eiq
+}
+
+// WithWorkoutLog tells the query-builder to eager-load the nodes that are connected to
+// the "workout_log" edge. The optional arguments are used to configure the query builder of the edge.
+func (eiq *ExerciseInstanceQuery) WithWorkoutLog(opts ...func(*WorkoutLogQuery)) *ExerciseInstanceQuery {
+	query := (&WorkoutLogClient{config: eiq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eiq.withWorkoutLog = query
 	return eiq
 }
 
@@ -410,12 +482,14 @@ func (eiq *ExerciseInstanceQuery) sqlAll(ctx context.Context, hooks ...queryHook
 		nodes       = []*ExerciseInstance{}
 		withFKs     = eiq.withFKs
 		_spec       = eiq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [4]bool{
 			eiq.withExercise != nil,
 			eiq.withWorkoutExercises != nil,
+			eiq.withExerciseSets != nil,
+			eiq.withWorkoutLog != nil,
 		}
 	)
-	if eiq.withExercise != nil {
+	if eiq.withExercise != nil || eiq.withWorkoutLog != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -451,6 +525,19 @@ func (eiq *ExerciseInstanceQuery) sqlAll(ctx context.Context, hooks ...queryHook
 			func(n *ExerciseInstance, e *WorkoutExercise) {
 				n.Edges.WorkoutExercises = append(n.Edges.WorkoutExercises, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := eiq.withExerciseSets; query != nil {
+		if err := eiq.loadExerciseSets(ctx, query, nodes,
+			func(n *ExerciseInstance) { n.Edges.ExerciseSets = []*ExerciseSet{} },
+			func(n *ExerciseInstance, e *ExerciseSet) { n.Edges.ExerciseSets = append(n.Edges.ExerciseSets, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eiq.withWorkoutLog; query != nil {
+		if err := eiq.loadWorkoutLog(ctx, query, nodes, nil,
+			func(n *ExerciseInstance, e *WorkoutLog) { n.Edges.WorkoutLog = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -517,6 +604,69 @@ func (eiq *ExerciseInstanceQuery) loadWorkoutExercises(ctx context.Context, quer
 			return fmt.Errorf(`unexpected referenced foreign-key "exercise_instance_workout_exercises" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (eiq *ExerciseInstanceQuery) loadExerciseSets(ctx context.Context, query *ExerciseSetQuery, nodes []*ExerciseInstance, init func(*ExerciseInstance), assign func(*ExerciseInstance, *ExerciseSet)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*ExerciseInstance)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.ExerciseSet(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(exerciseinstance.ExerciseSetsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.exercise_instance_exercise_sets
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "exercise_instance_exercise_sets" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "exercise_instance_exercise_sets" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (eiq *ExerciseInstanceQuery) loadWorkoutLog(ctx context.Context, query *WorkoutLogQuery, nodes []*ExerciseInstance, init func(*ExerciseInstance), assign func(*ExerciseInstance, *WorkoutLog)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*ExerciseInstance)
+	for i := range nodes {
+		if nodes[i].workout_log_exercise_instances == nil {
+			continue
+		}
+		fk := *nodes[i].workout_log_exercise_instances
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(workoutlog.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "workout_log_exercise_instances" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

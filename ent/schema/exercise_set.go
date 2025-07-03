@@ -9,59 +9,60 @@ import (
 	custommixin "rtglabs-go/ent/schema/mixin"
 )
 
-// WorkoutLog holds the schema definition for the WorkoutLog entity.
-type WorkoutLog struct {
+// ExerciseSet holds the schema definition for the ExerciseSet entity.
+type ExerciseSet struct {
 	ent.Schema
 }
 
-func (WorkoutLog) Mixin() []ent.Mixin {
+func (ExerciseSet) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		custommixin.UUID{},
 		custommixin.Timestamps{}, // timestampsTz + softDeletesTz
 	}
 }
 
-func (WorkoutLog) Fields() []ent.Field {
+func (ExerciseSet) Fields() []ent.Field {
 	return []ent.Field{
-		field.Time("started_at").Optional().Nillable(),
+		field.Float("weight").
+			SchemaType(map[string]string{"postgres": "decimal(8,2)"}).
+			Optional().
+			Nillable(),
+		field.Int("reps").Optional().Nillable(),
+		field.Int("set_number"),
 		field.Time("finished_at").Optional().Nillable(),
 		field.Int("status").Default(0),
-		field.Uint("total_active_duration_seconds").Default(0),
-		field.Uint("total_pause_duration_seconds").Default(0),
 	}
 }
 
-func (WorkoutLog) Edges() []ent.Edge {
+func (ExerciseSet) Edges() []ent.Edge {
 	return []ent.Edge{
-		// user_id
-		edge.From("user", User.Type).
-			Ref("workout_logs").
+		edge.From("workout_log", WorkoutLog.Type).
+			Ref("exercise_sets").
 			Unique().
 			Required().
 			Annotations(
 				entsql.OnDelete(entsql.Cascade),
 			),
 
-		// workout_id (nullable)
-		edge.From("workout", Workout.Type).
-			Ref("workout_logs").
+		edge.From("exercise", Exercise.Type).
+			Ref("exercise_sets").
+			Unique().
+			Required().
+			Annotations(
+				entsql.OnDelete(entsql.Cascade),
+			),
+
+		edge.From("exercise_instance", ExerciseInstance.Type).
+			Ref("exercise_sets").
 			Unique().
 			Annotations(
 				entsql.OnDelete(entsql.Cascade),
 			),
-
-		// has many exercise_sets
-		edge.To("exercise_sets", ExerciseSet.Type).
-			Annotations(
-				entsql.OnDelete(entsql.Cascade),
-			),
-		edge.To("exercise_instances", ExerciseInstance.Type),
 	}
 }
 
-func (WorkoutLog) Indexes() []ent.Index {
+func (ExerciseSet) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("status"),
 	}
 }
-

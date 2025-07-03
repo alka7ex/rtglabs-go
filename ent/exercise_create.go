@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/exerciseset"
 	"rtglabs-go/ent/workoutexercise"
 	"time"
 
@@ -113,6 +114,21 @@ func (ec *ExerciseCreate) AddWorkoutExercises(w ...*WorkoutExercise) *ExerciseCr
 		ids[i] = w[i].ID
 	}
 	return ec.AddWorkoutExerciseIDs(ids...)
+}
+
+// AddExerciseSetIDs adds the "exercise_sets" edge to the ExerciseSet entity by IDs.
+func (ec *ExerciseCreate) AddExerciseSetIDs(ids ...uuid.UUID) *ExerciseCreate {
+	ec.mutation.AddExerciseSetIDs(ids...)
+	return ec
+}
+
+// AddExerciseSets adds the "exercise_sets" edges to the ExerciseSet entity.
+func (ec *ExerciseCreate) AddExerciseSets(e ...*ExerciseSet) *ExerciseCreate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return ec.AddExerciseSetIDs(ids...)
 }
 
 // Mutation returns the ExerciseMutation object of the builder.
@@ -251,6 +267,22 @@ func (ec *ExerciseCreate) createSpec() (*Exercise, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(workoutexercise.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.ExerciseSetsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exercise.ExerciseSetsTable,
+			Columns: []string{exercise.ExerciseSetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseset.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

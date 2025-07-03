@@ -6,12 +6,14 @@ import (
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/exerciseset"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/schema"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
+	"rtglabs-go/ent/workoutlog"
 	"time"
 
 	"github.com/google/uuid"
@@ -92,6 +94,31 @@ func init() {
 	exerciseinstanceDescID := exerciseinstanceMixinFields0[0].Descriptor()
 	// exerciseinstance.DefaultID holds the default value on creation for the id field.
 	exerciseinstance.DefaultID = exerciseinstanceDescID.Default.(func() uuid.UUID)
+	exercisesetMixin := schema.ExerciseSet{}.Mixin()
+	exercisesetMixinFields0 := exercisesetMixin[0].Fields()
+	_ = exercisesetMixinFields0
+	exercisesetMixinFields1 := exercisesetMixin[1].Fields()
+	_ = exercisesetMixinFields1
+	exercisesetFields := schema.ExerciseSet{}.Fields()
+	_ = exercisesetFields
+	// exercisesetDescCreatedAt is the schema descriptor for created_at field.
+	exercisesetDescCreatedAt := exercisesetMixinFields1[0].Descriptor()
+	// exerciseset.DefaultCreatedAt holds the default value on creation for the created_at field.
+	exerciseset.DefaultCreatedAt = exercisesetDescCreatedAt.Default.(func() time.Time)
+	// exercisesetDescUpdatedAt is the schema descriptor for updated_at field.
+	exercisesetDescUpdatedAt := exercisesetMixinFields1[1].Descriptor()
+	// exerciseset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	exerciseset.DefaultUpdatedAt = exercisesetDescUpdatedAt.Default.(func() time.Time)
+	// exerciseset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	exerciseset.UpdateDefaultUpdatedAt = exercisesetDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// exercisesetDescStatus is the schema descriptor for status field.
+	exercisesetDescStatus := exercisesetFields[4].Descriptor()
+	// exerciseset.DefaultStatus holds the default value on creation for the status field.
+	exerciseset.DefaultStatus = exercisesetDescStatus.Default.(int)
+	// exercisesetDescID is the schema descriptor for id field.
+	exercisesetDescID := exercisesetMixinFields0[0].Descriptor()
+	// exerciseset.DefaultID holds the default value on creation for the id field.
+	exerciseset.DefaultID = exercisesetDescID.Default.(func() uuid.UUID)
 	profileMixin := schema.Profile{}.Mixin()
 	profileMixinFields0 := profileMixin[0].Fields()
 	_ = profileMixinFields0
@@ -202,4 +229,37 @@ func init() {
 	workoutexerciseDescID := workoutexerciseMixinFields0[0].Descriptor()
 	// workoutexercise.DefaultID holds the default value on creation for the id field.
 	workoutexercise.DefaultID = workoutexerciseDescID.Default.(func() uuid.UUID)
+	workoutlogMixin := schema.WorkoutLog{}.Mixin()
+	workoutlogMixinFields0 := workoutlogMixin[0].Fields()
+	_ = workoutlogMixinFields0
+	workoutlogMixinFields1 := workoutlogMixin[1].Fields()
+	_ = workoutlogMixinFields1
+	workoutlogFields := schema.WorkoutLog{}.Fields()
+	_ = workoutlogFields
+	// workoutlogDescCreatedAt is the schema descriptor for created_at field.
+	workoutlogDescCreatedAt := workoutlogMixinFields1[0].Descriptor()
+	// workoutlog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	workoutlog.DefaultCreatedAt = workoutlogDescCreatedAt.Default.(func() time.Time)
+	// workoutlogDescUpdatedAt is the schema descriptor for updated_at field.
+	workoutlogDescUpdatedAt := workoutlogMixinFields1[1].Descriptor()
+	// workoutlog.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	workoutlog.DefaultUpdatedAt = workoutlogDescUpdatedAt.Default.(func() time.Time)
+	// workoutlog.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	workoutlog.UpdateDefaultUpdatedAt = workoutlogDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// workoutlogDescStatus is the schema descriptor for status field.
+	workoutlogDescStatus := workoutlogFields[2].Descriptor()
+	// workoutlog.DefaultStatus holds the default value on creation for the status field.
+	workoutlog.DefaultStatus = workoutlogDescStatus.Default.(int)
+	// workoutlogDescTotalActiveDurationSeconds is the schema descriptor for total_active_duration_seconds field.
+	workoutlogDescTotalActiveDurationSeconds := workoutlogFields[3].Descriptor()
+	// workoutlog.DefaultTotalActiveDurationSeconds holds the default value on creation for the total_active_duration_seconds field.
+	workoutlog.DefaultTotalActiveDurationSeconds = workoutlogDescTotalActiveDurationSeconds.Default.(uint)
+	// workoutlogDescTotalPauseDurationSeconds is the schema descriptor for total_pause_duration_seconds field.
+	workoutlogDescTotalPauseDurationSeconds := workoutlogFields[4].Descriptor()
+	// workoutlog.DefaultTotalPauseDurationSeconds holds the default value on creation for the total_pause_duration_seconds field.
+	workoutlog.DefaultTotalPauseDurationSeconds = workoutlogDescTotalPauseDurationSeconds.Default.(uint)
+	// workoutlogDescID is the schema descriptor for id field.
+	workoutlogDescID := workoutlogMixinFields0[0].Descriptor()
+	// workoutlog.DefaultID holds the default value on creation for the id field.
+	workoutlog.DefaultID = workoutlogDescID.Default.(func() uuid.UUID)
 }

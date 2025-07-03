@@ -25,6 +25,10 @@ const (
 	EdgeExercise = "exercise"
 	// EdgeWorkoutExercises holds the string denoting the workout_exercises edge name in mutations.
 	EdgeWorkoutExercises = "workout_exercises"
+	// EdgeExerciseSets holds the string denoting the exercise_sets edge name in mutations.
+	EdgeExerciseSets = "exercise_sets"
+	// EdgeWorkoutLog holds the string denoting the workout_log edge name in mutations.
+	EdgeWorkoutLog = "workout_log"
 	// Table holds the table name of the exerciseinstance in the database.
 	Table = "exercise_instances"
 	// ExerciseTable is the table that holds the exercise relation/edge.
@@ -41,6 +45,20 @@ const (
 	WorkoutExercisesInverseTable = "workout_exercises"
 	// WorkoutExercisesColumn is the table column denoting the workout_exercises relation/edge.
 	WorkoutExercisesColumn = "exercise_instance_workout_exercises"
+	// ExerciseSetsTable is the table that holds the exercise_sets relation/edge.
+	ExerciseSetsTable = "exercise_sets"
+	// ExerciseSetsInverseTable is the table name for the ExerciseSet entity.
+	// It exists in this package in order to avoid circular dependency with the "exerciseset" package.
+	ExerciseSetsInverseTable = "exercise_sets"
+	// ExerciseSetsColumn is the table column denoting the exercise_sets relation/edge.
+	ExerciseSetsColumn = "exercise_instance_exercise_sets"
+	// WorkoutLogTable is the table that holds the workout_log relation/edge.
+	WorkoutLogTable = "exercise_instances"
+	// WorkoutLogInverseTable is the table name for the WorkoutLog entity.
+	// It exists in this package in order to avoid circular dependency with the "workoutlog" package.
+	WorkoutLogInverseTable = "workout_logs"
+	// WorkoutLogColumn is the table column denoting the workout_log relation/edge.
+	WorkoutLogColumn = "workout_log_exercise_instances"
 )
 
 // Columns holds all SQL columns for exerciseinstance fields.
@@ -55,6 +73,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"exercise_exercise_instances",
+	"workout_log_exercise_instances",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -126,6 +145,27 @@ func ByWorkoutExercises(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newWorkoutExercisesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByExerciseSetsCount orders the results by exercise_sets count.
+func ByExerciseSetsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newExerciseSetsStep(), opts...)
+	}
+}
+
+// ByExerciseSets orders the results by exercise_sets terms.
+func ByExerciseSets(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newExerciseSetsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByWorkoutLogField orders the results by workout_log field.
+func ByWorkoutLogField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWorkoutLogStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newExerciseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -138,5 +178,19 @@ func newWorkoutExercisesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(WorkoutExercisesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, WorkoutExercisesTable, WorkoutExercisesColumn),
+	)
+}
+func newExerciseSetsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ExerciseSetsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ExerciseSetsTable, ExerciseSetsColumn),
+	)
+}
+func newWorkoutLogStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WorkoutLogInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, WorkoutLogTable, WorkoutLogColumn),
 	)
 }

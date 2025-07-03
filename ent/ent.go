@@ -10,11 +10,13 @@ import (
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/exerciseset"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
+	"rtglabs-go/ent/workoutlog"
 	"sync"
 
 	"entgo.io/ent"
@@ -83,11 +85,13 @@ func checkColumn(table, column string) error {
 			bodyweight.Table:       bodyweight.ValidColumn,
 			exercise.Table:         exercise.ValidColumn,
 			exerciseinstance.Table: exerciseinstance.ValidColumn,
+			exerciseset.Table:      exerciseset.ValidColumn,
 			profile.Table:          profile.ValidColumn,
 			session.Table:          session.ValidColumn,
 			user.Table:             user.ValidColumn,
 			workout.Table:          workout.ValidColumn,
 			workoutexercise.Table:  workoutexercise.ValidColumn,
+			workoutlog.Table:       workoutlog.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

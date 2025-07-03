@@ -11,6 +11,7 @@ import (
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
+	"rtglabs-go/ent/workoutlog"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -28,6 +29,7 @@ type WorkoutQuery struct {
 	predicates           []predicate.Workout
 	withUser             *UserQuery
 	withWorkoutExercises *WorkoutExerciseQuery
+	withWorkoutLogs      *WorkoutLogQuery
 	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -102,6 +104,28 @@ func (wq *WorkoutQuery) QueryWorkoutExercises() *WorkoutExerciseQuery {
 			sqlgraph.From(workout.Table, workout.FieldID, selector),
 			sqlgraph.To(workoutexercise.Table, workoutexercise.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, workout.WorkoutExercisesTable, workout.WorkoutExercisesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(wq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryWorkoutLogs chains the current query on the "workout_logs" edge.
+func (wq *WorkoutQuery) QueryWorkoutLogs() *WorkoutLogQuery {
+	query := (&WorkoutLogClient{config: wq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := wq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := wq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workout.Table, workout.FieldID, selector),
+			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, workout.WorkoutLogsTable, workout.WorkoutLogsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(wq.driver.Dialect(), step)
 		return fromU, nil
@@ -303,6 +327,7 @@ func (wq *WorkoutQuery) Clone() *WorkoutQuery {
 		predicates:           append([]predicate.Workout{}, wq.predicates...),
 		withUser:             wq.withUser.Clone(),
 		withWorkoutExercises: wq.withWorkoutExercises.Clone(),
+		withWorkoutLogs:      wq.withWorkoutLogs.Clone(),
 		// clone intermediate query.
 		sql:  wq.sql.Clone(),
 		path: wq.path,
@@ -328,6 +353,17 @@ func (wq *WorkoutQuery) WithWorkoutExercises(opts ...func(*WorkoutExerciseQuery)
 		opt(query)
 	}
 	wq.withWorkoutExercises = query
+	return wq
+}
+
+// WithWorkoutLogs tells the query-builder to eager-load the nodes that are connected to
+// the "workout_logs" edge. The optional arguments are used to configure the query builder of the edge.
+func (wq *WorkoutQuery) WithWorkoutLogs(opts ...func(*WorkoutLogQuery)) *WorkoutQuery {
+	query := (&WorkoutLogClient{config: wq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	wq.withWorkoutLogs = query
 	return wq
 }
 
@@ -410,9 +446,10 @@ func (wq *WorkoutQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Work
 		nodes       = []*Workout{}
 		withFKs     = wq.withFKs
 		_spec       = wq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			wq.withUser != nil,
 			wq.withWorkoutExercises != nil,
+			wq.withWorkoutLogs != nil,
 		}
 	)
 	if wq.withUser != nil {
@@ -449,6 +486,13 @@ func (wq *WorkoutQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Work
 		if err := wq.loadWorkoutExercises(ctx, query, nodes,
 			func(n *Workout) { n.Edges.WorkoutExercises = []*WorkoutExercise{} },
 			func(n *Workout, e *WorkoutExercise) { n.Edges.WorkoutExercises = append(n.Edges.WorkoutExercises, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := wq.withWorkoutLogs; query != nil {
+		if err := wq.loadWorkoutLogs(ctx, query, nodes,
+			func(n *Workout) { n.Edges.WorkoutLogs = []*WorkoutLog{} },
+			func(n *Workout, e *WorkoutLog) { n.Edges.WorkoutLogs = append(n.Edges.WorkoutLogs, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -513,6 +557,37 @@ func (wq *WorkoutQuery) loadWorkoutExercises(ctx context.Context, query *Workout
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "workout_workout_exercises" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (wq *WorkoutQuery) loadWorkoutLogs(ctx context.Context, query *WorkoutLogQuery, nodes []*Workout, init func(*Workout), assign func(*Workout, *WorkoutLog)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Workout)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.WorkoutLog(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(workout.WorkoutLogsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.workout_workout_logs
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "workout_workout_logs" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "workout_workout_logs" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

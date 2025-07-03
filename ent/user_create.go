@@ -11,6 +11,7 @@ import (
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
+	"rtglabs-go/ent/workoutlog"
 	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -175,6 +176,21 @@ func (uc *UserCreate) AddWorkouts(w ...*Workout) *UserCreate {
 		ids[i] = w[i].ID
 	}
 	return uc.AddWorkoutIDs(ids...)
+}
+
+// AddWorkoutLogIDs adds the "workout_logs" edge to the WorkoutLog entity by IDs.
+func (uc *UserCreate) AddWorkoutLogIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddWorkoutLogIDs(ids...)
+	return uc
+}
+
+// AddWorkoutLogs adds the "workout_logs" edges to the WorkoutLog entity.
+func (uc *UserCreate) AddWorkoutLogs(w ...*WorkoutLog) *UserCreate {
+	ids := make([]uuid.UUID, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return uc.AddWorkoutLogIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -378,6 +394,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(workout.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.WorkoutLogsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.WorkoutLogsTable,
+			Columns: []string{user.WorkoutLogsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutlog.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

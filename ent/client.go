@@ -14,17 +14,21 @@ import (
 	"rtglabs-go/ent/bodyweight"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/exerciseset"
 	"rtglabs-go/ent/profile"
 	"rtglabs-go/ent/session"
 	"rtglabs-go/ent/user"
 	"rtglabs-go/ent/workout"
 	"rtglabs-go/ent/workoutexercise"
+	"rtglabs-go/ent/workoutlog"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
+
+	stdsql "database/sql"
 )
 
 // Client is the client that holds all ent builders.
@@ -38,6 +42,8 @@ type Client struct {
 	Exercise *ExerciseClient
 	// ExerciseInstance is the client for interacting with the ExerciseInstance builders.
 	ExerciseInstance *ExerciseInstanceClient
+	// ExerciseSet is the client for interacting with the ExerciseSet builders.
+	ExerciseSet *ExerciseSetClient
 	// Profile is the client for interacting with the Profile builders.
 	Profile *ProfileClient
 	// Session is the client for interacting with the Session builders.
@@ -48,6 +54,8 @@ type Client struct {
 	Workout *WorkoutClient
 	// WorkoutExercise is the client for interacting with the WorkoutExercise builders.
 	WorkoutExercise *WorkoutExerciseClient
+	// WorkoutLog is the client for interacting with the WorkoutLog builders.
+	WorkoutLog *WorkoutLogClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -62,11 +70,13 @@ func (c *Client) init() {
 	c.Bodyweight = NewBodyweightClient(c.config)
 	c.Exercise = NewExerciseClient(c.config)
 	c.ExerciseInstance = NewExerciseInstanceClient(c.config)
+	c.ExerciseSet = NewExerciseSetClient(c.config)
 	c.Profile = NewProfileClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.Workout = NewWorkoutClient(c.config)
 	c.WorkoutExercise = NewWorkoutExerciseClient(c.config)
+	c.WorkoutLog = NewWorkoutLogClient(c.config)
 }
 
 type (
@@ -162,11 +172,13 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Bodyweight:       NewBodyweightClient(cfg),
 		Exercise:         NewExerciseClient(cfg),
 		ExerciseInstance: NewExerciseInstanceClient(cfg),
+		ExerciseSet:      NewExerciseSetClient(cfg),
 		Profile:          NewProfileClient(cfg),
 		Session:          NewSessionClient(cfg),
 		User:             NewUserClient(cfg),
 		Workout:          NewWorkoutClient(cfg),
 		WorkoutExercise:  NewWorkoutExerciseClient(cfg),
+		WorkoutLog:       NewWorkoutLogClient(cfg),
 	}, nil
 }
 
@@ -189,11 +201,13 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Bodyweight:       NewBodyweightClient(cfg),
 		Exercise:         NewExerciseClient(cfg),
 		ExerciseInstance: NewExerciseInstanceClient(cfg),
+		ExerciseSet:      NewExerciseSetClient(cfg),
 		Profile:          NewProfileClient(cfg),
 		Session:          NewSessionClient(cfg),
 		User:             NewUserClient(cfg),
 		Workout:          NewWorkoutClient(cfg),
 		WorkoutExercise:  NewWorkoutExerciseClient(cfg),
+		WorkoutLog:       NewWorkoutLogClient(cfg),
 	}, nil
 }
 
@@ -223,8 +237,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.Profile, c.Session, c.User,
-		c.Workout, c.WorkoutExercise,
+		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.ExerciseSet, c.Profile,
+		c.Session, c.User, c.Workout, c.WorkoutExercise, c.WorkoutLog,
 	} {
 		n.Use(hooks...)
 	}
@@ -234,8 +248,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.Profile, c.Session, c.User,
-		c.Workout, c.WorkoutExercise,
+		c.Bodyweight, c.Exercise, c.ExerciseInstance, c.ExerciseSet, c.Profile,
+		c.Session, c.User, c.Workout, c.WorkoutExercise, c.WorkoutLog,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -250,6 +264,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Exercise.mutate(ctx, m)
 	case *ExerciseInstanceMutation:
 		return c.ExerciseInstance.mutate(ctx, m)
+	case *ExerciseSetMutation:
+		return c.ExerciseSet.mutate(ctx, m)
 	case *ProfileMutation:
 		return c.Profile.mutate(ctx, m)
 	case *SessionMutation:
@@ -260,6 +276,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Workout.mutate(ctx, m)
 	case *WorkoutExerciseMutation:
 		return c.WorkoutExercise.mutate(ctx, m)
+	case *WorkoutLogMutation:
+		return c.WorkoutLog.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -554,6 +572,22 @@ func (c *ExerciseClient) QueryWorkoutExercises(e *Exercise) *WorkoutExerciseQuer
 	return query
 }
 
+// QueryExerciseSets queries the exercise_sets edge of a Exercise.
+func (c *ExerciseClient) QueryExerciseSets(e *Exercise) *ExerciseSetQuery {
+	query := (&ExerciseSetClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exercise.Table, exercise.FieldID, id),
+			sqlgraph.To(exerciseset.Table, exerciseset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, exercise.ExerciseSetsTable, exercise.ExerciseSetsColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ExerciseClient) Hooks() []Hook {
 	return c.hooks.Exercise
@@ -719,6 +753,38 @@ func (c *ExerciseInstanceClient) QueryWorkoutExercises(ei *ExerciseInstance) *Wo
 	return query
 }
 
+// QueryExerciseSets queries the exercise_sets edge of a ExerciseInstance.
+func (c *ExerciseInstanceClient) QueryExerciseSets(ei *ExerciseInstance) *ExerciseSetQuery {
+	query := (&ExerciseSetClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ei.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseinstance.Table, exerciseinstance.FieldID, id),
+			sqlgraph.To(exerciseset.Table, exerciseset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, exerciseinstance.ExerciseSetsTable, exerciseinstance.ExerciseSetsColumn),
+		)
+		fromV = sqlgraph.Neighbors(ei.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkoutLog queries the workout_log edge of a ExerciseInstance.
+func (c *ExerciseInstanceClient) QueryWorkoutLog(ei *ExerciseInstance) *WorkoutLogQuery {
+	query := (&WorkoutLogClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ei.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseinstance.Table, exerciseinstance.FieldID, id),
+			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, exerciseinstance.WorkoutLogTable, exerciseinstance.WorkoutLogColumn),
+		)
+		fromV = sqlgraph.Neighbors(ei.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ExerciseInstanceClient) Hooks() []Hook {
 	return c.hooks.ExerciseInstance
@@ -741,6 +807,187 @@ func (c *ExerciseInstanceClient) mutate(ctx context.Context, m *ExerciseInstance
 		return (&ExerciseInstanceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ExerciseInstance mutation op: %q", m.Op())
+	}
+}
+
+// ExerciseSetClient is a client for the ExerciseSet schema.
+type ExerciseSetClient struct {
+	config
+}
+
+// NewExerciseSetClient returns a client for the ExerciseSet from the given config.
+func NewExerciseSetClient(c config) *ExerciseSetClient {
+	return &ExerciseSetClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `exerciseset.Hooks(f(g(h())))`.
+func (c *ExerciseSetClient) Use(hooks ...Hook) {
+	c.hooks.ExerciseSet = append(c.hooks.ExerciseSet, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `exerciseset.Intercept(f(g(h())))`.
+func (c *ExerciseSetClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ExerciseSet = append(c.inters.ExerciseSet, interceptors...)
+}
+
+// Create returns a builder for creating a ExerciseSet entity.
+func (c *ExerciseSetClient) Create() *ExerciseSetCreate {
+	mutation := newExerciseSetMutation(c.config, OpCreate)
+	return &ExerciseSetCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ExerciseSet entities.
+func (c *ExerciseSetClient) CreateBulk(builders ...*ExerciseSetCreate) *ExerciseSetCreateBulk {
+	return &ExerciseSetCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ExerciseSetClient) MapCreateBulk(slice any, setFunc func(*ExerciseSetCreate, int)) *ExerciseSetCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ExerciseSetCreateBulk{err: fmt.Errorf("calling to ExerciseSetClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ExerciseSetCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ExerciseSetCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ExerciseSet.
+func (c *ExerciseSetClient) Update() *ExerciseSetUpdate {
+	mutation := newExerciseSetMutation(c.config, OpUpdate)
+	return &ExerciseSetUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ExerciseSetClient) UpdateOne(es *ExerciseSet) *ExerciseSetUpdateOne {
+	mutation := newExerciseSetMutation(c.config, OpUpdateOne, withExerciseSet(es))
+	return &ExerciseSetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ExerciseSetClient) UpdateOneID(id uuid.UUID) *ExerciseSetUpdateOne {
+	mutation := newExerciseSetMutation(c.config, OpUpdateOne, withExerciseSetID(id))
+	return &ExerciseSetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ExerciseSet.
+func (c *ExerciseSetClient) Delete() *ExerciseSetDelete {
+	mutation := newExerciseSetMutation(c.config, OpDelete)
+	return &ExerciseSetDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ExerciseSetClient) DeleteOne(es *ExerciseSet) *ExerciseSetDeleteOne {
+	return c.DeleteOneID(es.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ExerciseSetClient) DeleteOneID(id uuid.UUID) *ExerciseSetDeleteOne {
+	builder := c.Delete().Where(exerciseset.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ExerciseSetDeleteOne{builder}
+}
+
+// Query returns a query builder for ExerciseSet.
+func (c *ExerciseSetClient) Query() *ExerciseSetQuery {
+	return &ExerciseSetQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeExerciseSet},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ExerciseSet entity by its id.
+func (c *ExerciseSetClient) Get(ctx context.Context, id uuid.UUID) (*ExerciseSet, error) {
+	return c.Query().Where(exerciseset.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ExerciseSetClient) GetX(ctx context.Context, id uuid.UUID) *ExerciseSet {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryWorkoutLog queries the workout_log edge of a ExerciseSet.
+func (c *ExerciseSetClient) QueryWorkoutLog(es *ExerciseSet) *WorkoutLogQuery {
+	query := (&WorkoutLogClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := es.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseset.Table, exerciseset.FieldID, id),
+			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, exerciseset.WorkoutLogTable, exerciseset.WorkoutLogColumn),
+		)
+		fromV = sqlgraph.Neighbors(es.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryExercise queries the exercise edge of a ExerciseSet.
+func (c *ExerciseSetClient) QueryExercise(es *ExerciseSet) *ExerciseQuery {
+	query := (&ExerciseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := es.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseset.Table, exerciseset.FieldID, id),
+			sqlgraph.To(exercise.Table, exercise.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, exerciseset.ExerciseTable, exerciseset.ExerciseColumn),
+		)
+		fromV = sqlgraph.Neighbors(es.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryExerciseInstance queries the exercise_instance edge of a ExerciseSet.
+func (c *ExerciseSetClient) QueryExerciseInstance(es *ExerciseSet) *ExerciseInstanceQuery {
+	query := (&ExerciseInstanceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := es.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(exerciseset.Table, exerciseset.FieldID, id),
+			sqlgraph.To(exerciseinstance.Table, exerciseinstance.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, exerciseset.ExerciseInstanceTable, exerciseset.ExerciseInstanceColumn),
+		)
+		fromV = sqlgraph.Neighbors(es.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ExerciseSetClient) Hooks() []Hook {
+	return c.hooks.ExerciseSet
+}
+
+// Interceptors returns the client interceptors.
+func (c *ExerciseSetClient) Interceptors() []Interceptor {
+	return c.inters.ExerciseSet
+}
+
+func (c *ExerciseSetClient) mutate(ctx context.Context, m *ExerciseSetMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ExerciseSetCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ExerciseSetUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ExerciseSetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ExerciseSetDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ExerciseSet mutation op: %q", m.Op())
 	}
 }
 
@@ -1214,6 +1461,22 @@ func (c *UserClient) QueryWorkouts(u *User) *WorkoutQuery {
 	return query
 }
 
+// QueryWorkoutLogs queries the workout_logs edge of a User.
+func (c *UserClient) QueryWorkoutLogs(u *User) *WorkoutLogQuery {
+	query := (&WorkoutLogClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.WorkoutLogsTable, user.WorkoutLogsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -1372,6 +1635,22 @@ func (c *WorkoutClient) QueryWorkoutExercises(w *Workout) *WorkoutExerciseQuery 
 			sqlgraph.From(workout.Table, workout.FieldID, id),
 			sqlgraph.To(workoutexercise.Table, workoutexercise.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, workout.WorkoutExercisesTable, workout.WorkoutExercisesColumn),
+		)
+		fromV = sqlgraph.Neighbors(w.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkoutLogs queries the workout_logs edge of a Workout.
+func (c *WorkoutClient) QueryWorkoutLogs(w *Workout) *WorkoutLogQuery {
+	query := (&WorkoutLogClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := w.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workout.Table, workout.FieldID, id),
+			sqlgraph.To(workoutlog.Table, workoutlog.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, workout.WorkoutLogsTable, workout.WorkoutLogsColumn),
 		)
 		fromV = sqlgraph.Neighbors(w.driver.Dialect(), step)
 		return fromV, nil
@@ -1585,14 +1864,235 @@ func (c *WorkoutExerciseClient) mutate(ctx context.Context, m *WorkoutExerciseMu
 	}
 }
 
+// WorkoutLogClient is a client for the WorkoutLog schema.
+type WorkoutLogClient struct {
+	config
+}
+
+// NewWorkoutLogClient returns a client for the WorkoutLog from the given config.
+func NewWorkoutLogClient(c config) *WorkoutLogClient {
+	return &WorkoutLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `workoutlog.Hooks(f(g(h())))`.
+func (c *WorkoutLogClient) Use(hooks ...Hook) {
+	c.hooks.WorkoutLog = append(c.hooks.WorkoutLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `workoutlog.Intercept(f(g(h())))`.
+func (c *WorkoutLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WorkoutLog = append(c.inters.WorkoutLog, interceptors...)
+}
+
+// Create returns a builder for creating a WorkoutLog entity.
+func (c *WorkoutLogClient) Create() *WorkoutLogCreate {
+	mutation := newWorkoutLogMutation(c.config, OpCreate)
+	return &WorkoutLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WorkoutLog entities.
+func (c *WorkoutLogClient) CreateBulk(builders ...*WorkoutLogCreate) *WorkoutLogCreateBulk {
+	return &WorkoutLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WorkoutLogClient) MapCreateBulk(slice any, setFunc func(*WorkoutLogCreate, int)) *WorkoutLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WorkoutLogCreateBulk{err: fmt.Errorf("calling to WorkoutLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WorkoutLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WorkoutLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WorkoutLog.
+func (c *WorkoutLogClient) Update() *WorkoutLogUpdate {
+	mutation := newWorkoutLogMutation(c.config, OpUpdate)
+	return &WorkoutLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WorkoutLogClient) UpdateOne(wl *WorkoutLog) *WorkoutLogUpdateOne {
+	mutation := newWorkoutLogMutation(c.config, OpUpdateOne, withWorkoutLog(wl))
+	return &WorkoutLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WorkoutLogClient) UpdateOneID(id uuid.UUID) *WorkoutLogUpdateOne {
+	mutation := newWorkoutLogMutation(c.config, OpUpdateOne, withWorkoutLogID(id))
+	return &WorkoutLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WorkoutLog.
+func (c *WorkoutLogClient) Delete() *WorkoutLogDelete {
+	mutation := newWorkoutLogMutation(c.config, OpDelete)
+	return &WorkoutLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WorkoutLogClient) DeleteOne(wl *WorkoutLog) *WorkoutLogDeleteOne {
+	return c.DeleteOneID(wl.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WorkoutLogClient) DeleteOneID(id uuid.UUID) *WorkoutLogDeleteOne {
+	builder := c.Delete().Where(workoutlog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WorkoutLogDeleteOne{builder}
+}
+
+// Query returns a query builder for WorkoutLog.
+func (c *WorkoutLogClient) Query() *WorkoutLogQuery {
+	return &WorkoutLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWorkoutLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WorkoutLog entity by its id.
+func (c *WorkoutLogClient) Get(ctx context.Context, id uuid.UUID) (*WorkoutLog, error) {
+	return c.Query().Where(workoutlog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WorkoutLogClient) GetX(ctx context.Context, id uuid.UUID) *WorkoutLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a WorkoutLog.
+func (c *WorkoutLogClient) QueryUser(wl *WorkoutLog) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := wl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutlog.Table, workoutlog.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutlog.UserTable, workoutlog.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(wl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWorkout queries the workout edge of a WorkoutLog.
+func (c *WorkoutLogClient) QueryWorkout(wl *WorkoutLog) *WorkoutQuery {
+	query := (&WorkoutClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := wl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutlog.Table, workoutlog.FieldID, id),
+			sqlgraph.To(workout.Table, workout.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workoutlog.WorkoutTable, workoutlog.WorkoutColumn),
+		)
+		fromV = sqlgraph.Neighbors(wl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryExerciseSets queries the exercise_sets edge of a WorkoutLog.
+func (c *WorkoutLogClient) QueryExerciseSets(wl *WorkoutLog) *ExerciseSetQuery {
+	query := (&ExerciseSetClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := wl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutlog.Table, workoutlog.FieldID, id),
+			sqlgraph.To(exerciseset.Table, exerciseset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, workoutlog.ExerciseSetsTable, workoutlog.ExerciseSetsColumn),
+		)
+		fromV = sqlgraph.Neighbors(wl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryExerciseInstances queries the exercise_instances edge of a WorkoutLog.
+func (c *WorkoutLogClient) QueryExerciseInstances(wl *WorkoutLog) *ExerciseInstanceQuery {
+	query := (&ExerciseInstanceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := wl.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workoutlog.Table, workoutlog.FieldID, id),
+			sqlgraph.To(exerciseinstance.Table, exerciseinstance.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, workoutlog.ExerciseInstancesTable, workoutlog.ExerciseInstancesColumn),
+		)
+		fromV = sqlgraph.Neighbors(wl.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WorkoutLogClient) Hooks() []Hook {
+	return c.hooks.WorkoutLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *WorkoutLogClient) Interceptors() []Interceptor {
+	return c.inters.WorkoutLog
+}
+
+func (c *WorkoutLogClient) mutate(ctx context.Context, m *WorkoutLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WorkoutLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WorkoutLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WorkoutLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WorkoutLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WorkoutLog mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Bodyweight, Exercise, ExerciseInstance, Profile, Session, User, Workout,
-		WorkoutExercise []ent.Hook
+		Bodyweight, Exercise, ExerciseInstance, ExerciseSet, Profile, Session, User,
+		Workout, WorkoutExercise, WorkoutLog []ent.Hook
 	}
 	inters struct {
-		Bodyweight, Exercise, ExerciseInstance, Profile, Session, User, Workout,
-		WorkoutExercise []ent.Interceptor
+		Bodyweight, Exercise, ExerciseInstance, ExerciseSet, Profile, Session, User,
+		Workout, WorkoutExercise, WorkoutLog []ent.Interceptor
 	}
 )
+
+// ExecContext allows calling the underlying ExecContext method of the driver if it is supported by it.
+// See, database/sql#DB.ExecContext for more information.
+func (c *config) ExecContext(ctx context.Context, query string, args ...any) (stdsql.Result, error) {
+	ex, ok := c.driver.(interface {
+		ExecContext(context.Context, string, ...any) (stdsql.Result, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("Driver.ExecContext is not supported")
+	}
+	return ex.ExecContext(ctx, query, args...)
+}
+
+// QueryContext allows calling the underlying QueryContext method of the driver if it is supported by it.
+// See, database/sql#DB.QueryContext for more information.
+func (c *config) QueryContext(ctx context.Context, query string, args ...any) (*stdsql.Rows, error) {
+	q, ok := c.driver.(interface {
+		QueryContext(context.Context, string, ...any) (*stdsql.Rows, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("Driver.QueryContext is not supported")
+	}
+	return q.QueryContext(ctx, query, args...)
+}

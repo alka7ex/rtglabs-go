@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/workoutlog"
 	"strings"
 	"time"
 
@@ -27,9 +28,10 @@ type ExerciseInstance struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ExerciseInstanceQuery when eager-loading is set.
-	Edges                       ExerciseInstanceEdges `json:"edges"`
-	exercise_exercise_instances *uuid.UUID
-	selectValues                sql.SelectValues
+	Edges                          ExerciseInstanceEdges `json:"edges"`
+	exercise_exercise_instances    *uuid.UUID
+	workout_log_exercise_instances *uuid.UUID
+	selectValues                   sql.SelectValues
 }
 
 // ExerciseInstanceEdges holds the relations/edges for other nodes in the graph.
@@ -38,9 +40,13 @@ type ExerciseInstanceEdges struct {
 	Exercise *Exercise `json:"exercise,omitempty"`
 	// WorkoutExercises holds the value of the workout_exercises edge.
 	WorkoutExercises []*WorkoutExercise `json:"workout_exercises,omitempty"`
+	// ExerciseSets holds the value of the exercise_sets edge.
+	ExerciseSets []*ExerciseSet `json:"exercise_sets,omitempty"`
+	// WorkoutLog holds the value of the workout_log edge.
+	WorkoutLog *WorkoutLog `json:"workout_log,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [4]bool
 }
 
 // ExerciseOrErr returns the Exercise value or an error if the edge
@@ -63,6 +69,26 @@ func (e ExerciseInstanceEdges) WorkoutExercisesOrErr() ([]*WorkoutExercise, erro
 	return nil, &NotLoadedError{edge: "workout_exercises"}
 }
 
+// ExerciseSetsOrErr returns the ExerciseSets value or an error if the edge
+// was not loaded in eager-loading.
+func (e ExerciseInstanceEdges) ExerciseSetsOrErr() ([]*ExerciseSet, error) {
+	if e.loadedTypes[2] {
+		return e.ExerciseSets, nil
+	}
+	return nil, &NotLoadedError{edge: "exercise_sets"}
+}
+
+// WorkoutLogOrErr returns the WorkoutLog value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ExerciseInstanceEdges) WorkoutLogOrErr() (*WorkoutLog, error) {
+	if e.WorkoutLog != nil {
+		return e.WorkoutLog, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: workoutlog.Label}
+	}
+	return nil, &NotLoadedError{edge: "workout_log"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ExerciseInstance) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -73,6 +99,8 @@ func (*ExerciseInstance) scanValues(columns []string) ([]any, error) {
 		case exerciseinstance.FieldID:
 			values[i] = new(uuid.UUID)
 		case exerciseinstance.ForeignKeys[0]: // exercise_exercise_instances
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case exerciseinstance.ForeignKeys[1]: // workout_log_exercise_instances
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
@@ -121,6 +149,13 @@ func (ei *ExerciseInstance) assignValues(columns []string, values []any) error {
 				ei.exercise_exercise_instances = new(uuid.UUID)
 				*ei.exercise_exercise_instances = *value.S.(*uuid.UUID)
 			}
+		case exerciseinstance.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field workout_log_exercise_instances", values[i])
+			} else if value.Valid {
+				ei.workout_log_exercise_instances = new(uuid.UUID)
+				*ei.workout_log_exercise_instances = *value.S.(*uuid.UUID)
+			}
 		default:
 			ei.selectValues.Set(columns[i], values[i])
 		}
@@ -142,6 +177,16 @@ func (ei *ExerciseInstance) QueryExercise() *ExerciseQuery {
 // QueryWorkoutExercises queries the "workout_exercises" edge of the ExerciseInstance entity.
 func (ei *ExerciseInstance) QueryWorkoutExercises() *WorkoutExerciseQuery {
 	return NewExerciseInstanceClient(ei.config).QueryWorkoutExercises(ei)
+}
+
+// QueryExerciseSets queries the "exercise_sets" edge of the ExerciseInstance entity.
+func (ei *ExerciseInstance) QueryExerciseSets() *ExerciseSetQuery {
+	return NewExerciseInstanceClient(ei.config).QueryExerciseSets(ei)
+}
+
+// QueryWorkoutLog queries the "workout_log" edge of the ExerciseInstance entity.
+func (ei *ExerciseInstance) QueryWorkoutLog() *WorkoutLogQuery {
+	return NewExerciseInstanceClient(ei.config).QueryWorkoutLog(ei)
 }
 
 // Update returns a builder for updating this ExerciseInstance.

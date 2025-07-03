@@ -560,11 +560,9 @@ func toWorkoutExerciseResponse(we *ent.WorkoutExercise) dto.WorkoutExerciseRespo
 	}
 
 	var exerciseInstanceID *uuid.UUID
-	// --- FIX START ---
-	if we.ExerciseInstanceID != nil { // Check if the pointer is not nil
-		exerciseInstanceID = we.ExerciseInstanceID // Already a *uuid.UUID, so just assign
+	if we.Edges.ExerciseInstance != nil {
+		exerciseInstanceID = &we.Edges.ExerciseInstance.ID
 	}
-	// --- FIX END ---
 
 	var exerciseDTO *dto.ExerciseResponse
 	if we.Edges.Exercise != nil {

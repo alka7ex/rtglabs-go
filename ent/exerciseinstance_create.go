@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"rtglabs-go/ent/exercise"
 	"rtglabs-go/ent/exerciseinstance"
+	"rtglabs-go/ent/exerciseset"
 	"rtglabs-go/ent/workoutexercise"
+	"rtglabs-go/ent/workoutlog"
 	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -103,6 +105,40 @@ func (eic *ExerciseInstanceCreate) AddWorkoutExercises(w ...*WorkoutExercise) *E
 		ids[i] = w[i].ID
 	}
 	return eic.AddWorkoutExerciseIDs(ids...)
+}
+
+// AddExerciseSetIDs adds the "exercise_sets" edge to the ExerciseSet entity by IDs.
+func (eic *ExerciseInstanceCreate) AddExerciseSetIDs(ids ...uuid.UUID) *ExerciseInstanceCreate {
+	eic.mutation.AddExerciseSetIDs(ids...)
+	return eic
+}
+
+// AddExerciseSets adds the "exercise_sets" edges to the ExerciseSet entity.
+func (eic *ExerciseInstanceCreate) AddExerciseSets(e ...*ExerciseSet) *ExerciseInstanceCreate {
+	ids := make([]uuid.UUID, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return eic.AddExerciseSetIDs(ids...)
+}
+
+// SetWorkoutLogID sets the "workout_log" edge to the WorkoutLog entity by ID.
+func (eic *ExerciseInstanceCreate) SetWorkoutLogID(id uuid.UUID) *ExerciseInstanceCreate {
+	eic.mutation.SetWorkoutLogID(id)
+	return eic
+}
+
+// SetNillableWorkoutLogID sets the "workout_log" edge to the WorkoutLog entity by ID if the given value is not nil.
+func (eic *ExerciseInstanceCreate) SetNillableWorkoutLogID(id *uuid.UUID) *ExerciseInstanceCreate {
+	if id != nil {
+		eic = eic.SetWorkoutLogID(*id)
+	}
+	return eic
+}
+
+// SetWorkoutLog sets the "workout_log" edge to the WorkoutLog entity.
+func (eic *ExerciseInstanceCreate) SetWorkoutLog(w *WorkoutLog) *ExerciseInstanceCreate {
+	return eic.SetWorkoutLogID(w.ID)
 }
 
 // Mutation returns the ExerciseInstanceMutation object of the builder.
@@ -243,6 +279,39 @@ func (eic *ExerciseInstanceCreate) createSpec() (*ExerciseInstance, *sqlgraph.Cr
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := eic.mutation.ExerciseSetsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   exerciseinstance.ExerciseSetsTable,
+			Columns: []string{exerciseinstance.ExerciseSetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(exerciseset.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := eic.mutation.WorkoutLogIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   exerciseinstance.WorkoutLogTable,
+			Columns: []string{exerciseinstance.WorkoutLogColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(workoutlog.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.workout_log_exercise_instances = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

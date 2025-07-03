@@ -53,6 +53,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "exercise_exercise_instances", Type: field.TypeUUID},
+		{Name: "workout_log_exercise_instances", Type: field.TypeUUID, Nullable: true},
 	}
 	// ExerciseInstancesTable holds the schema information for the "exercise_instances" table.
 	ExerciseInstancesTable = &schema.Table{
@@ -65,6 +66,60 @@ var (
 				Columns:    []*schema.Column{ExerciseInstancesColumns[4]},
 				RefColumns: []*schema.Column{ExercisesColumns[0]},
 				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "exercise_instances_workout_logs_exercise_instances",
+				Columns:    []*schema.Column{ExerciseInstancesColumns[5]},
+				RefColumns: []*schema.Column{WorkoutLogsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ExerciseSetsColumns holds the columns for the "exercise_sets" table.
+	ExerciseSetsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "weight", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(8,2)"}},
+		{Name: "reps", Type: field.TypeInt, Nullable: true},
+		{Name: "set_number", Type: field.TypeInt},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true},
+		{Name: "status", Type: field.TypeInt, Default: 0},
+		{Name: "exercise_exercise_sets", Type: field.TypeUUID},
+		{Name: "exercise_instance_exercise_sets", Type: field.TypeUUID, Nullable: true},
+		{Name: "workout_log_exercise_sets", Type: field.TypeUUID},
+	}
+	// ExerciseSetsTable holds the schema information for the "exercise_sets" table.
+	ExerciseSetsTable = &schema.Table{
+		Name:       "exercise_sets",
+		Columns:    ExerciseSetsColumns,
+		PrimaryKey: []*schema.Column{ExerciseSetsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "exercise_sets_exercises_exercise_sets",
+				Columns:    []*schema.Column{ExerciseSetsColumns[9]},
+				RefColumns: []*schema.Column{ExercisesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "exercise_sets_exercise_instances_exercise_sets",
+				Columns:    []*schema.Column{ExerciseSetsColumns[10]},
+				RefColumns: []*schema.Column{ExerciseInstancesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "exercise_sets_workout_logs_exercise_sets",
+				Columns:    []*schema.Column{ExerciseSetsColumns[11]},
+				RefColumns: []*schema.Column{WorkoutLogsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "exerciseset_status",
+				Unique:  false,
+				Columns: []*schema.Column{ExerciseSetsColumns[8]},
 			},
 		},
 	}
@@ -197,26 +252,75 @@ var (
 			},
 		},
 	}
+	// WorkoutLogsColumns holds the columns for the "workout_logs" table.
+	WorkoutLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true},
+		{Name: "status", Type: field.TypeInt, Default: 0},
+		{Name: "total_active_duration_seconds", Type: field.TypeUint, Default: 0},
+		{Name: "total_pause_duration_seconds", Type: field.TypeUint, Default: 0},
+		{Name: "user_workout_logs", Type: field.TypeUUID},
+		{Name: "workout_workout_logs", Type: field.TypeUUID, Nullable: true},
+	}
+	// WorkoutLogsTable holds the schema information for the "workout_logs" table.
+	WorkoutLogsTable = &schema.Table{
+		Name:       "workout_logs",
+		Columns:    WorkoutLogsColumns,
+		PrimaryKey: []*schema.Column{WorkoutLogsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "workout_logs_users_workout_logs",
+				Columns:    []*schema.Column{WorkoutLogsColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "workout_logs_workouts_workout_logs",
+				Columns:    []*schema.Column{WorkoutLogsColumns[10]},
+				RefColumns: []*schema.Column{WorkoutsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workoutlog_status",
+				Unique:  false,
+				Columns: []*schema.Column{WorkoutLogsColumns[6]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BodyweightsTable,
 		ExercisesTable,
 		ExerciseInstancesTable,
+		ExerciseSetsTable,
 		ProfilesTable,
 		SessionsTable,
 		UsersTable,
 		WorkoutsTable,
 		WorkoutExercisesTable,
+		WorkoutLogsTable,
 	}
 )
 
 func init() {
 	BodyweightsTable.ForeignKeys[0].RefTable = UsersTable
 	ExerciseInstancesTable.ForeignKeys[0].RefTable = ExercisesTable
+	ExerciseInstancesTable.ForeignKeys[1].RefTable = WorkoutLogsTable
+	ExerciseSetsTable.ForeignKeys[0].RefTable = ExercisesTable
+	ExerciseSetsTable.ForeignKeys[1].RefTable = ExerciseInstancesTable
+	ExerciseSetsTable.ForeignKeys[2].RefTable = WorkoutLogsTable
 	ProfilesTable.ForeignKeys[0].RefTable = UsersTable
 	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 	WorkoutsTable.ForeignKeys[0].RefTable = UsersTable
 	WorkoutExercisesTable.ForeignKeys[0].RefTable = ExercisesTable
 	WorkoutExercisesTable.ForeignKeys[1].RefTable = ExerciseInstancesTable
 	WorkoutExercisesTable.ForeignKeys[2].RefTable = WorkoutsTable
+	WorkoutLogsTable.ForeignKeys[0].RefTable = UsersTable
+	WorkoutLogsTable.ForeignKeys[1].RefTable = WorkoutsTable
 }
