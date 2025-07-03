@@ -9,11 +9,10 @@ import (
 
 	_ "github.com/joho/godotenv/autoload" // Automatically loads .env file
 
-	"rtglabs-go/ent"               // <--- Ensure this import is present
-	"rtglabs-go/internal/config"   // <--- KEEP this import if 'appConfig' field is intended, though it won't be initialized here. Otherwise, remove if not used.
-	"rtglabs-go/internal/database" // <--- ADD THIS IMPORT for database.NewEntClient()
-	"rtglabs-go/internal/provider" // <--- THIS IS THE CORRECT IMPORT for EmailSender
-	"rtglabs-go/internal/validators"
+	"rtglabs-go/config"          // <--- KEEP this import if 'appConfig' field is intended, though it won't be initialized here. Otherwise, remove if not used.
+	"rtglabs-go/config/database" // <--- ADD THIS IMPORT for database.NewEntClient()
+	"rtglabs-go/ent"             // <--- Ensure this import is present
+	mail "rtglabs-go/provider"   // <--- THIS IS THE CORRECT IMPORT for EmailSender
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -83,7 +82,7 @@ func NewServer() *http.Server {
 
 // setupMiddleware configures all common middlewares for the Echo instance.
 func (s *Server) setupMiddleware() {
-	s.echo.Validator = validators.NewValidator() // Set custom validator
+	s.echo.Validator = config.NewValidator() // Set custom validator
 
 	// Remove trailing slash
 	s.echo.Pre(middleware.RemoveTrailingSlash())
@@ -151,4 +150,3 @@ func (s *Server) HelloWorldHandler(c echo.Context) error {
 func (s *Server) healthHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, s.db.Health())
 }
-

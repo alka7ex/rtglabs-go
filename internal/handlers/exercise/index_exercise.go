@@ -4,24 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"rtglabs-go/dto"
-	"rtglabs-go/ent"
-	"rtglabs-go/ent/exercise" // Import the exercise ent
+	"rtglabs-go/ent/exercise"
 	"strconv"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/labstack/echo/v4"
 )
-
-// ExerciseHandler holds the ent.Client for database operations.
-type ExerciseHandler struct {
-	Client *ent.Client
-}
-
-// NewExerciseHandler creates and returns a new ExerciseHandler.
-func NewExerciseHandler(client *ent.Client) *ExerciseHandler {
-	return &ExerciseHandler{Client: client}
-}
 
 // IndexExercise lists exercise records with optional filtering and pagination.
 func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
@@ -126,22 +114,4 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response)
-}
-
-// --- Helper Functions ---
-
-// toExerciseResponse converts an ent.Exercise entity to a dto.ExerciseResponse DTO.
-func toExerciseResponse(ex *ent.Exercise) dto.ExerciseResponse {
-	var deletedAt *time.Time
-	if ex.DeletedAt != nil {
-		deletedAt = ex.DeletedAt
-	}
-
-	return dto.ExerciseResponse{
-		ID:        ex.ID,
-		Name:      ex.Name,
-		CreatedAt: ex.CreatedAt,
-		UpdatedAt: ex.UpdatedAt, // Include UpdatedAt from mixin
-		DeletedAt: deletedAt,
-	}
 }

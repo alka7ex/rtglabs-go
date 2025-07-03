@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"rtglabs-go/cmd/web"
-	"rtglabs-go/internal/database" // Import database for entClient if needed
-	"rtglabs-go/internal/handlers/auth"
+	"rtglabs-go/config/database" // Import database for entClient if needed
+	handlers "rtglabs-go/internal/handlers/auth"
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"

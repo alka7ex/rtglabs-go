@@ -3,12 +3,13 @@ package server
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
-	"rtglabs-go/internal/database"
+	"rtglabs-go/config/database"
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
 	exercise_handler "rtglabs-go/internal/handlers/exercise"
 	workout_handler "rtglabs-go/internal/handlers/workout"
+
+	"github.com/labstack/echo/v4"
 )
 
 // registerPrivateRoutes registers all routes that require authentication.

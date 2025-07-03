@@ -8,7 +8,7 @@ import (
 	"rtglabs-go/ent"
 	"rtglabs-go/ent/privatetoken"
 	"rtglabs-go/ent/user"
-	"rtglabs-go/internal/provider" // Import email sender
+	mail "rtglabs-go/provider" // Import email sender
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
