@@ -190,20 +190,22 @@ func (h *WorkoutHandler) UpdateWorkoutLog(c echo.Context) error {
 	// Reload updated workout log
 	updatedLog, err := h.Client.WorkoutLog.Query().
 		Where(workoutlog.IDEQ(logID)).
-		WithWorkout().
-		WithUser().
+		WithWorkout(func(wq *ent.WorkoutQuery) { // Add a function to WithWorkout
+			wq.WithUser() // Eager load the User from the Workout
+		}).
+		WithUser(). // Already there for the WorkoutLog's direct user
 		WithExerciseSets(func(q *ent.ExerciseSetQuery) {
 			q.WithExercise().
 				WithExerciseInstance(func(qi *ent.ExerciseInstanceQuery) {
 					qi.WithExercise()
 				}).
+				WithWorkoutLog(). // Eager load the WorkoutLog from the ExerciseSet
 				Order(ent.Asc(exerciseset.FieldSetNumber))
 		}).
 		Only(ctx)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to reload updated workout log")
 	}
-
 	return c.JSON(http.StatusOK, dto.UpdateWorkoutLogResponse{
 		Message:    "Workout log updated successfully.",
 		WorkoutLog: toWorkoutLogResponse(updatedLog),
