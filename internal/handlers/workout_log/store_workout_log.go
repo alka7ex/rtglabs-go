@@ -56,13 +56,10 @@ func (h *WorkoutHandler) StoreWorkoutLog(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to start workout log session")
 	}
 
-	// Create the new WorkoutLog
-	// Note: Entgo automatically handles the foreign key column.
-	// You set the edge, and Entgo sets the ID.
 	workoutLog, err := tx.WorkoutLog.
 		Create().
-		SetUserID(userID).                // Correct way to set the user edge by ID
-		SetWorkoutID(workoutTemplate.ID). // This field is correctly directly on schema (nullable workout_id)
+		SetUserID(userID).
+		SetWorkoutID(workoutTemplate.ID).
 		SetStartedAt(time.Now()).
 		SetStatus(0).
 		Save(ctx)
@@ -153,9 +150,13 @@ func (h *WorkoutHandler) StoreWorkoutLog(c echo.Context) error {
 		Where(workoutlog.IDEQ(workoutLog.ID)).
 		WithWorkout(func(wq *ent.WorkoutQuery) {
 			wq.Where(workout.DeletedAtIsNil())
+			// Fix 1: Eager-load the User edge for the nested Workout
+			wq.WithUser()
 		}).
-		WithUser(). // Eager load the User edge to access User.ID later
+		WithUser(). // Eager load the User edge for the WorkoutLog itself
 		WithExerciseSets(func(esq *ent.ExerciseSetQuery) {
+			// Fix 2: Eager-load the WorkoutLog edge for each ExerciseSet
+			esq.WithWorkoutLog()
 			esq.WithExercise()
 			esq.WithExerciseInstance(func(eiq *ent.ExerciseInstanceQuery) {
 				eiq.WithExercise()
@@ -193,20 +194,19 @@ func toWorkoutLogResponse(wl *ent.WorkoutLog) dto.WorkoutLogResponse {
 		DeletedAt:                  wl.DeletedAt,
 	}
 
-	// Corrected: Access UserID via the eager-loaded Edge
+	// Correct: Access UserID via the eager-loaded Edge
 	if wl.Edges.User != nil {
 		resp.UserID = wl.Edges.User.ID
-	}
-	// Corrected: Access WorkoutID via the eager-loaded Edge or the direct field if it's there
-	// Based on your schema, workout_id is a field, not an edge in workoutLog directly.
-	// If it's an edge, you'd use wl.Edges.Workout.ID, but your schema defined `workout_id` as a field.
-	// So, I'll assume `SetWorkoutID` was correct. If your schema has `edge.From("workout",...)` it's `wl.Edges.Workout.ID`
-	if wl.Edges.Workout != nil { // Check if the edge was loaded
-		resp.WorkoutID = wl.Edges.Workout.ID
+	} else {
+		resp.UserID = uuid.Nil
 	}
 
+	// Correct: Access WorkoutID via the eager-loaded Edge
 	if wl.Edges.Workout != nil {
-		resp.Workout = toWorkoutResponse(wl.Edges.Workout)
+		resp.WorkoutID = wl.Edges.Workout.ID
+		resp.Workout = toWorkoutResponse(wl.Edges.Workout) // This should now have the correct UserID
+	} else {
+		resp.WorkoutID = uuid.Nil
 	}
 
 	exerciseInstancesMap := make(map[uuid.UUID]dto.ExerciseInstanceLog)
@@ -223,7 +223,7 @@ func toWorkoutLogResponse(wl *ent.WorkoutLog) dto.WorkoutLogResponse {
 				Exercise:   toExerciseResponse(es.Edges.Exercise),
 				ExerciseInstanceDetails: dto.ExerciseInstanceDetails{
 					ID:           es.Edges.ExerciseInstance.ID,
-					WorkoutLogID: &wl.ID,
+					WorkoutLogID: &wl.ID, // WorkoutLog ID for the exercise instance detail
 					ExerciseID:   es.Edges.ExerciseInstance.Edges.Exercise.ID,
 					CreatedAt:    es.Edges.ExerciseInstance.CreatedAt,
 					UpdatedAt:    es.Edges.ExerciseInstance.UpdatedAt,
@@ -259,12 +259,16 @@ func toExerciseSetResponse(es *ent.ExerciseSet) dto.ExerciseSetResponse {
 	}
 
 	// Corrected: Access WorkoutLogID via the eager-loaded Edge
-	if es.Edges.WorkoutLog != nil {
+	if es.Edges.WorkoutLog != nil { // This will now be populated due to esq.WithWorkoutLog()
 		resp.WorkoutLogID = es.Edges.WorkoutLog.ID
+	} else {
+		resp.WorkoutLogID = uuid.Nil
 	}
 	// Corrected: Access ExerciseID via the eager-loaded Edge
 	if es.Edges.Exercise != nil {
 		resp.ExerciseID = es.Edges.Exercise.ID
+	} else {
+		resp.ExerciseID = uuid.Nil
 	}
 	// Corrected: Dereference pointer for Weight
 	if es.Weight != nil {
@@ -303,8 +307,11 @@ func toWorkoutResponse(w *ent.Workout) dto.WorkoutResponse {
 		DeletedAt: w.DeletedAt,
 	}
 	// Corrected: Access UserID via the eager-loaded Edge
+	// This will now be populated due to wq.WithUser() in the main query
 	if w.Edges.User != nil {
 		resp.UserID = w.Edges.User.ID
+	} else {
+		resp.UserID = uuid.Nil
 	}
 	return resp
 }

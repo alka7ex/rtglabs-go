@@ -96,3 +96,35 @@ type ListWorkoutLogResponse struct {
 // WorkoutLogDetailResponse represents the response for fetching a single workout log.
 // This is a type alias to WorkoutLogResponse, reflecting the Zod schema's definition.
 type WorkoutLogDetailResponse WorkoutLogResponse
+
+// UpdateWorkoutLogRequest defines the structure for updating a workout log.
+type UpdateWorkoutLogRequest struct {
+	FinishedAt        *time.Time                  `json:"finished_at,omitempty"` // Optional finished time
+	ExerciseInstances []ExerciseInstanceLogUpdate `json:"exercise_instances" validate:"dive"`
+}
+
+// ExerciseInstanceLogUpdate is used to update or create exercise instances.
+
+type ExerciseInstanceLogUpdate struct {
+	ID                       *uuid.UUID             `json:"id,omitempty"` // Optional: update existing
+	ExerciseID               uuid.UUID              `json:"exercise_id" validate:"required"`
+	ExerciseInstanceClientID *string                `json:"exercise_instance_client_id,omitempty"` // ✅ Add this line
+	ExerciseSets             []ExerciseSetLogUpdate `json:"exercise_sets" validate:"dive"`
+}
+
+// ExerciseSetLogUpdate defines update/create fields for individual sets.
+type ExerciseSetLogUpdate struct {
+	ID                 *uuid.UUID `json:"id,omitempty"` // Optional: update existing
+	ExerciseID         uuid.UUID  `json:"exercise_id" validate:"required"`
+	ExerciseInstanceID *uuid.UUID `json:"exercise_instance_id,omitempty"` // Optional during create
+	Weight             *float64   `json:"weight,omitempty"`
+	Reps               *int       `json:"reps,omitempty"`
+	SetNumber          int        `json:"set_number"`
+	FinishedAt         *time.Time `json:"finished_at,omitempty"`
+}
+
+// UpdateWorkoutLogResponse defines the response for updating a workout log.
+type UpdateWorkoutLogResponse struct {
+	Message    string             `json:"message"`
+	WorkoutLog WorkoutLogResponse `json:"workout_log"`
+}
