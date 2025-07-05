@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	entgo.io/ent v0.14.4
-	github.com/a-h/templ v0.3.898
+	github.com/a-h/templ v0.3.906
 	github.com/google/uuid v1.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.4
@@ -34,6 +34,7 @@ require (
 require (
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/labstack/gommon v0.4.2 // indirect
+	github.com/lib/pq v1.10.9
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

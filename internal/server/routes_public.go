@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"rtglabs-go/cmd/web"
-	"rtglabs-go/config/database" // Import database for entClient if needed
 	handlers "rtglabs-go/internal/handlers/auth"
 
 	"github.com/a-h/templ"
@@ -14,7 +13,6 @@ import (
 // registerPublicRoutes registers all publicly accessible routes.
 func (s *Server) registerPublicRoutes() {
 	// Initialize Ent Client here if needed for handlers
-	entClient := database.NewEntClient() // Assuming you need this for auth handler
 
 	forgotPasswordHandler := handlers.NewForgotPasswordHandler(s.entClient, s.emailSender, s.appBaseURL)
 
@@ -31,7 +29,7 @@ func (s *Server) registerPublicRoutes() {
 	s.echo.GET("/health", s.healthHandler)
 
 	// Auth routes (public for registration/login)
-	authHandler := handlers.NewAuthHandler(entClient)
+	authHandler := handlers.NewAuthHandler(s.entClient)
 	s.echo.POST("/api/register", authHandler.StoreRegister) // Use the new name
 	s.echo.POST("/api/login", authHandler.StoreLogin)       // Use the new name
 

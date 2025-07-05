@@ -7,18 +7,19 @@ import (
 
 	"rtglabs-go/ent" // Assuming this is your generated Ent client path
 
-	_ "github.com/mattn/go-sqlite3" // Import for SQLite driver
+	_ "github.com/lib/pq" // Import for PostgreSQL driver
 )
 
 func NewEntClient() *ent.Client {
-	dburl := os.Getenv("BLUEPRINT_DB_URL")
+	dburl := os.Getenv("DATABASE_URL")
 	if dburl == "" {
-		log.Fatalf("BLUEPRINT_DB_URL environment variable is not set for Ent client.")
+		log.Fatalf("DATABASE_URL environment variable is not set for Ent client.")
 	}
 
-	client, err := ent.Open("sqlite3", dburl)
+	// For PostgreSQL, the driver name is "postgres"
+	client, err := ent.Open("postgres", dburl)
 	if err != nil {
-		log.Fatalf("failed opening sqlite db with URL %s: %v", dburl, err)
+		log.Fatalf("failed opening PostgreSQL db with URL %s: %v", dburl, err)
 	}
 
 	// REMOVE THIS LINE:
@@ -33,3 +34,4 @@ func NewEntClient() *ent.Client {
 
 	return client
 }
+

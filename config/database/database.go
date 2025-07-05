@@ -11,7 +11,7 @@ import (
 	"time"
 
 	_ "github.com/joho/godotenv/autoload" // Ensure environment variables are loaded
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"                 // PostgreSQL driver
 )
 
 // Service represents a service that interacts with a database.
@@ -41,17 +41,23 @@ func New() Service {
 	}
 
 	// Get the database URL from the environment variable
-	dbURL := os.Getenv("BLUEPRINT_DB_URL")
+	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		log.Fatal("BLUEPRINT_DB_URL environment variable is not set")
+		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	db, err := sql.Open("sqlite3", dbURL)
+	// For PostgreSQL, the driver name is "postgres"
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		// This will not be a connection error, but a DSN parse error or
 		// another initialization error.
-		log.Fatalf("failed to open sqlite database with URL %s: %v", dbURL, err)
+		log.Fatalf("failed to open PostgreSQL database with URL %s: %v", dbURL, err)
 	}
+
+	// Set connection pool settings (optional, but recommended for production)
+	db.SetMaxOpenConns(25)                 // Max number of open connections
+	db.SetMaxIdleConns(10)                 // Max number of idle connections
+	db.SetConnMaxLifetime(5 * time.Minute) // Max time a connection can be reused
 
 	dbInstance = &service{
 		db:    db,
@@ -119,3 +125,4 @@ func (s *service) Close() error {
 	log.Printf("Disconnected from database: %s", s.dbURL) // Use the stored URL
 	return s.db.Close()
 }
+

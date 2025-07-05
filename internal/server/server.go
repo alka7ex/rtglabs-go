@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -35,7 +36,18 @@ type Server struct {
 
 // NewServer initializes and returns a new HTTP server.
 func NewServer() *http.Server {
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	portStr := os.Getenv("PORT")
+	if portStr == "" {
+		log.Fatal("PORT environment variable is not set")
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Fatalf("Invalid PORT value: %s", portStr)
+	}
+
+	log.Printf("APP ENV: %s", os.Getenv("APP_ENV"))
+	log.Printf("PORT: %s", os.Getenv("PORT"))
+	log.Printf("APP_BASE_URL: %s", os.Getenv("APP_BASE_URL"))
 
 	// --- ADDITION: Initialize EntClient, EmailSender, and AppBaseURL ---
 
