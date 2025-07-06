@@ -90,23 +90,22 @@ func (h *WorkoutHandler) IndexWorkoutLog(c echo.Context) error {
 			wq.Where(workout.DeletedAtIsNil())
 		}).
 		WithUser().
-		// --- ADDED EAGER LOADING FOR EXERCISE SETS AND INSTANCES ---
 		WithExerciseSets(func(esq *ent.ExerciseSetQuery) {
-			esq.WithExercise() // Eager load the Exercise for each set
+			esq.WithExercise()
 			esq.WithExerciseInstance(func(eiq *ent.ExerciseInstanceQuery) {
-				eiq.WithExercise() // Eager load the Exercise for the ExerciseInstance
+				eiq.WithExercise()
 			}).
-				Where(exerciseset.DeletedAtIsNil()).       // Only include non-deleted sets
-				Order(ent.Asc(exerciseset.FieldSetNumber)) // Order sets by set number for consistency
+				Where(exerciseset.DeletedAtIsNil()).
+				Order(ent.Asc(exerciseset.FieldSetNumber))
 		}).
-		// --- END ADDED EAGER LOADING ---
 		All(ctx)
 	if err != nil {
 		c.Logger().Error("Failed to retrieve workout logs:", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve workout logs")
 	}
 
-	var dtoWorkoutLogs []dto.WorkoutLogResponse
+	dtoWorkoutLogs := make([]dto.WorkoutLogResponse, 0)
+
 	for _, wl := range entWorkoutLogs {
 		dtoWorkoutLogs = append(dtoWorkoutLogs, toWorkoutLogResponse(wl))
 	}
@@ -134,12 +133,14 @@ func (h *WorkoutHandler) IndexWorkoutLog(c echo.Context) error {
 		tempTo := offset + actualItemsCount
 		paginationData.To = &tempTo
 	} else {
+		// This block is actually fine as is, but if 'To' was being set to null, this ensures it's 0.
+		// Given that 'from' and 'to' are 0 when no results, this matches current behavior for empty.
 		zero := 0
 		paginationData.To = &zero
 	}
 
 	return c.JSON(http.StatusOK, dto.ListWorkoutLogResponse{
-		Data:               dtoWorkoutLogs,
+		Data:               dtoWorkoutLogs, // <- Make sure this is an initialized slice, not nil
 		PaginationResponse: paginationData,
 	})
 }

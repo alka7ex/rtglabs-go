@@ -192,6 +192,7 @@ func toWorkoutLogResponse(wl *ent.WorkoutLog) dto.WorkoutLogResponse {
 		CreatedAt:                  wl.CreatedAt,
 		UpdatedAt:                  wl.UpdatedAt,
 		DeletedAt:                  wl.DeletedAt,
+		ExerciseInstances:          make([]dto.ExerciseInstanceLog, 0), // <--- ADD THIS LINE
 	}
 
 	// Correct: Access UserID via the eager-loaded Edge
@@ -229,7 +230,7 @@ func toWorkoutLogResponse(wl *ent.WorkoutLog) dto.WorkoutLogResponse {
 					UpdatedAt:    es.Edges.ExerciseInstance.UpdatedAt,
 					DeletedAt:    es.Edges.ExerciseInstance.DeletedAt,
 				},
-				ExerciseSets: []dto.ExerciseSetResponse{},
+				ExerciseSets: make([]dto.ExerciseSetResponse, 0), // <--- Also initialize nested slices!
 			}
 			exerciseInstancesMap[instanceID] = instanceLog
 		}
@@ -315,4 +316,3 @@ func toWorkoutResponse(w *ent.Workout) dto.WorkoutResponse {
 	}
 	return resp
 }
-
