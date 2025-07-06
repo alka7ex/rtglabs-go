@@ -56,8 +56,8 @@ func (s *Server) registerPrivateRoutes() {
 
 	// Protected Profile routes
 	// These routes are now prefixed with "/admin".
-	g.GET("/profile", authHandler.GetProfile)
-	g.PUT("/profile", authHandler.UpdateProfile)
+	g.GET("/user/profile", authHandler.GetProfile)
+	g.PUT("/user/profile", authHandler.UpdateProfile)
 
 	// Protected Bodyweight routes
 	// These routes are also now prefixed with "/admin".
