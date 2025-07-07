@@ -1,0 +1,24 @@
+-- +goose Up
+-- +goose StatementBegin
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- For PostgreSQL, or UUID() for MySQL, etc.
+    user_id UUID UNIQUE NOT NULL,      -- Foreign Key to users.id, UNIQUE due to Ent schema
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_sessions_user
+        FOREIGN KEY (user_id)
+        REFERENCES users (id)
+        ON DELETE CASCADE -- If user is deleted, delete their session
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_token ON sessions (token);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expires_at);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS sessions;
+-- +goose StatementEnd
