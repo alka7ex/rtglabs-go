@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"context"
-	"database/sql" // <--- NEW: Import for standard SQL DB
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/Masterminds/squirrel" // <--- NEW: Import squirrel
+	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	// REMOVE: "rtglabs-go/ent" and "rtglabs-go/ent/session"
 )
 
 // User represents the structure of your users table.
@@ -21,23 +20,21 @@ type User struct {
 }
 
 // AuthHandler holds the standard SQL DB client.
-
 type AuthHandler struct {
-	DB *sql.DB                       // Your standard SQL database client
-	sq squirrel.StatementBuilderType // <--- ADD THIS FIELD: squirrel query builder
+	DB *sql.DB
+	sq squirrel.StatementBuilderType
 	// ... potentially a logger, or other dependencies
 }
 
 // NewAuthHandler creates a new AuthHandler instance.
 // It now accepts a *sql.DB instance.
-func NewAuthHandler(db *sql.DB) *AuthHandler { // Parameter changed
-	// Initialize squirrel with the appropriate placeholder format for your DB
-	// squirrel.Question for MySQL/SQLite, squirrel.Dollar for PostgreSQL
-	sq := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question) // Or squirrel.Dollar if you use PostgreSQL
+func NewAuthHandler(db *sql.DB) *AuthHandler {
+	// FIX: Use squirrel.Dollar for PostgreSQL
+	sq := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) // <--- CHANGED THIS LINE
 
 	return &AuthHandler{
 		DB: db,
-		sq: sq, // <--- INITIALIZE THE FIELD HERE
+		sq: sq,
 	}
 }
 
@@ -47,18 +44,22 @@ func NewAuthHandler(db *sql.DB) *AuthHandler { // Parameter changed
 func (h *AuthHandler) ValidateToken(token string) (uuid.UUID, error) {
 	ctx := context.Background() // Or pass the context from the HTTP request if available
 
-	// Initialize squirrel StatementBuilder (adjust placeholder for your DB: squirrel.Question for MySQL/SQLite, squirrel.Dollar for PostgreSQL)
-	sq := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question) // Assuming MySQL/SQLite
+	// NOTE: You are also re-initializing `sq` here locally with squirrel.Question.
+	// You should ideally use `h.sq` which is already configured for Dollar.
+	// If you intend to use this local `sq` for some reason, ensure it also uses Dollar.
+	// For consistency and avoiding re-initialization overhead, it's better to just use `h.sq`.
+	// For now, I'm assuming the error is from the *insert* query, not this validation.
+	sqLocal := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) // <--- Also change this if you keep it. Recommended: remove and use h.sq
 
 	var userID uuid.UUID
 	var expiresAt time.Time
 
 	// Build the SQL query to select session and associated user ID
-	query, args, err := sq.Select("s.expires_at", "u.id").
-		From("sessions s").                  // Assuming your sessions table is named 'sessions'
-		Join("users u ON s.user_id = u.id"). // Assuming your users table is named 'users'
-		Where(squirrel.Eq{"s.token": token}).
-		ToSql()
+	query, args, err := sqLocal.Select("s.expires_at", "u.id"). // Changed to sqLocal, or simply use h.sq here
+									From("sessions s").
+									Join("users u ON s.user_id = u.id").
+									Where(squirrel.Eq{"s.token": token}).
+									ToSql()
 
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("failed to build SQL query: %w", err)

@@ -1,24 +1,22 @@
 package handlers
 
 import (
-	"database/sql" // Added for sql.ErrNoRows and sql.Null* types
-	"errors"       // Added for errors.Is
+	"database/sql"
+	"errors"
 	"net/http"
-	"strings"
+	"strings" // Added for strings.Contains for error checking
 	"time"
 
 	"rtglabs-go/dto"
-	"rtglabs-go/model" // Import your model package
+	"rtglabs-go/model"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
-	// Removed: "rtglabs-go/ent", "rtglabs-go/ent/user"
 )
 
 // StoreRegister handles user registration
-// Assumes AuthHandler has DB *sql.DB and sq squirrel.StatementBuilderType
 func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
@@ -32,40 +30,35 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	newUserID := uuid.New() // Generate a UUID for the new user
+	newUserID := uuid.New()
 
 	// 1. Insert the new user
-	insertUserQuery, insertUserArgs, err := h.sq.Insert("users"). // Assuming table name is 'users'
-									Columns("id", "name", "email", "password", "created_at", "updated_at").
-									Values(newUserID, req.Name, req.Email, string(hashedPassword), time.Now(), time.Now()).
-									ToSql()
+	insertUserQuery, insertUserArgs, err := h.sq.Insert("users").
+		Columns("id", "name", "email", "password", "email_verified_at", "created_at", "updated_at").
+		Values(newUserID, req.Name, req.Email, string(hashedPassword), nil, time.Now(), time.Now()).
+		ToSql()
 	if err != nil {
 		c.Logger().Errorf("StoreRegister: Failed to build insert user query: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register user")
 	}
 
+	// --- CORRECTED: DEBUG LINES SHOULD BE HERE, BEFORE THE FIRST (AND ONLY) EXECUTION ---
+	c.Logger().Infof("Generated INSERT SQL: %s", insertUserQuery)
+	c.Logger().Infof("INSERT Args: %v", insertUserArgs)
+	// --- END DEBUG LINES ---
+
+	// --- CORRECTED: ONLY ONE EXECUTION CALL ---
 	_, err = h.DB.ExecContext(ctx, insertUserQuery, insertUserArgs...)
 	if err != nil {
-		// Handle unique constraint violation for email
-		// The exact error check depends on your database driver.
-		// For PostgreSQL, you might check for pq.Error and its Code.
-		// For MySQL, you might check for mysql.MySQLError and its Number.
-		// A common approach is to check the error message string or use specific driver packages.
-		// This is a generic check; you might need to make it more specific.
-		if errors.Is(err, sql.ErrTxDone) { // Example for some database errors after a transaction
-			c.Logger().Errorf("StoreRegister: Transaction error: %v", err)
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register user due to transaction error")
-		} else if err.Error() == "UNIQUE constraint failed: users.email" { // Example for SQLite
-			return echo.NewHTTPError(http.StatusConflict, "Email already registered")
-		} else if strings.Contains(err.Error(), "duplicate key value violates unique constraint") { // Example for PostgreSQL
-			return echo.NewHTTPError(http.StatusConflict, "Email already registered")
-		} else if strings.Contains(err.Error(), "Duplicate entry") && strings.Contains(err.Error(), "for key 'users.email'") { // Example for MySQL
+		// More specific error handling for unique constraint
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") { // PostgreSQL specific error
 			return echo.NewHTTPError(http.StatusConflict, "Email already registered")
 		}
+		// General error handling if it's not a unique constraint violation
 		c.Logger().Errorf("StoreRegister: Failed to create new user: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register user")
 	}
-
+	// ... (rest of your StoreRegister function remains the same from here)
 	var entUser model.User
 	var entProfile model.Profile
 
@@ -107,8 +100,6 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// This case should ideally not happen if the insert succeeded,
-			// but it's good for defensive programming.
 			c.Logger().Errorf("StoreRegister: Created user not found immediately after insert (possible race condition or DB issue): %v", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch created user (user not found)")
 		}
@@ -117,7 +108,6 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	}
 
 	// Populate model.Profile from scanned null-aware types if a profile was found
-	// For new users, this will likely be empty as no profile is created during initial registration.
 	if profileID.Valid {
 		entProfile.ID = uuid.MustParse(profileID.String)
 		entProfile.UserID = uuid.MustParse(profileUserID.String)
@@ -138,7 +128,7 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	}
 
 	// Prepare response DTO
-	responseUser := dto.UserWithProfileResponse{ // Use UserWithProfileResponse to match StoreLogin
+	responseUser := dto.UserWithProfileResponse{
 		BaseUserResponse: dto.BaseUserResponse{
 			ID:              entUser.ID,
 			Name:            entUser.Name,
@@ -165,6 +155,7 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, echo.Map{
 		"message": "Registered successfully!",
-		"user":    responseUser, // Return the full user response with (empty) profile
+		"user":    responseUser,
 	})
 }
+
