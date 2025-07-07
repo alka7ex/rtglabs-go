@@ -22,14 +22,14 @@ func (s *Server) registerPrivateRoutes() {
 	// Create the auth handler instance, passing s.sqlDB
 	authHandler := auth_handlers.NewAuthHandler(s.sqlDB) // Change to s.sqlDB
 
-	// Create the bodyweight handler instance, passing s.sqlDB
-	bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB) // Change to s.sqlDB
-
-	exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB) // Change to s.sqlDB
-
-	workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
-
-	workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB) // Change to s.sqlDB
+	// // Create the bodyweight handler instance, passing s.sqlDB
+	// bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB) // Change to s.sqlDB
+	//
+	// exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB) // Change to s.sqlDB
+	//
+	// workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
+	//
+	// workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB) // Change to s.sqlDB
 
 	// FIX 1: Create the group from the server's Echo instance.
 	g := s.echo.Group("/api")
@@ -83,3 +83,4 @@ func (s *Server) registerPrivateRoutes() {
 	g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
 	g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
 }
+
