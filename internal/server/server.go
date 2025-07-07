@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql" // <--- NEW: Import for standard SQL DB
 	"fmt"
 	"log"
 	"net/http"
@@ -10,28 +11,26 @@ import (
 
 	_ "github.com/joho/godotenv/autoload" // Automatically loads .env file
 
-	"rtglabs-go/config"          // <--- KEEP this import if 'appConfig' field is intended, though it won't be initialized here. Otherwise, remove if not used.
-	"rtglabs-go/config/database" // <--- ADD THIS IMPORT for database.NewEntClient()
-	"rtglabs-go/ent"             // <--- Ensure this import is present
-	mail "rtglabs-go/provider"   // <--- THIS IS THE CORRECT IMPORT for EmailSender
+	"rtglabs-go/config"          // KEEP this import if 'appConfig' field is intended, though it won't be initialized here.
+	"rtglabs-go/config/database" // Updated: This package will now provide *sql.DB
+	mail "rtglabs-go/provider"   // THIS IS THE CORRECT IMPORT for EmailSender
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/lib/pq"
 	"go.uber.org/zap"
-	// No need for explicit _ "github.com/go-sql-driver/mysql" if using SQLite and database/ent.go handles driver import.
-	// _ "github.com/mattn/go-sqlite3" // You might need this here if database/ent.go doesn't exclusively handle it, but it's usually better to keep driver imports with ent.Open.
 )
 
 // Server holds the server configuration and dependencies.
 type Server struct {
 	port        int
-	db          database.Service
+	db          database.Service // This service should now wrap *sql.DB or use it directly
 	echo        *echo.Echo
 	logger      *zap.Logger
-	emailSender mail.EmailSender // <--- Corrected type: use 'provider.EmailSender'
+	emailSender mail.EmailSender
 	appBaseURL  string
 	appConfig   *config.AppConfig // This field remains, but will be nil as NewServer() doesn't take config.
-	entClient   *ent.Client       // Your Ent database client
+	sqlDB       *sql.DB           // <--- NEW: Your standard SQL database client
 }
 
 // NewServer initializes and returns a new HTTP server.
@@ -48,14 +47,40 @@ func NewServer() *http.Server {
 	log.Printf("APP ENV: %s", os.Getenv("APP_ENV"))
 	log.Printf("PORT: %s", os.Getenv("PORT"))
 	log.Printf("APP_BASE_URL: %s", os.Getenv("APP_BASE_URL"))
+	log.Printf("DATABASE_URL: %s", os.Getenv("DATABASE_URL")) // <--- NEW: Log DB URL
 
-	// --- ADDITION: Initialize EntClient, EmailSender, and AppBaseURL ---
+	// --- ADDITION: Initialize sql.DB, EmailSender, and AppBaseURL ---
 
-	// 1. Initialize Ent Client using your database.NewEntClient()
-	entClient := database.NewEntClient() // <--- CALL YOUR NEW ENT CLIENT HERE
+	// 1. Initialize SQL DB Client using your updated database package
+	// Assumes DATABASE_URL environment variable holds the connection string.
+	// Example for SQLite: "file:./data.db?_foreign_keys=on"
+	// Example for MySQL: "user:password@tcp(127.0.0.1:3306)/database?parseTime=true"
+	// Example for PostgreSQL: "postgres://user:password@host:port/database?sslmode=disable"
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL environment variable is not set")
+	}
+
+	// You will need to change this to the appropriate driver name
+	// e.g., "mysql", "sqlite3", "postgres"
+	driverName := os.Getenv("DB_DRIVER") // <--- NEW: Get DB driver from env
+	if driverName == "" {
+		log.Fatal("DB_DRIVER environment variable is not set (e.g., mysql, sqlite3, postgres)")
+	}
+
+	sqlDB, err := database.NewSQLClient(driverName, dbURL) // <--- CALL YOUR NEW SQL CLIENT HERE
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Ping the database to ensure the connection is open
+	if err = sqlDB.Ping(); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+	log.Println("Database connection established successfully!")
 
 	// 2. Initialize EmailSender
-	emailSender := mail.NewSMTPEmailSender( // <--- Corrected package: use 'provider.NewSMTPEmailSender'
+	emailSender := mail.NewSMTPEmailSender(
 		os.Getenv("SMTP_HOST"),
 		os.Getenv("SMTP_PORT"),
 		os.Getenv("SMTP_USERNAME"),
@@ -68,12 +93,12 @@ func NewServer() *http.Server {
 
 	s := &Server{
 		port:        port,
-		db:          database.New(), // Initialize your custom DB service
+		db:          database.New(), // Initialize your custom DB service (which should now use *sql.DB internally)
 		echo:        echo.New(),
 		logger:      NewPrettyLogger(), // Initialize the pretty logger
-		emailSender: emailSender,       // <--- ASSIGN TO STRUCT FIELD
-		appBaseURL:  appBaseURL,        // <--- ASSIGN TO STRUCT FIELD
-		entClient:   entClient,         // <--- ASSIGN THE INITIALIZED ENT CLIENT HERE
+		emailSender: emailSender,       // ASSIGN TO STRUCT FIELD
+		appBaseURL:  appBaseURL,        // ASSIGN TO STRUCT FIELD
+		sqlDB:       sqlDB,             // <--- ASSIGN THE INITIALIZED SQL DB HERE
 		// appConfig field will remain nil as NewServer() doesn't receive a config object.
 	}
 
@@ -132,7 +157,7 @@ func (s *Server) setupMiddleware() {
 
 func (s *Server) PrintRoutes() {
 	s.logger.Info("--------------------------------------------------")
-	s.logger.Info("  Registered Routes:")
+	s.logger.Info("  Registered Routes:")
 	s.logger.Info("--------------------------------------------------")
 	for _, route := range s.echo.Routes() {
 		// You can customize the format here
@@ -143,7 +168,7 @@ func (s *Server) PrintRoutes() {
 
 // RegisterRoutes registers all public and private routes.
 // NOTE: When you initialize your handlers in the "separate page" you mentioned,
-// they will now properly receive s.entClient, s.emailSender and s.appBaseURL
+// they will now properly receive s.sqlDB, s.emailSender and s.appBaseURL
 // from this Server instance.
 func (s *Server) RegisterRoutes() {
 	s.registerPublicRoutes()
@@ -160,5 +185,21 @@ func (s *Server) HelloWorldHandler(c echo.Context) error {
 
 // healthHandler is a simple handler for the "/health" route.
 func (s *Server) healthHandler(c echo.Context) error {
-	return c.JSON(http.StatusOK, s.db.Health())
+	// For health check with *sql.DB, you can ping the database
+	if err := s.sqlDB.Ping(); err != nil {
+		s.logger.Error("Database health check failed", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"status": "unhealthy",
+			"error":  "database connection failed",
+		})
+	}
+	return c.JSON(http.StatusOK, map[string]string{
+		"status": "healthy",
+	})
 }
+
+// You will also need to adjust your 'registerPublicRoutes' and 'registerPrivateRoutes'
+// and all associated handlers to use `s.sqlDB` and `squirrel` for database operations,
+// instead of `s.entClient`.
+// This means you'll construct SQL queries using squirrel.StatementBuilder,
+// and then use s.sqlDB.QueryRow, s.sqlDB.Exec, etc. to execute them.

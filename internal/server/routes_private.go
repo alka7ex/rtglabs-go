@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"rtglabs-go/config/database"
+	// "rtglabs-go/config/database" // No longer explicitly import database for NewEntClient() here
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
 	exercise_handler "rtglabs-go/internal/handlers/exercise"
@@ -15,20 +15,21 @@ import (
 
 // registerPrivateRoutes registers all routes that require authentication.
 func (s *Server) registerPrivateRoutes() {
-	// Initialize Ent Client here for private handlers
-	entClient := database.NewEntClient()
+	// Instead of initializing Ent Client here, we use s.sqlDB which is
+	// already initialized in NewServer().
+	// entClient := database.NewEntClient() // REMOVE THIS LINE
 
-	// Create the auth handler instance using the correct package alias
-	authHandler := auth_handlers.NewAuthHandler(entClient)
+	// Create the auth handler instance, passing s.sqlDB
+	authHandler := auth_handlers.NewAuthHandler(s.sqlDB) // Change to s.sqlDB
 
-	// Create the bodyweight handler instance using the correct package alias
-	bwHandler := bw_handlers.NewBodyweightHandler(entClient)
+	// Create the bodyweight handler instance, passing s.sqlDB
+	bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB) // Change to s.sqlDB
 
-	exerciseHandler := exercise_handler.NewExerciseHandler(entClient)
+	exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB) // Change to s.sqlDB
 
-	workoutHandler := workout_handler.NewWorkoutHandler(entClient)
+	workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
 
-	workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(entClient)
+	workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB) // Change to s.sqlDB
 
 	// FIX 1: Create the group from the server's Echo instance.
 	g := s.echo.Group("/api")
@@ -43,6 +44,7 @@ func (s *Server) registerPrivateRoutes() {
 
 			token := authHeader[7:]
 			// Call ValidateToken from the auth handler instance.
+			// Ensure ValidateToken in authHandler uses s.sqlDB for its token validation logic.
 			userID, err := authHandler.ValidateToken(token)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid or expired token")
@@ -55,12 +57,10 @@ func (s *Server) registerPrivateRoutes() {
 	})
 
 	// Protected Profile routes
-	// These routes are now prefixed with "/admin".
 	g.GET("/user/profile", authHandler.GetProfile)
 	g.PUT("/user/profile", authHandler.UpdateProfile)
 
 	// Protected Bodyweight routes
-	// These routes are also now prefixed with "/admin".
 	g.POST("/bodyweights", bwHandler.StoreBodyweight)
 	g.GET("/bodyweights", bwHandler.IndexBodyweight)
 	g.GET("/bodyweights/:id", bwHandler.GetBodyweight)
@@ -71,11 +71,11 @@ func (s *Server) registerPrivateRoutes() {
 	g.GET("/exercise", exerciseHandler.IndexExercise)
 
 	// Protected Workout routes
-	g.POST("/workouts", workoutHandler.StoreWorkout)  // Create
-	g.GET("/workouts", workoutHandler.IndexWorkout)   // List
-	g.GET("/workouts/:id", workoutHandler.GetWorkout) // Get (Show)
+	g.POST("/workouts", workoutHandler.StoreWorkout)
+	g.GET("/workouts", workoutHandler.IndexWorkout)
+	g.GET("/workouts/:id", workoutHandler.GetWorkout)
 	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
-	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout) // Delete (Soft Delete)
+	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
 
 	g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
 	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)

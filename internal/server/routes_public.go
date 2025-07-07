@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"rtglabs-go/cmd/web"
-	handlers "rtglabs-go/internal/handlers/auth"
+	handlers "rtglabs-go/internal/handlers/auth" // Assuming handlers are now in 'internal/handlers/auth'
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
@@ -12,9 +12,8 @@ import (
 
 // registerPublicRoutes registers all publicly accessible routes.
 func (s *Server) registerPublicRoutes() {
-	// Initialize Ent Client here if needed for handlers
-
-	forgotPasswordHandler := handlers.NewForgotPasswordHandler(s.entClient, s.emailSender, s.appBaseURL)
+	// Initialize handlers with s.sqlDB instead of s.entClient
+	forgotPasswordHandler := handlers.NewForgotPasswordHandler(s.sqlDB, s.emailSender, s.appBaseURL)
 
 	// Public static file server
 	fileServer := http.FileServer(http.FS(web.Files))
@@ -29,10 +28,11 @@ func (s *Server) registerPublicRoutes() {
 	s.echo.GET("/health", s.healthHandler)
 
 	// Auth routes (public for registration/login)
-	authHandler := handlers.NewAuthHandler(s.entClient)
-	s.echo.POST("/api/register", authHandler.StoreRegister) // Use the new name
-	s.echo.POST("/api/login", authHandler.StoreLogin)       // Use the new name
+	authHandler := handlers.NewAuthHandler(s.sqlDB) // Pass s.sqlDB instead of s.entClient
+	s.echo.POST("/api/register", authHandler.StoreRegister)
+	s.echo.POST("/api/login", authHandler.StoreLogin)
 
 	s.echo.POST("/api/forgot-password", forgotPasswordHandler.ForgotPassword)
 	s.echo.POST("/api/reset-password", forgotPasswordHandler.ResetPassword)
 }
+
