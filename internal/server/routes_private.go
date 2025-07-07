@@ -7,8 +7,8 @@ import (
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
 	exercise_handler "rtglabs-go/internal/handlers/exercise"
-	workout_handler "rtglabs-go/internal/handlers/workout"
-	workout_log_handler "rtglabs-go/internal/handlers/workout_log"
+	// workout_handler "rtglabs-go/internal/handlers/workout"
+	// workout_log_handler "rtglabs-go/internal/handlers/workout_log"
 
 	"github.com/labstack/echo/v4"
 )
@@ -22,10 +22,10 @@ func (s *Server) registerPrivateRoutes() {
 	// Create the auth handler instance, passing s.sqlDB
 	authHandler := auth_handlers.NewAuthHandler(s.sqlDB) // Change to s.sqlDB
 
-	// // Create the bodyweight handler instance, passing s.sqlDB
-	// bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB) // Change to s.sqlDB
-	//
-	// exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB) // Change to s.sqlDB
+	// Create the bodyweight handler instance, passing s.sqlDB
+	bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB) // Change to s.sqlDB
+
+	exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB) // Change to s.sqlDB
 	//
 	// workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
 	//
@@ -69,18 +69,17 @@ func (s *Server) registerPrivateRoutes() {
 
 	// Protected Exercise routes
 	g.GET("/exercise", exerciseHandler.IndexExercise)
-
-	// Protected Workout routes
-	g.POST("/workouts", workoutHandler.StoreWorkout)
-	g.GET("/workouts", workoutHandler.IndexWorkout)
-	g.GET("/workouts/:id", workoutHandler.GetWorkout)
-	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
-	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
-
-	g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
-	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
-	g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
-	g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
-	g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
+	g.POST("/exercise", exerciseHandler.StoreExercise)
+	// // Protected Workout routes
+	// g.POST("/workouts", workoutHandler.StoreWorkout)
+	// g.GET("/workouts", workoutHandler.IndexWorkout)
+	// g.GET("/workouts/:id", workoutHandler.GetWorkout)
+	// g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
+	// g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
+	//
+	// g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
+	// g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
+	// g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
+	// g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
+	// g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
 }
-

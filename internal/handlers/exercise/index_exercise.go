@@ -1,13 +1,15 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"rtglabs-go/dto"
-	"rtglabs-go/ent/exercise"
-	"rtglabs-go/provider" // Assuming provider still contains GeneratePaginationData and related DTOs
+	"rtglabs-go/model"
+	"rtglabs-go/provider"
 	"strconv"
+	"strings"
 
-	"entgo.io/ent/dialect/sql" // Still needed for OrderDesc
+	"github.com/Masterminds/squirrel"
 	"github.com/labstack/echo/v4"
 )
 
@@ -16,86 +18,115 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 	// --- Pagination Parameters ---
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	if page < 1 {
-		page = 1 // Default to first page
+		page = 1
 	}
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
 	if limit < 1 {
-		limit = 15 // Default limit per page
+		limit = 15
 	}
 	if limit > 100 {
-		limit = 100 // Cap the limit
+		limit = 100
 	}
 	offset := (page - 1) * limit
 	// --- End Pagination Parameters ---
 
-	// 1. Base query for Exercise.
-	query := h.Client.Exercise.
-		Query().
-		Where(exercise.DeletedAtIsNil()) // Filter out soft-deleted records
-
-	// --- Add Query Param Filtering ---
-	// Get the 'name' query parameter
+	ctx := c.Request().Context()
 	searchName := c.QueryParam("name")
+
+	// --- WHERE Clause Construction ---
+	where := squirrel.And{
+		squirrel.Expr("deleted_at IS NULL"),
+	}
 	if searchName != "" {
-		// Apply a case-insensitive 'contains' filter on the 'name' field
-		query = query.Where(exercise.NameContainsFold(searchName))
+		// ILIKE for case-insensitive PostgreSQL, fallback to LOWER(name) LIKE for SQLite
+		where = append(where, squirrel.Expr("LOWER(name) LIKE ?", "%"+strings.ToLower(searchName)+"%"))
 	}
-	// --- End Query Param Filtering ---
+	// --- End WHERE Clause ---
 
-	// 2. Get total count BEFORE applying limit and offset.
-	totalCount, err := query.Count(c.Request().Context())
+	// 1. Count Query
+	countQuery, countArgs, err := h.sq.Select("COUNT(*)").
+		From("exercises").
+		Where(where).
+		ToSql()
 	if err != nil {
-		c.Logger().Error("Failed to count exercises:", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records")
+		c.Logger().Errorf("IndexExercise: Failed to build count query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count exercises")
 	}
 
-	// 3. Fetch the paginated and sorted exercise records.
-	entExercises, err := query.
-		Order(exercise.ByCreatedAt(sql.OrderDesc())). // Always order for consistent pagination
-		Limit(limit).
-		Offset(offset).
-		All(c.Request().Context())
-
+	var totalCount int
+	err = h.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
-		c.Logger().Error("Failed to list exercises:", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records")
+		c.Logger().Errorf("IndexExercise: Failed to execute count query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count exercises")
 	}
 
-	// 4. Convert ent entities to DTOs.
-	dtoExercises := make([]dto.ExerciseResponse, len(entExercises))
-	for i, ex := range entExercises {
-		dtoExercises[i] = toExerciseResponse(ex)
+	// 2. Select Query
+	selectQuery, selectArgs, err := h.sq.Select("id", "name", "created_at", "updated_at", "deleted_at").
+		From("exercises").
+		Where(where).
+		OrderBy("created_at DESC").
+		Limit(uint64(limit)).
+		Offset(uint64(offset)).
+		ToSql()
+	if err != nil {
+		c.Logger().Errorf("IndexExercise: Failed to build select query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list exercises")
 	}
 
-	// 5. Use the new pagination utility function
+	rows, err := h.DB.QueryContext(ctx, selectQuery, selectArgs...)
+	if err != nil {
+		c.Logger().Errorf("IndexExercise: Failed to query exercises: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list exercises")
+	}
+	defer rows.Close()
+
+	var exercises []model.Exercise
+	for rows.Next() {
+		var ex model.Exercise
+		var nullDeletedAt sql.NullTime
+
+		if err := rows.Scan(&ex.ID, &ex.Name, &ex.CreatedAt, &ex.UpdatedAt, &nullDeletedAt); err != nil {
+			c.Logger().Errorf("IndexExercise: Failed to scan row: %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list exercises")
+		}
+
+		if nullDeletedAt.Valid {
+			ex.DeletedAt = &nullDeletedAt.Time
+		}
+
+		exercises = append(exercises, ex)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.Logger().Errorf("IndexExercise: Row iteration error: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list exercises")
+	}
+
+	// 3. Convert to DTOs
+	dtoExercises := make([]dto.ExerciseResponse, len(exercises))
+	for i, ex := range exercises {
+		dtoExercises[i] = toExerciseResponse(&ex)
+	}
+
+	// 4. Pagination metadata
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
-
-	// Ensure the 'name' query parameter is included in the queryParams for pagination links
 	if searchName != "" {
 		queryParams.Set("name", searchName)
 	}
 
-	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
+	pagination := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
 
-	// Adjust the 'To' field in paginationData based on the actual number of items returned
-	actualItemsCount := len(dtoExercises)
-	if actualItemsCount > 0 {
-		tempTo := offset + actualItemsCount
-		paginationData.To = &tempTo
+	if len(dtoExercises) > 0 {
+		tempTo := offset + len(dtoExercises)
+		pagination.To = &tempTo
 	} else {
-		zero := 0 // If no items, 'to' should be 0 or nil
-		paginationData.To = &zero
+		zero := 0
+		pagination.To = &zero
 	}
 
-	// 6. Return the response using the embedded pagination DTO
 	return c.JSON(http.StatusOK, dto.ListExerciseResponse{
 		Data:               dtoExercises,
-		PaginationResponse: paginationData, // Embed the generated pagination data
+		PaginationResponse: pagination,
 	})
 }
-
-// Assume toExerciseResponse function exists elsewhere in your handlers package
-// func toExerciseResponse(entExercise *ent.Exercise) dto.ExerciseResponse {
-//     // ... conversion logic
-// }

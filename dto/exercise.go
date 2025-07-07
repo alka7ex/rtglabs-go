@@ -23,3 +23,15 @@ type ListExerciseResponse struct {
 	Data                        []ExerciseResponse `json:"data"`
 	provider.PaginationResponse                    // Embed the common pagination fields
 }
+type CreateExerciseRequest struct {
+	Exercises []ExerciseNameOnly `json:"exercises" validate:"required,dive"`
+}
+
+type ExerciseNameOnly struct {
+	Name string `json:"name" validate:"required"`
+}
+
+type CreateExerciseResponse struct {
+	Message   string             `json:"message"`
+	Exercises []ExerciseResponse `json:"exercises"`
+}

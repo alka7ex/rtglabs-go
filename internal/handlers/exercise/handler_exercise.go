@@ -1,25 +1,35 @@
 package handlers
 
 import (
-	"rtglabs-go/dto"
-	"rtglabs-go/ent" // Import the exercise ent
+	"database/sql" // Import for *sql.DB
 	"time"
+
+	"rtglabs-go/dto"
+	// "rtglabs-go/ent" // We will remove this import as we are moving away from ent
+	"github.com/Masterminds/squirrel" // Import squirrel
+	"rtglabs-go/model"                // We'll assume you have a model.Exercise struct now
 )
 
-// ExerciseHandler holds the ent.Client for database operations.
+// ExerciseHandler holds the database client and squirrel statement builder.
 type ExerciseHandler struct {
-	Client *ent.Client
+	DB *sql.DB
+	sq squirrel.StatementBuilderType
 }
 
 // NewExerciseHandler creates and returns a new ExerciseHandler.
-func NewExerciseHandler(client *ent.Client) *ExerciseHandler {
-	return &ExerciseHandler{Client: client}
+// It now takes *sql.DB and initializes squirrel with the appropriate placeholder format.
+func NewExerciseHandler(db *sql.DB) *ExerciseHandler {
+	return &ExerciseHandler{
+		DB: db,
+		sq: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar), // Or squirrel.Question for '?' placeholders
+	}
 }
 
 // --- Helper Functions ---
 
-// toExerciseResponse converts an ent.Exercise entity to a dto.ExerciseResponse DTO.
-func toExerciseResponse(ex *ent.Exercise) dto.ExerciseResponse {
+// toExerciseResponse converts a model.Exercise entity to a dto.ExerciseResponse DTO.
+// This function will now accept model.Exercise, not ent.Exercise.
+func toExerciseResponse(ex *model.Exercise) dto.ExerciseResponse { // Changed parameter type
 	var deletedAt *time.Time
 	if ex.DeletedAt != nil {
 		deletedAt = ex.DeletedAt
@@ -29,7 +39,7 @@ func toExerciseResponse(ex *ent.Exercise) dto.ExerciseResponse {
 		ID:        ex.ID,
 		Name:      ex.Name,
 		CreatedAt: ex.CreatedAt,
-		UpdatedAt: ex.UpdatedAt, // Include UpdatedAt from mixin
+		UpdatedAt: ex.UpdatedAt,
 		DeletedAt: deletedAt,
 	}
 }
