@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"rtglabs-go/dto"
-	"rtglabs-go/model" // <--- NEW: Import your model package
+	"rtglabs-go/model"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -25,22 +25,18 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	var entUser model.User       // <--- Use your model.User struct
-	var entProfile model.Profile // <--- Use your model.Profile struct
+	var entUser model.User
+	var entProfile model.Profile
 
 	// 1. Query User and their Profile using a LEFT JOIN
-	// The column names in Select MUST match your database schema.
-	// The order here must match the order in Scan.
-	// Note: We select all columns for both user and profile
-	// If a column is nullable, it must be selected with the correct type.
 	userQuery := h.sq.Select(
 		"u.id", "u.name", "u.email", "u.password", "u.email_verified_at", "u.created_at", "u.updated_at",
-		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.weight", "p.created_at", "p.updated_at", "p.deleted_at", // Include all profile fields
+		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.weight", "p.created_at", "p.updated_at", "p.deleted_at",
 	).
-		From("users u").                            // Assuming 'users' is your table name
-		LeftJoin("profiles p ON u.id = p.user_id"). // Assuming 'profiles' is your table name
+		From("users u").
+		LeftJoin("profiles p ON u.id = p.user_id").
 		Where(squirrel.Eq{"u.email": req.Email}).
-		Limit(1) // Ensure only one user is fetched
+		Limit(1)
 
 	sqlQuery, args, err := userQuery.ToSql()
 	if err != nil {
@@ -50,11 +46,6 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 
 	row := h.DB.QueryRowContext(ctx, sqlQuery, args...)
 
-	// Scan results directly into the model structs where possible.
-	// For columns from the LEFT JOINed table that might be NULL (e.g., if no profile exists),
-	// you still need to use sql.Null* or pointers.
-	// We'll scan into temporary variables for the profile part and then
-	// manually assign to entProfile if the profile was found.
 	var (
 		profileID        sql.NullString
 		profileUserID    sql.NullString
@@ -69,8 +60,8 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 	)
 
 	err = row.Scan(
-		&entUser.ID, &entUser.Name, &entUser.Email, &entUser.Password, &entUser.EmailVerifiedAt, &entUser.CreatedAt, &entUser.UpdatedAt, // Directly scan into User
-		&profileID, &profileUserID, &profileUnits, &profileAge, &profileHeight, &profileGender, &profileWeight, &profileCreatedAt, &profileUpdatedAt, &profileDeletedAt, // Scan into null-aware types for Profile
+		&entUser.ID, &entUser.Name, &entUser.Email, &entUser.Password, &entUser.EmailVerifiedAt, &entUser.CreatedAt, &entUser.UpdatedAt,
+		&profileID, &profileUserID, &profileUnits, &profileAge, &profileHeight, &profileGender, &profileWeight, &profileCreatedAt, &profileUpdatedAt, &profileDeletedAt,
 	)
 
 	if err != nil {
@@ -81,8 +72,6 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to authenticate")
 	}
 
-	// Manually populate entProfile if a profile was found (i.e., profileID is valid)
-	// uuid.Nil is the zero value for uuid.UUID, which implies no profile was found if the ID is not valid.
 	if profileID.Valid {
 		entProfile.ID = uuid.MustParse(profileID.String)
 		entProfile.UserID = uuid.MustParse(profileUserID.String)
@@ -99,7 +88,6 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 			entProfile.DeletedAt = nil
 		}
 	} else {
-		// If no profile was found, reset entProfile to its zero value
 		entProfile = model.Profile{}
 	}
 
@@ -108,17 +96,37 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Invalid email or password")
 	}
 
-	// 3. Generate token and create session
+	// Delete existing session for this user_id
+	deleteSessionQuery, deleteSessionArgs, err := h.sq.Delete("sessions").
+		Where(squirrel.Eq{"user_id": entUser.ID}).
+		ToSql()
+	if err != nil {
+		c.Logger().Errorf("StoreLogin: Failed to build delete session query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to manage session (delete query build error)")
+	}
+
+	_, err = h.DB.ExecContext(ctx, deleteSessionQuery, deleteSessionArgs...)
+	if err != nil {
+		c.Logger().Warnf("StoreLogin: Failed to delete old session for user %s: %v", entUser.ID, err)
+	}
+
+	// 3. Generate token and create NEW session
 	token := uuid.New().String()
 	expiry := time.Now().Add(7 * 24 * time.Hour)
 
-	insertSessionQuery, insertSessionArgs, err := h.sq.Insert("sessions"). // Assuming 'sessions' is your table name
-										Columns("token", "expires_at", "user_id").
-										Values(token, expiry, entUser.ID).
-										ToSql()
+	newSessionID := uuid.New()
+	currentTime := time.Now() // Get current time for created_at
+
+	// --- FIX START: REMOVED "updated_at" from Columns and Values ---
+	insertSessionQuery, insertSessionArgs, err := h.sq.Insert("sessions").
+		Columns("id", "token", "expires_at", "user_id", "created_at"). // Removed "updated_at"
+		Values(newSessionID, token, expiry, entUser.ID, currentTime).  // Removed currentTime for "updated_at"
+		ToSql()
+	// --- FIX END ---
+
 	if err != nil {
 		c.Logger().Errorf("StoreLogin: Failed to build insert session query: %v", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create session")
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create session (insert query build error)")
 	}
 
 	_, err = h.DB.ExecContext(ctx, insertSessionQuery, insertSessionArgs...)
@@ -139,7 +147,6 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		},
 	}
 
-	// Populate profile if loaded (check if entProfile.ID is not the zero UUID)
 	if entProfile.ID != uuid.Nil {
 		responseUser.Profile = &dto.ProfileResponse{
 			ID:        entProfile.ID,
@@ -154,7 +161,6 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		}
 	}
 
-	// Final response
 	response := dto.LoginResponse{
 		Message:   "Logged in successfully!",
 		User:      responseUser,
@@ -164,3 +170,4 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response)
 }
+

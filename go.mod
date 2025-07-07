@@ -3,7 +3,7 @@ module rtglabs-go
 go 1.24.4
 
 require (
-	entgo.io/ent v0.14.4
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/a-h/templ v0.3.906
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
@@ -11,7 +11,6 @@ require (
 )
 
 require (
-	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect

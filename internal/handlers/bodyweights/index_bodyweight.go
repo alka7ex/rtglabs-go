@@ -1,19 +1,21 @@
 package handlers
 
 import (
+	"database/sql" // Import for sql.DB, sql.Null* types, sql.ErrNoRows
+	"fmt"
 	"net/http"
-	"rtglabs-go/dto"
-	"rtglabs-go/ent/bodyweight"
-	"rtglabs-go/ent/user"
-	"rtglabs-go/provider"
 	"strconv"
 
-	"entgo.io/ent/dialect/sql"
+	"rtglabs-go/dto"
+	"rtglabs-go/model"    // Import your model package (e.g., model.Bodyweight)
+	"rtglabs-go/provider" // Import your pagination provider
+
+	"github.com/Masterminds/squirrel" // Import squirrel
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4" // Import echo for context, logger, HTTP errors
 )
 
-// Index lists bodyweight records with optional filtering and pagination (maps to MVC 'Index').
+// IndexBodyweight lists bodyweight records with optional filtering and pagination (maps to MVC 'Index').
 func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 	// 1. Get the authenticated user ID from the context.
 	userID, ok := c.Get("user_id").(uuid.UUID)
@@ -36,40 +38,104 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 	offset := (page - 1) * limit
 	// --- End Pagination Parameters ---
 
-	// 2. Base query filtered by the authenticated user's ID.
-	query := h.Client.Bodyweight.
-		Query().
-		Where(
-			bodyweight.DeletedAtIsNil(),
-			bodyweight.HasUserWith(user.IDEQ(userID)), // ✅ query by edge condition
-		).WithUser()
+	ctx := c.Request().Context()
 
-	// 3. Get total count BEFORE applying limit and offset.
-	totalCount, err := query.Count(c.Request().Context())
+	// 2. Get total count BEFORE applying limit and offset.
+	// This query only needs to count the relevant records.
+
+	countQuery, countArgs, err := h.sq.Select("COUNT(*)").
+		From("bodyweights").
+		Where(squirrel.And{
+			squirrel.Eq{"user_id": userID},
+			squirrel.Expr("deleted_at IS NULL"),
+		}).
+		ToSql()
+
 	if err != nil {
-		c.Logger().Error("Failed to count bodyweights:", err)
+		c.Logger().Errorf("IndexBodyweight: Failed to build count query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records count")
+	}
+	fmt.Printf("--- DIAGNOSTIC: IndexBodyweight Count Query Start ---\nSQL Count Query: %s\nArgs: %v\n--- DIAGNOSTIC: IndexBodyweight Count Query End ---\n", countQuery, countArgs) // Add this line
+
+	var totalCount int
+	err = h.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&totalCount)
+	if err != nil {
+		c.Logger().Errorf("IndexBodyweight: Failed to count bodyweights: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records count")
+	}
+
+	// 3. Fetch the paginated and sorted bodyweight records.
+	// We need to select all columns that are part of model.Bodyweight
+
+	selectQuery, selectArgs, err := h.sq.Select(
+		"id", "user_id", "weight", "unit", "created_at", "updated_at", "deleted_at",
+	).
+		From("bodyweights").
+		Where(squirrel.And{
+			squirrel.Eq{"user_id": userID},
+			squirrel.Expr("deleted_at IS NULL"),
+		}).
+		OrderBy("created_at DESC").
+		Limit(uint64(limit)).
+		Offset(uint64(offset)).
+		ToSql()
+
+	if err != nil {
+		c.Logger().Errorf("IndexBodyweight: Failed to build select query: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records")
 	}
 
-	// 4. Fetch the paginated and sorted bodyweight records.
-	entBodyweights, err := query.
-		Order(bodyweight.ByCreatedAt(sql.OrderDesc())). // Always order for consistent pagination
-		Limit(limit).
-		Offset(offset).
-		All(c.Request().Context())
+	// Print the SQL query and arguments for debugging
+	fmt.Printf("--- DIAGNOSTIC: IndexBodyweight Query Start ---\nSQL Query: %s\nArgs: %v\n--- DIAGNOSTIC: IndexBodyweight Query End ---\n", selectQuery, selectArgs)
 
+	rows, err := h.DB.QueryContext(ctx, selectQuery, selectArgs...)
 	if err != nil {
-		c.Logger().Error("Failed to list bodyweights:", err)
+		c.Logger().Errorf("IndexBodyweight: Failed to query bodyweights: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records")
+	}
+	defer rows.Close()
+
+	var modelBodyweights []model.Bodyweight
+	for rows.Next() {
+		var bw model.Bodyweight
+		var nullDeletedAt sql.NullTime // For nullable deleted_at column
+
+		err := rows.Scan(
+			&bw.ID,
+			&bw.UserID,
+			&bw.Weight,
+			&bw.Unit,
+			&bw.CreatedAt,
+			&bw.UpdatedAt,
+			&nullDeletedAt, // Scan into sql.NullTime
+		)
+		if err != nil {
+			c.Logger().Errorf("IndexBodyweight: Failed to scan bodyweight row: %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records")
+		}
+
+		// Convert sql.NullTime to *time.Time
+		if nullDeletedAt.Valid {
+			bw.DeletedAt = &nullDeletedAt.Time
+		} else {
+			bw.DeletedAt = nil
+		}
+		modelBodyweights = append(modelBodyweights, bw)
+	}
+
+	// Check for any error during rows iteration
+	if err = rows.Err(); err != nil {
+		c.Logger().Errorf("IndexBodyweight: Rows iteration error: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records")
 	}
 
-	// 5. Convert ent entities to DTOs.
-	dtoBodyweights := make([]dto.BodyweightResponse, len(entBodyweights))
-	for i, bw := range entBodyweights {
-		dtoBodyweights[i] = toBodyweightResponse(bw)
+	// 4. Convert model entities to DTOs.
+	dtoBodyweights := make([]dto.BodyweightResponse, len(modelBodyweights))
+	for i, bw := range modelBodyweights {
+		dtoBodyweights[i] = toBodyweightResponse(&bw) // Pass address of bw
 	}
 
-	// 6. Use the new pagination utility function
+	// 5. Use the new pagination utility function
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
 
@@ -86,15 +152,9 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 		paginationData.To = &zero
 	}
 
-	// 7. Return the response using the embedded pagination DTO
+	// 6. Return the response using the embedded pagination DTO
 	return c.JSON(http.StatusOK, dto.ListBodyweightResponse{
 		Data:               dtoBodyweights,
 		PaginationResponse: paginationData, // Embed the generated pagination data
 	})
 }
-
-// Assume toBodyweightResponse function exists elsewhere in your handlers package
-// func toBodyweightResponse(entBodyweight *ent.Bodyweight) dto.BodyweightResponse {
-//     // ... conversion logic
-// }
-
