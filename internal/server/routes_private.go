@@ -7,7 +7,7 @@ import (
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
 	exercise_handler "rtglabs-go/internal/handlers/exercise"
-	// workout_handler "rtglabs-go/internal/handlers/workout"
+	workout_handler "rtglabs-go/internal/handlers/workout"
 	// workout_log_handler "rtglabs-go/internal/handlers/workout_log"
 
 	"github.com/labstack/echo/v4"
@@ -27,7 +27,7 @@ func (s *Server) registerPrivateRoutes() {
 
 	exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB) // Change to s.sqlDB
 	//
-	// workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
+	workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
 	//
 	// workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB) // Change to s.sqlDB
 
@@ -71,11 +71,11 @@ func (s *Server) registerPrivateRoutes() {
 	g.GET("/exercise", exerciseHandler.IndexExercise)
 	g.POST("/exercise", exerciseHandler.StoreExercise)
 	// // Protected Workout routes
-	// g.POST("/workouts", workoutHandler.StoreWorkout)
-	// g.GET("/workouts", workoutHandler.IndexWorkout)
-	// g.GET("/workouts/:id", workoutHandler.GetWorkout)
-	// g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
-	// g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
+	g.POST("/workouts", workoutHandler.StoreWorkout)
+	g.GET("/workouts", workoutHandler.IndexWorkout)
+	g.GET("/workouts/:id", workoutHandler.GetWorkout)
+	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
+	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
 	//
 	// g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
 	// g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)

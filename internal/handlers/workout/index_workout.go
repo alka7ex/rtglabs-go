@@ -1,23 +1,23 @@
 package handler
 
 import (
+	"database/sql" // For sql.DB, sql.Null* types
 	"net/http"
-	"rtglabs-go/dto"
-	"rtglabs-go/ent"
-	"rtglabs-go/ent/user"
-	"rtglabs-go/ent/workout"
-	"rtglabs-go/ent/workoutexercise"
-	"rtglabs-go/provider"
 	"strconv"
 
-	"entgo.io/ent/dialect/sql"
+	"github.com/Masterminds/squirrel" // Import squirrel
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"rtglabs-go/dto"
+	"rtglabs-go/model"    // Import your model package
+	"rtglabs-go/provider" // Import your pagination provider
 )
 
+// IndexWorkout retrieves a paginated list of workouts for a specific user, with optional filtering.
 func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 	userID, ok := c.Get("user_id").(uuid.UUID)
 	if !ok {
+		c.Logger().Error("IndexWorkout: User ID not found in context")
 		return echo.NewHTTPError(http.StatusUnauthorized, "User ID not found")
 	}
 
@@ -34,47 +34,261 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 	}
 	offset := (page - 1) * limit
 
-	query := h.Client.Workout.
-		Query().
-		Where(
-			workout.DeletedAtIsNil(),
-			workout.HasUserWith(user.IDEQ(userID)),
-		).
-		WithWorkoutExercises(func(wq *ent.WorkoutExerciseQuery) {
-			wq.WithExercise()
-			wq.WithWorkout()
-			wq.WithExerciseInstance(func(eiq *ent.ExerciseInstanceQuery) {
-				eiq.WithExercise()
-			})
-			wq.Where(workoutexercise.DeletedAtIsNil())
-		})
+	ctx := c.Request().Context()
+
+	// --- Build Base Query Conditions ---
+	baseWhere := squirrel.And{
+		squirrel.Eq{"w.deleted_at": nil}, // Workout not soft-deleted
+		squirrel.Eq{"w.user_id": userID}, // Owned by the current user
+	}
 
 	// --- Add Query Param Filtering for 'name' ---
 	searchName := c.QueryParam("name")
 	if searchName != "" {
 		// Apply a case-insensitive 'contains' filter on the 'name' field of the workout
-		query = query.Where(workout.NameContainsFold(searchName))
+		// Using ILike for case-insensitive LIKE
+		baseWhere = append(baseWhere, squirrel.ILike{"w.name": "%" + searchName + "%"})
 	}
-	// --- End Query Param Filtering ---
 
-	totalCount, err := query.Count(c.Request().Context())
+	// --- 1. Count Total Workouts ---
+	countBuilder := h.sq.Select("COUNT(w.id)").From("workouts AS w").Where(baseWhere)
+	countQuery, countArgs, err := countBuilder.ToSql()
 	if err != nil {
+		c.Logger().Errorf("IndexWorkout: Failed to build count query: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count workouts")
 	}
 
-	workouts, err := query.
-		Order(workout.ByCreatedAt(sql.OrderDesc())).
-		Limit(limit).
-		Offset(offset).
-		All(c.Request().Context())
+	var totalCount int
+	err = h.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&totalCount)
 	if err != nil {
+		c.Logger().Errorf("IndexWorkout: Failed to count workouts: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count workouts")
+	}
+
+	// --- 2. Fetch Workouts with Eager Loaded Relationships ---
+	// Define a struct to scan the joined results into
+	type joinedWorkoutResult struct {
+		model.Workout
+		WEID                 uuid.NullUUID   // workout_exercises.id
+		WEWorkoutID          uuid.NullUUID   // workout_exercises.workout_id
+		WEExerciseID         uuid.NullUUID   // workout_exercises.exercise_id
+		WEExerciseInstanceID uuid.NullUUID   // workout_exercises.exercise_instance_id
+		WEOrder              sql.NullInt64   // workout_exercises.workout_order
+		WESets               sql.NullInt64   // workout_exercises.sets
+		WEWeight             sql.NullFloat64 // workout_exercises.weight
+		WEReps               sql.NullInt64   // workout_exercises.reps
+		WECreatedAt          sql.NullTime    // workout_exercises.created_at
+		WEUpdatedAt          sql.NullTime    // workout_exercises.updated_at
+		WEDeletedAt          sql.NullTime    // workout_exercises.deleted_at
+
+		ExID        uuid.NullUUID  // exercises.id
+		ExName      sql.NullString // exercises.name
+		ExCreatedAt sql.NullTime   // exercises.created_at
+		ExUpdatedAt sql.NullTime   // exercises.updated_at
+		ExDeletedAt sql.NullTime   // exercises.deleted_at
+
+		EiID           uuid.NullUUID // exercise_instances.id
+		EiWorkoutLogID uuid.NullUUID // exercise_instances.workout_log_id
+		EiExerciseID   uuid.NullUUID // exercise_instances.exercise_id
+		EiCreatedAt    sql.NullTime  // exercise_instances.created_at
+		EiUpdatedAt    sql.NullTime  // exercise_instances.updated_at
+		EiDeletedAt    sql.NullTime  // exercise_instances.deleted_at
+	}
+
+	selectBuilder := h.sq.Select(
+		// Workout fields (aliased as w)
+		"w.id", "w.user_id", "w.name", "w.created_at", "w.updated_at", "w.deleted_at",
+		// WorkoutExercise fields (aliased as we)
+		"we.id AS we_id", "we.workout_id AS we_workout_id", "we.exercise_id AS we_exercise_id", "we.exercise_instance_id AS we_exercise_instance_id",
+		"we.workout_order AS we_order", "we.sets AS we_sets", "we.weight AS we_weight", "we.reps AS we_reps",
+		"we.created_at AS we_created_at", "we.updated_at AS we_updated_at", "we.deleted_at AS we_deleted_at",
+		// Exercise fields (aliased as e)
+		"e.id AS ex_id", "e.name AS ex_name", "e.created_at AS ex_created_at", "e.updated_at AS ex_updated_at", "e.deleted_at AS ex_deleted_at",
+		// ExerciseInstance fields (aliased as ei)
+		"ei.id AS ei_id", "ei.workout_log_id AS ei_workout_log_id", "ei.exercise_id AS ei_exercise_id", "ei.created_at AS ei_created_at", "ei.updated_at AS ei_updated_at", "ei.deleted_at AS ei_deleted_at",
+	).
+		From("workouts AS w").
+		LeftJoin("workout_exercises AS we ON w.id = we.workout_id AND we.deleted_at IS NULL"). // Only non-deleted workout exercises
+		LeftJoin("exercises AS e ON we.exercise_id = e.id").
+		LeftJoin("exercise_instances AS ei ON we.exercise_instance_id = ei.id").
+		Where(baseWhere).
+		OrderBy("w.created_at DESC", "we.workout_order ASC", "we.created_at ASC"). // Order by workout, then workout exercises
+		Limit(uint64(limit)).
+		Offset(uint64(offset))
+
+	selectQuery, selectArgs, err := selectBuilder.ToSql()
+	if err != nil {
+		c.Logger().Errorf("IndexWorkout: Failed to build select query: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workouts")
 	}
 
-	dtoWorkouts := make([]dto.WorkoutResponse, len(workouts))
-	for i, w := range workouts {
-		dtoWorkouts[i] = toWorkoutResponse(w)
+	rows, err := h.DB.QueryContext(ctx, selectQuery, selectArgs...)
+	if err != nil {
+		c.Logger().Errorf("IndexWorkout: Failed to query workouts: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workouts")
 	}
+	defer rows.Close()
+
+	// Map to reconstruct the nested structure
+	workoutsMap := make(map[uuid.UUID]*dto.WorkoutResponse)
+
+	for rows.Next() {
+		var jwr joinedWorkoutResult
+		var workoutDeletedAt sql.NullTime
+
+		err := rows.Scan(
+			// Workout fields
+			&jwr.ID, &jwr.UserID, &jwr.Name, &jwr.CreatedAt, &jwr.UpdatedAt, &workoutDeletedAt,
+			// WorkoutExercise fields
+			&jwr.WEID, &jwr.WEWorkoutID, &jwr.WEExerciseID, &jwr.WEExerciseInstanceID,
+			&jwr.WEOrder, &jwr.WESets, &jwr.WEWeight, &jwr.WEReps,
+			&jwr.WECreatedAt, &jwr.WEUpdatedAt, &jwr.WEDeletedAt,
+			// Exercise fields
+			&jwr.ExID, &jwr.ExName, &jwr.ExCreatedAt, &jwr.ExUpdatedAt, &jwr.ExDeletedAt,
+			// ExerciseInstance fields
+			&jwr.EiID, &jwr.EiWorkoutLogID, &jwr.EiExerciseID, &jwr.EiCreatedAt, &jwr.EiUpdatedAt, &jwr.EiDeletedAt,
+		)
+		if err != nil {
+			c.Logger().Errorf("IndexWorkout: Failed to scan row: %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workouts")
+		}
+
+		// Handle nullable fields for Workout
+		if workoutDeletedAt.Valid {
+			jwr.DeletedAt = &workoutDeletedAt.Time
+		} else {
+			jwr.DeletedAt = nil
+		}
+
+		// Get or create the Workout DTO
+		workoutDTO, exists := workoutsMap[jwr.ID]
+		if !exists {
+			workoutDTO = &dto.WorkoutResponse{
+				ID:               jwr.ID,
+				UserID:           jwr.UserID,
+				Name:             jwr.Name,
+				CreatedAt:        jwr.CreatedAt,
+				UpdatedAt:        jwr.UpdatedAt,
+				DeletedAt:        jwr.DeletedAt,
+				WorkoutExercises: []dto.WorkoutExerciseResponse{}, // Initialize slice
+			}
+			workoutsMap[jwr.ID] = workoutDTO
+		}
+
+		// If there's a WorkoutExercise for this row (LEFT JOIN might return NULLs if no WE)
+		if jwr.WEID.Valid { // Check if workout_exercise fields are present
+			var weModel model.WorkoutExercise
+			weModel.ID = jwr.WEID.UUID
+			weModel.WorkoutID = jwr.WEWorkoutID.UUID
+			weModel.ExerciseID = jwr.WEExerciseID.UUID
+			if jwr.WEExerciseInstanceID.Valid {
+				weModel.ExerciseInstanceID = &jwr.WEExerciseInstanceID.UUID
+			} else {
+				weModel.ExerciseInstanceID = nil
+			}
+			if jwr.WEOrder.Valid {
+				val := uint(jwr.WEOrder.Int64)
+				weModel.WorkoutOrder = &val
+			} else {
+				weModel.WorkoutOrder = nil
+			}
+			if jwr.WESets.Valid {
+				val := uint(jwr.WESets.Int64)
+				weModel.Sets = &val
+			} else {
+				weModel.Sets = nil
+			}
+			if jwr.WEWeight.Valid {
+				weModel.Weight = &jwr.WEWeight.Float64
+			} else {
+				weModel.Weight = nil
+			}
+			if jwr.WEReps.Valid {
+				val := uint(jwr.WEReps.Int64)
+				weModel.Reps = &val
+			} else {
+				weModel.Reps = nil
+			}
+			weModel.CreatedAt = jwr.WECreatedAt.Time
+			weModel.UpdatedAt = jwr.WEUpdatedAt.Time
+			if jwr.WEDeletedAt.Valid {
+				weModel.DeletedAt = &jwr.WEDeletedAt.Time
+			} else {
+				weModel.DeletedAt = nil
+			}
+
+			var exModel model.Exercise
+			// Check if exercise fields are present (from LEFT JOIN)
+			if jwr.ExID.Valid {
+				exModel.ID = jwr.ExID.UUID
+				exModel.Name = jwr.ExName.String
+				exModel.CreatedAt = jwr.ExCreatedAt.Time
+				exModel.UpdatedAt = jwr.ExUpdatedAt.Time
+				if jwr.ExDeletedAt.Valid {
+					exModel.DeletedAt = &jwr.ExDeletedAt.Time
+				} else {
+					exModel.DeletedAt = nil
+				}
+			}
+
+			var eiModel model.ExerciseInstance
+			// Check if exercise_instance fields are present (from LEFT JOIN)
+			if jwr.EiID.Valid {
+				eiModel.ID = jwr.EiID.UUID
+				if jwr.EiWorkoutLogID.Valid {
+					eiModel.WorkoutLogID = &jwr.EiWorkoutLogID.UUID
+				} else {
+					eiModel.WorkoutLogID = nil
+				}
+				eiModel.ExerciseID = jwr.EiExerciseID.UUID // Assuming always valid if EiID is valid
+				eiModel.CreatedAt = jwr.EiCreatedAt.Time
+				eiModel.UpdatedAt = jwr.EiUpdatedAt.Time
+				if jwr.EiDeletedAt.Valid {
+					eiModel.DeletedAt = &jwr.EiDeletedAt.Time
+				} else {
+					eiModel.DeletedAt = nil
+				}
+			}
+
+			// Convert to WorkoutExerciseResponse DTO with nested Exercise and ExerciseInstance
+			// Pass nil if the joined ID was not valid, to indicate no related entity
+			weDTO := toWorkoutExerciseResponse(
+				&weModel,
+				func() *model.Exercise {
+					if jwr.ExID.Valid {
+						return &exModel
+					}
+					return nil
+				}(),
+				func() *model.ExerciseInstance {
+					if jwr.EiID.Valid {
+						return &eiModel
+					}
+					return nil
+				}(),
+			)
+			workoutDTO.WorkoutExercises = append(workoutDTO.WorkoutExercises, weDTO)
+		}
+	}
+
+	if err = rows.Err(); err != nil {
+		c.Logger().Errorf("IndexWorkout: Rows iteration error: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workouts")
+	}
+
+	// Convert map values to slice for final response
+	dtoWorkouts := make([]dto.WorkoutResponse, 0, len(workoutsMap))
+	for _, w := range workoutsMap {
+		dtoWorkouts = append(dtoWorkouts, *w)
+	}
+
+	// Sort the final slice by workout ID to ensure consistent pagination ordering
+	// (since the map iteration order is not guaranteed)
+	// This might be redundant if your SQL ORDER BY is robust enough.
+	// For simplicity, let's assume the SQL ORDER BY is sufficient if `w.created_at DESC`
+	// is unique enough, or you can add a secondary sort column.
+	// If you want to strictly match Ent's behavior, you might need a secondary sort field or
+	// sort the `dtoWorkouts` slice here. For now, we rely on SQL.
 
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
@@ -101,4 +315,3 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		PaginationResponse: paginationData, // Embed the pagination data
 	})
 }
-

@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS exercises (
     deleted_at TIMESTAMP WITH TIME ZONE NULL -- For soft deletes
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_exercises_name ON exercises (name);
 -- +goose StatementEnd
 
 -- +goose Down

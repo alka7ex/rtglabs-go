@@ -32,7 +32,7 @@ type CreateWorkoutRequest struct {
 type CreateWorkoutExerciseRequest struct {
 	ID                       *uuid.UUID `json:"id,omitempty" validate:"omitempty,uuid"`
 	ExerciseID               uuid.UUID  `json:"exercise_id" validate:"required,uuid"`
-	Order                    *uint      `json:"order,omitempty" validate:"omitempty,min=1"`  // Pointers
+	WorkoutOrder             *uint      `json:"order,omitempty" validate:"omitempty,min=1"`  // Pointers
 	Sets                     *uint      `json:"sets,omitempty" validate:"omitempty,min=0"`   // Pointers
 	Weight                   *float64   `json:"weight,omitempty" validate:"omitempty,min=0"` // Pointers
 	Reps                     *uint      `json:"reps,omitempty" validate:"omitempty,min=0"`   // Pointers
@@ -56,7 +56,7 @@ type WorkoutExerciseResponse struct {
 	WorkoutID          uuid.UUID                 `json:"workout_id"`
 	ExerciseID         uuid.UUID                 `json:"exercise_id"`
 	ExerciseInstanceID *uuid.UUID                `json:"exercise_instance_id,omitempty"` // Pointer
-	Order              *uint                     `json:"order,omitempty"`                // Pointer
+	WorkoutOrder       *uint                     `json:"order,omitempty"`                // Pointer
 	Sets               *uint                     `json:"sets,omitempty"`                 // Pointer
 	Weight             *float64                  `json:"weight,omitempty"`               // Pointer
 	Reps               *uint                     `json:"reps,omitempty"`                 // Pointer
@@ -94,14 +94,14 @@ type DeleteWorkoutResponse struct {
 // UpdateWorkoutRequest represents the request body for updating a workout.
 type UpdateWorkoutRequest struct {
 	Name      string                         `json:"name" validate:"required,max=255"`
-	Exercises []UpdateWorkoutExerciseRequest `json:"exercises" validate:"required,min=1,dive"`
+	Exercises []UpdateWorkoutExerciseRequest `json:"exercises" validate:"required,dive"`
 }
 
 // UpdateWorkoutExerciseRequest represents a single exercise within a workout update request.
 type UpdateWorkoutExerciseRequest struct {
 	ID                       *uuid.UUID `json:"id,omitempty" validate:"omitempty,uuid"`
 	ExerciseID               uuid.UUID  `json:"exercise_id" validate:"required,uuid"`
-	Order                    *uint      `json:"order,omitempty" validate:"omitempty,min=1"`
+	WorkoutOrder             *uint      `json:"order,omitempty" validate:"omitempty,min=1"`
 	Sets                     *uint      `json:"sets,omitempty" validate:"omitempty,min=0"`
 	Weight                   *float64   `json:"weight,omitempty" validate:"omitempty,min=0"`
 	Reps                     *uint      `json:"reps,omitempty" validate:"omitempty,min=0"`

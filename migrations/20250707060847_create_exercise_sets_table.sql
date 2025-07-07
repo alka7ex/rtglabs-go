@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS exercise_sets (
     set_number INTEGER NOT NULL,
     finished_at TIMESTAMP WITH TIME ZONE NULL,
     status INTEGER NOT NULL DEFAULT 0,
-    workout_log_id UUID UNIQUE NOT NULL,       -- Foreign Key to workout_logs.id, UNIQUE due to Ent schema
-    exercise_id UUID UNIQUE NOT NULL,          -- Foreign Key to exercises.id, UNIQUE due to Ent schema
-    exercise_instance_id UUID UNIQUE NULL,     -- Foreign Key to exercise_instances.id, UNIQUE and NULLABLE
+    workout_log_id UUID  NOT NULL,       -- Foreign Key to workout_logs.id, UNIQUE due to Ent schema
+    exercise_id UUID  NOT NULL,          -- Foreign Key to exercises.id, UNIQUE due to Ent schema
+    exercise_instance_id UUID  NULL,     -- Foreign Key to exercise_instances.id, UNIQUE and NULLABLE
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE NULL,
@@ -30,10 +30,7 @@ CREATE TABLE IF NOT EXISTS exercise_sets (
         ON DELETE CASCADE -- If exercise_instance is deleted, delete this set (if FK is not NULL)
 );
 
-CREATE INDEX IF NOT EXISTS idx_exercise_sets_status ON exercise_sets (status);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_exercise_sets_workout_log_id ON exercise_sets (workout_log_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_exercise_sets_exercise_id ON exercise_sets (exercise_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_exercise_sets_exercise_instance_id ON exercise_sets (exercise_instance_id);
+
 -- +goose StatementEnd
 
 -- +goose Down

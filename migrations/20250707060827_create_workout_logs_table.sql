@@ -2,10 +2,10 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS workout_logs (
     id UUID PRIMARY KEY,
-    user_id UUID UNIQUE NOT NULL,      -- Foreign Key to users.id, UNIQUE due to Ent schema
-    workout_id UUID UNIQUE NULL,       -- Foreign Key to workouts.id, UNIQUE and NULLABLE
+    user_id UUID  NOT NULL,      -- Foreign Key to users.id, UNIQUE due to Ent schema
+    workout_id UUID  NULL,       -- Foreign Key to workouts.id, UNIQUE and NULLABLE
     started_at TIMESTAMP WITH TIME ZONE NULL,
-    f_inished_at TIMESTAMP WITH TIME ZONE NULL,
+    finished_at TIMESTAMP WITH TIME ZONE NULL,
     status INTEGER NOT NULL DEFAULT 0,
     total_active_duration_seconds BIGINT NOT NULL DEFAULT 0, -- Use BIGINT for uint if it can exceed int32 max
     total_pause_duration_seconds BIGINT NOT NULL DEFAULT 0,  -- Use BIGINT for uint if it can exceed int32 max
@@ -24,9 +24,6 @@ CREATE TABLE IF NOT EXISTS workout_logs (
         ON DELETE CASCADE -- Note: This will delete WorkoutLog if Workout is deleted AND workout_id is not NULL.
 );
 
-CREATE INDEX IF NOT EXISTS idx_workout_logs_status ON workout_logs (status);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_workout_logs_user_id ON workout_logs (user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_workout_logs_workout_id ON workout_logs (workout_id);
 -- +goose StatementEnd
 
 -- +goose Down

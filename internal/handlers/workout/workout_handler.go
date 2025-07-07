@@ -1,91 +1,88 @@
 package handler
 
 import (
-	"rtglabs-go/dto"
-	"rtglabs-go/ent"
+	"database/sql" // For *sql.DB, sql.Null* types
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/Masterminds/squirrel" // Import squirrel
+	"rtglabs-go/dto"
+	"rtglabs-go/model" // Import your model package (Workout, WorkoutExercise etc.)
 )
 
+// WorkoutHandler holds the database client and squirrel statement builder.
 type WorkoutHandler struct {
-	Client *ent.Client
+	DB *sql.DB
+	sq squirrel.StatementBuilderType
 }
 
-func NewWorkoutHandler(client *ent.Client) *WorkoutHandler {
-	return &WorkoutHandler{Client: client}
+// NewWorkoutHandler creates and returns a new WorkoutHandler.
+// It now takes *sql.DB and initializes squirrel with the appropriate placeholder format.
+func NewWorkoutHandler(db *sql.DB) *WorkoutHandler {
+	return &WorkoutHandler{
+		DB: db,
+		sq: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar), // Or squirrel.Question for '?'
+	}
 }
 
-// DestroyWorkout performs a soft delete on a workout and its associated workout exercises.
-func toWorkoutResponse(w *ent.Workout) dto.WorkoutResponse {
+// --- Helper Functions (Adjusted for `model` structs) ---
+
+// toWorkoutResponse converts a model.Workout entity to a dto.WorkoutResponse DTO.
+// It will need to fetch WorkoutExercises separately, as SQL won't load edges automatically.
+
+func toWorkoutResponse(w *model.Workout, workoutExercisesDTO []dto.WorkoutExerciseResponse) dto.WorkoutResponse { // <--- MODIFIED HERE
 	var deletedAt *time.Time
 	if w.DeletedAt != nil {
 		deletedAt = w.DeletedAt
 	}
 
-	var exercises []dto.WorkoutExerciseResponse
-	for _, we := range w.Edges.WorkoutExercises {
-		exercises = append(exercises, toWorkoutExerciseResponse(we))
-	}
-
-	var userID uuid.UUID
-	if w.Edges.User != nil {
-		userID = w.Edges.User.ID
-	}
-
 	return dto.WorkoutResponse{
 		ID:               w.ID,
-		UserID:           userID,
+		UserID:           w.UserID,
 		Name:             w.Name,
 		CreatedAt:        w.CreatedAt,
 		UpdatedAt:        w.UpdatedAt,
 		DeletedAt:        deletedAt,
-		WorkoutExercises: exercises,
+		WorkoutExercises: workoutExercisesDTO, // <--- DIRECTLY USE THE PASSED DTO SLICE
 	}
 }
 
-func toWorkoutExerciseResponse(we *ent.WorkoutExercise) dto.WorkoutExerciseResponse {
+// toWorkoutExerciseResponse converts a model.WorkoutExercise entity to a dto.WorkoutExerciseResponse DTO.
+// It now also takes optional related Exercise and ExerciseInstance models for nesting.
+func toWorkoutExerciseResponse(
+	we *model.WorkoutExercise,
+	ex *model.Exercise, // Optional related Exercise
+	ei *model.ExerciseInstance, // Optional related ExerciseInstance
+) dto.WorkoutExerciseResponse {
 	var deletedAt *time.Time
 	if we.DeletedAt != nil {
 		deletedAt = we.DeletedAt
 	}
 
-	var instanceID *uuid.UUID
-	if we.Edges.ExerciseInstance != nil {
-		instanceID = &we.Edges.ExerciseInstance.ID
-	}
-
 	var exerciseDTO *dto.ExerciseResponse
-	if we.Edges.Exercise != nil {
-		ex := toExerciseResponse(we.Edges.Exercise)
-		exerciseDTO = &ex
+	if ex != nil { // Check if related exercise data was provided
+		tempEx := toExerciseResponse(ex)
+		exerciseDTO = &tempEx
 	}
 
 	var instanceDTO *dto.ExerciseInstanceResponse
-	if we.Edges.ExerciseInstance != nil {
-		inst := toExerciseInstanceResponse(we.Edges.ExerciseInstance)
-		instanceDTO = &inst
+	if ei != nil { // Check if related exercise instance data was provided
+		tempEi := toExerciseInstanceResponse(ei)
+		instanceDTO = &tempEi
 	}
 
-	var workoutID uuid.UUID
-	if we.Edges.Workout != nil {
-		workoutID = we.Edges.Workout.ID
-	}
-
-	var exerciseID uuid.UUID
-	if we.Edges.Exercise != nil {
-		exerciseID = we.Edges.Exercise.ID
-	}
+	// Assuming WorkoutID and ExerciseID are always present on model.WorkoutExercise
+	workoutID := we.WorkoutID
+	exerciseID := we.ExerciseID
 
 	return dto.WorkoutExerciseResponse{
 		ID:                 we.ID,
 		WorkoutID:          workoutID,
 		ExerciseID:         exerciseID,
-		ExerciseInstanceID: instanceID,
-		Order:              we.Order,
-		Sets:               we.Sets,
-		Weight:             we.Weight,
-		Reps:               we.Reps,
+		ExerciseInstanceID: we.ExerciseInstanceID, // Already a pointer in model
+		WorkoutOrder:       we.WorkoutOrder,       // Already a pointer in model
+		Sets:               we.Sets,               // Already a pointer in model
+		Weight:             we.Weight,             // Already a pointer in model
+		Reps:               we.Reps,               // Already a pointer in model
 		CreatedAt:          we.CreatedAt,
 		UpdatedAt:          we.UpdatedAt,
 		DeletedAt:          deletedAt,
@@ -94,7 +91,11 @@ func toWorkoutExerciseResponse(we *ent.WorkoutExercise) dto.WorkoutExerciseRespo
 	}
 }
 
-func toExerciseResponse(ex *ent.Exercise) dto.ExerciseResponse {
+// These helper functions should already be in your `handlers` package from previous refactors
+// but included here for completeness of context for this file.
+
+// toExerciseResponse converts a model.Exercise entity to a dto.ExerciseResponse DTO.
+func toExerciseResponse(ex *model.Exercise) dto.ExerciseResponse {
 	var deletedAt *time.Time
 	if ex.DeletedAt != nil {
 		deletedAt = ex.DeletedAt
@@ -108,29 +109,22 @@ func toExerciseResponse(ex *ent.Exercise) dto.ExerciseResponse {
 	}
 }
 
-func toExerciseInstanceResponse(ei *ent.ExerciseInstance) dto.ExerciseInstanceResponse {
-	var workoutLogID *uuid.UUID
-	if ei.Edges.WorkoutLog != nil {
-		workoutLogID = &ei.Edges.WorkoutLog.ID
-	}
-
+// toExerciseInstanceResponse converts a model.ExerciseInstance entity to a dto.ExerciseInstanceResponse DTO.
+func toExerciseInstanceResponse(ei *model.ExerciseInstance) dto.ExerciseInstanceResponse {
 	var deletedAt *time.Time
 	if ei.DeletedAt != nil {
 		deletedAt = ei.DeletedAt
 	}
 
-	var exerciseID uuid.UUID
-	if ei.Edges.Exercise != nil {
-		exerciseID = ei.Edges.Exercise.ID
-	}
+	// Assuming ExerciseID is always present on ExerciseInstance
+	exerciseID := ei.ExerciseID
 
 	return dto.ExerciseInstanceResponse{
 		ID:           ei.ID,
-		WorkoutLogID: workoutLogID,
+		WorkoutLogID: ei.WorkoutLogID, // This assumes WorkoutLogID is directly on model.ExerciseInstance, already a pointer
 		ExerciseID:   exerciseID,
 		CreatedAt:    ei.CreatedAt,
 		UpdatedAt:    ei.UpdatedAt,
 		DeletedAt:    deletedAt,
 	}
 }
-

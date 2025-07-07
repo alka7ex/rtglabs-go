@@ -18,9 +18,7 @@ CREATE TABLE IF NOT EXISTS profiles (
         ON DELETE CASCADE -- If a user is deleted, their profile is also deleted
 );
 
--- An index on user_id might be automatically created by the UNIQUE constraint,
--- but it's good practice to ensure it.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles (user_id);
+
 -- +goose StatementEnd
 
 -- +goose Down
