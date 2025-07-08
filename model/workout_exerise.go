@@ -16,10 +16,10 @@ import (
 // UNIQUE constraints on the foreign key columns.
 type WorkoutExercise struct {
 	ID                 uuid.UUID  `db:"id" json:"id"`                                             // From custommixin.UUID
-	WorkoutOrder       *uint      `db:"order" json:"order,omitempty"`                             // Nullable, uses pointer
-	Sets               *uint      `db:"sets" json:"sets,omitempty"`                               // Nullable, uses pointer
+	WorkoutOrder       *int       `db:"order" json:"order,omitempty"`                             // Nullable, uses pointer
+	Sets               *int       `db:"sets" json:"sets,omitempty"`                               // Nullable, uses pointer
 	Weight             *float64   `db:"weight" json:"weight,omitempty"`                           // Nullable, uses pointer
-	Reps               *uint      `db:"reps" json:"reps,omitempty"`                               // Nullable, uses pointer
+	Reps               *int       `db:"reps" json:"reps,omitempty"`                               // Nullable, uses pointer
 	WorkoutID          uuid.UUID  `db:"workout_id" json:"workoutId"`                              // FK to workouts.id, UNIQUE and NOT NULL
 	ExerciseID         uuid.UUID  `db:"exercise_id" json:"exerciseId"`                            // FK to exercises.id, UNIQUE and NOT NULL
 	ExerciseInstanceID *uuid.UUID `db:"exercise_instance_id" json:"exerciseInstanceId,omitempty"` // FK to exercise_instances.id, UNIQUE and NULLABLE

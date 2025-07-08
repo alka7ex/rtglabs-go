@@ -3,12 +3,12 @@ package dto
 import (
 	"time"
 
-	"rtglabs-go/provider"
-
 	"github.com/google/uuid"
+	"rtglabs-go/provider" // Assuming this contains your PaginationResponse
 )
 
 // ExerciseResponse represents the response structure for a single exercise.
+// This is the authoritative definition for ExerciseResponse.
 type ExerciseResponse struct {
 	ID        uuid.UUID  `json:"id"`
 	Name      string     `json:"name"`
@@ -18,19 +18,22 @@ type ExerciseResponse struct {
 }
 
 // ListExerciseResponse represents the paginated list response for exercises.
-// It now embeds the util.PaginationResponse.
 type ListExerciseResponse struct {
-	Data                        []ExerciseResponse `json:"data"`
-	provider.PaginationResponse                    // Embed the common pagination fields
+	Data []ExerciseResponse `json:"data"`
+	provider.PaginationResponse
 }
+
+// CreateExerciseRequest defines the request for creating multiple exercises.
 type CreateExerciseRequest struct {
 	Exercises []ExerciseNameOnly `json:"exercises" validate:"required,dive"`
 }
 
+// ExerciseNameOnly is a helper struct for creating exercises by name.
 type ExerciseNameOnly struct {
 	Name string `json:"name" validate:"required"`
 }
 
+// CreateExerciseResponse is the response for a successful exercise creation.
 type CreateExerciseResponse struct {
 	Message   string             `json:"message"`
 	Exercises []ExerciseResponse `json:"exercises"`

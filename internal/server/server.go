@@ -1,7 +1,7 @@
 package server
 
 import (
-	"database/sql" // <--- NEW: Import for standard SQL DB
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/joho/godotenv/autoload" // Automatically loads .env file
+	_ "github.com/joho/godotenv/autoload"
 
-	"rtglabs-go/config"          // KEEP this import if 'appConfig' field is intended, though it won't be initialized here.
-	"rtglabs-go/config/database" // Updated: This package will now provide *sql.DB
-	mail "rtglabs-go/provider"   // THIS IS THE CORRECT IMPORT for EmailSender
+	"rtglabs-go/config"
+	"rtglabs-go/config/database"
+	mail "rtglabs-go/provider"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -24,13 +24,13 @@ import (
 // Server holds the server configuration and dependencies.
 type Server struct {
 	port        int
-	db          database.Service // This service should now wrap *sql.DB or use it directly
+	db          database.Service
 	echo        *echo.Echo
 	logger      *zap.Logger
 	emailSender mail.EmailSender
 	appBaseURL  string
-	appConfig   *config.AppConfig // This field remains, but will be nil as NewServer() doesn't take config.
-	sqlDB       *sql.DB           // <--- NEW: Your standard SQL database client
+	appConfig   *config.AppConfig
+	sqlDB       *sql.DB
 }
 
 // NewServer initializes and returns a new HTTP server.
@@ -47,39 +47,28 @@ func NewServer() *http.Server {
 	log.Printf("APP ENV: %s", os.Getenv("APP_ENV"))
 	log.Printf("PORT: %s", os.Getenv("PORT"))
 	log.Printf("APP_BASE_URL: %s", os.Getenv("APP_BASE_URL"))
-	log.Printf("DATABASE_URL: %s", os.Getenv("DATABASE_URL")) // <--- NEW: Log DB URL
+	log.Printf("DATABASE_URL: %s", os.Getenv("DATABASE_URL"))
 
-	// --- ADDITION: Initialize sql.DB, EmailSender, and AppBaseURL ---
-
-	// 1. Initialize SQL DB Client using your updated database package
-	// Assumes DATABASE_URL environment variable holds the connection string.
-	// Example for SQLite: "file:./data.db?_foreign_keys=on"
-	// Example for MySQL: "user:password@tcp(127.0.0.1:3306)/database?parseTime=true"
-	// Example for PostgreSQL: "postgres://user:password@host:port/database?sslmode=disable"
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	// You will need to change this to the appropriate driver name
-	// e.g., "mysql", "sqlite3", "postgres"
-	driverName := os.Getenv("DB_DRIVER") // <--- NEW: Get DB driver from env
+	driverName := os.Getenv("DB_DRIVER")
 	if driverName == "" {
 		log.Fatal("DB_DRIVER environment variable is not set (e.g., mysql, sqlite3, postgres)")
 	}
 
-	sqlDB, err := database.NewSQLClient(driverName, dbURL) // <--- CALL YOUR NEW SQL CLIENT HERE
+	sqlDB, err := database.NewSQLClient(driverName, dbURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Ping the database to ensure the connection is open
 	if err = sqlDB.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 	log.Println("Database connection established successfully!")
 
-	// 2. Initialize EmailSender
 	emailSender := mail.NewSMTPEmailSender(
 		os.Getenv("SMTP_HOST"),
 		os.Getenv("SMTP_PORT"),
@@ -87,28 +76,28 @@ func NewServer() *http.Server {
 		os.Getenv("SMTP_PASSWORD"),
 		os.Getenv("SMTP_FROM_EMAIL"),
 	)
-	// 3. Get AppBaseURL
+
 	appBaseURL := os.Getenv("APP_BASE_URL")
-	// --- END ADDITION ---
 
 	s := &Server{
 		port:        port,
-		db:          database.New(), // Initialize your custom DB service (which should now use *sql.DB internally)
+		db:          database.New(),
 		echo:        echo.New(),
-		logger:      NewPrettyLogger(), // Initialize the pretty logger
-		emailSender: emailSender,       // ASSIGN TO STRUCT FIELD
-		appBaseURL:  appBaseURL,        // ASSIGN TO STRUCT FIELD
-		sqlDB:       sqlDB,             // <--- ASSIGN THE INITIALIZED SQL DB HERE
-		// appConfig field will remain nil as NewServer() doesn't receive a config object.
+		logger:      NewPrettyLogger(),
+		emailSender: emailSender,
+		appBaseURL:  appBaseURL,
+		sqlDB:       sqlDB,
 	}
 
 	s.setupMiddleware()
-	s.RegisterRoutes() // This will call public and private route registration
+	s.RegisterRoutes()
 
-	// Declare Server config
+	// --- NEW: Set custom HTTPErrorHandler for 404s ---
+	s.echo.HTTPErrorHandler = s.customHTTPErrorHandler
+
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", s.port),
-		Handler:      s.echo, // Use the echo instance as the handler
+		Handler:      s.echo,
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -117,21 +106,55 @@ func NewServer() *http.Server {
 	return server
 }
 
+// customHTTPErrorHandler is a custom HTTP error handler that provides more informative
+// messages for 404 Not Found errors.
+func (s *Server) customHTTPErrorHandler(err error, c echo.Context) {
+	code := http.StatusInternalServerError
+	message := "Internal Server Error"
+	if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+		message = fmt.Sprintf("%v", he.Message) // Ensure message is a string
+	}
+
+	// For 404 Not Found errors, provide a more specific message
+	if code == http.StatusNotFound {
+		requestedPath := c.Request().URL.Path
+		requestedMethod := c.Request().Method
+		message = fmt.Sprintf("The endpoint '%s' with method '%s' is not available.", requestedPath, requestedMethod)
+		s.logger.Warn(fmt.Sprintf("404 Not Found: %s %s", requestedMethod, requestedPath)) // Log the 404
+	}
+
+	// Always log errors, except for 404 which we specifically log as Warn
+	if code != http.StatusNotFound {
+		s.logger.Error("HTTP Error",
+			zap.Int("status", code),
+			zap.String("method", c.Request().Method),
+			zap.String("path", c.Request().URL.Path),
+			zap.Error(err),
+		)
+	}
+
+	// Respond with JSON error
+	if !c.Response().Committed {
+		if err := c.JSON(code, map[string]string{"error": message}); err != nil {
+			s.logger.Error("Failed to send error response", zap.Error(err))
+		}
+	}
+}
+
 // setupMiddleware configures all common middlewares for the Echo instance.
 func (s *Server) setupMiddleware() {
-	s.echo.Validator = config.NewValidator() // Set custom validator
+	s.echo.Validator = config.NewValidator()
 
-	// Remove trailing slash
 	s.echo.Pre(middleware.RemoveTrailingSlash())
 
-	// Request Logger Middleware
 	s.echo.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
 		LogStatus: true,
 		LogHost:   true,
 		LogMethod: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			coloredStatus := colorizeStatus(v.Status) // Using the colorizeStatus from logger.go
+			coloredStatus := colorizeStatus(v.Status)
 			s.logger.Info(fmt.Sprintf("| %-6s | %s | %s | status: %s",
 				v.Method,
 				v.URI,
@@ -142,10 +165,8 @@ func (s *Server) setupMiddleware() {
 		},
 	}))
 
-	// Recovery Middleware
 	s.echo.Use(middleware.Recover())
 
-	// CORS Middleware
 	s.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"https://*", "http://*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
@@ -160,16 +181,12 @@ func (s *Server) PrintRoutes() {
 	s.logger.Info("  Registered Routes:")
 	s.logger.Info("--------------------------------------------------")
 	for _, route := range s.echo.Routes() {
-		// You can customize the format here
 		s.logger.Info(fmt.Sprintf("%-10s %-30s -> %s", route.Method, route.Path, route.Name))
 	}
 	s.logger.Info("--------------------------------------------------")
 }
 
 // RegisterRoutes registers all public and private routes.
-// NOTE: When you initialize your handlers in the "separate page" you mentioned,
-// they will now properly receive s.sqlDB, s.emailSender and s.appBaseURL
-// from this Server instance.
 func (s *Server) RegisterRoutes() {
 	s.registerPublicRoutes()
 	s.registerPrivateRoutes()
@@ -185,7 +202,6 @@ func (s *Server) HelloWorldHandler(c echo.Context) error {
 
 // healthHandler is a simple handler for the "/health" route.
 func (s *Server) healthHandler(c echo.Context) error {
-	// For health check with *sql.DB, you can ping the database
 	if err := s.sqlDB.Ping(); err != nil {
 		s.logger.Error("Database health check failed", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
@@ -198,8 +214,27 @@ func (s *Server) healthHandler(c echo.Context) error {
 	})
 }
 
-// You will also need to adjust your 'registerPublicRoutes' and 'registerPrivateRoutes'
-// and all associated handlers to use `s.sqlDB` and `squirrel` for database operations,
-// instead of `s.entClient`.
-// This means you'll construct SQL queries using squirrel.StatementBuilder,
-// and then use s.sqlDB.QueryRow, s.sqlDB.Exec, etc. to execute them.
+// You need to define `colorizeStatus` somewhere, likely in `logger.go` as you mentioned.
+// For demonstration, I'll include a placeholder if it's not provided elsewhere.
+// Assuming colorizeStatus is in logger.go, no need to duplicate it here.
+// If it's not, you'd need something like:
+/*
+import (
+	"github.com/fatih/color"
+)
+
+func colorizeStatus(status int) string {
+	switch {
+	case status >= 200 && status < 300:
+		return color.GreenString("%d", status)
+	case status >= 300 && status < 400:
+		return color.YellowString("%d", status)
+	case status >= 400 && status < 500:
+		return color.RedString("%d", status)
+	case status >= 500:
+		return color.MagentaString("%d", status)
+	default:
+		return fmt.Sprintf("%d", status)
+	}
+}
+*/

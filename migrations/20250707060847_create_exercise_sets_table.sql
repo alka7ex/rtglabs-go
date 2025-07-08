@@ -2,14 +2,14 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS exercise_sets (
     id UUID PRIMARY KEY,
-    weight NUMERIC(8,2) NULL, -- Or DECIMAL(8,2) for MySQL/other DBs
+    weight NUMERIC(8,2) NULL,
     reps INTEGER NULL,
     set_number INTEGER NOT NULL,
     finished_at TIMESTAMP WITH TIME ZONE NULL,
     status INTEGER NOT NULL DEFAULT 0,
-    workout_log_id UUID  NOT NULL,       -- Foreign Key to workout_logs.id, UNIQUE due to Ent schema
-    exercise_id UUID  NOT NULL,          -- Foreign Key to exercises.id, UNIQUE due to Ent schema
-    exercise_instance_id UUID  NULL,     -- Foreign Key to exercise_instances.id, UNIQUE and NULLABLE
+    workout_log_id UUID  NOT NULL,
+    exercise_id UUID  NOT NULL,
+    logged_exercise_instance_id UUID  NULL, -- This is the column in exercise_sets
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE NULL,
@@ -24,13 +24,11 @@ CREATE TABLE IF NOT EXISTS exercise_sets (
         REFERENCES exercises (id)
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_exercise_sets_exercise_instance
-        FOREIGN KEY (exercise_instance_id)
-        REFERENCES exercise_instances (id)
-        ON DELETE CASCADE -- If exercise_instance is deleted, delete this set (if FK is not NULL)
+    CONSTRAINT fk_exercise_sets_logged_exercise_instance -- New constraint name (good practice)
+        FOREIGN KEY (logged_exercise_instance_id)        -- Referencing the correct column in exercise_sets
+        REFERENCES logged_exercise_instances (id)      -- Referencing the correct table and its ID column
+        ON DELETE CASCADE
 );
-
-
 -- +goose StatementEnd
 
 -- +goose Down

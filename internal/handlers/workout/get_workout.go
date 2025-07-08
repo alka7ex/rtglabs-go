@@ -9,7 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"rtglabs-go/dto"
-	"rtglabs-go/model" // Import your model package (Workout, WorkoutExercise, Exercise, ExerciseInstance)
+	"rtglabs-go/model"    // Import your model package (Workout, WorkoutExercise, Exercise, ExerciseInstance)
+	"rtglabs-go/provider" // Import provider for helper functions
 )
 
 // GetWorkout retrieves a single workout by ID for a specific user, with eager loaded details.
@@ -155,31 +156,22 @@ func (h *WorkoutHandler) GetWorkout(c echo.Context) error {
 			} else {
 				weModel.ExerciseInstanceID = nil
 			}
-			if jwr.WEOrder.Valid {
-				val := uint(jwr.WEOrder.Int64)
-				weModel.WorkoutOrder = &val
-			} else {
-				weModel.WorkoutOrder = nil
-			}
-			if jwr.WESets.Valid {
-				val := uint(jwr.WESets.Int64)
-				weModel.Sets = &val
-			} else {
-				weModel.Sets = nil
-			}
-			if jwr.WEWeight.Valid {
-				weModel.Weight = &jwr.WEWeight.Float64
-			} else {
-				weModel.Weight = nil
-			}
-			if jwr.WEReps.Valid {
-				val := uint(jwr.WEReps.Int64)
-				weModel.Reps = &val
-			} else {
-				weModel.Reps = nil
-			}
+			// --- FIX START ---
+			weModel.WorkoutOrder = provider.NullInt64ToIntPtr(jwr.WEOrder)  // Fixed
+			weModel.Sets = provider.NullInt64ToIntPtr(jwr.WESets)           // Fixed
+			weModel.Weight = provider.NullFloat64ToFloat64Ptr(jwr.WEWeight) // Already correct, but using provider for consistency
+			weModel.Reps = provider.NullInt64ToIntPtr(jwr.WEReps)           // Fixed
+			// --- FIX END ---
+
 			weModel.CreatedAt = jwr.WECreatedAt.Time
-			weModel.UpdatedAt = jwr.WECreatedAt.Time // Use CreatedAt as UpdatedAt if not explicitly updated in WE
+			// You might want to use jwr.WEUpdatedAt here if available, otherwise jwr.WECreatedAt is a fallback.
+			// The original code used jwr.WECreatedAt for UpdatedAt for WE.
+			if jwr.WEUpdatedAt.Valid {
+				weModel.UpdatedAt = jwr.WEUpdatedAt.Time
+			} else {
+				weModel.UpdatedAt = jwr.WECreatedAt.Time // Fallback
+			}
+
 			if jwr.WEDeletedAt.Valid {
 				weModel.DeletedAt = &jwr.WEDeletedAt.Time
 			} else {
@@ -251,4 +243,3 @@ func (h *WorkoutHandler) GetWorkout(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, workoutDTO) // Return the single WorkoutResponse DTO
 }
-

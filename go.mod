@@ -22,6 +22,7 @@ require (
 
 require (
 	github.com/go-playground/validator/v10 v10.26.0
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-colorable v0.1.14 // indirect

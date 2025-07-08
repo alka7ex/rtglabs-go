@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"rtglabs-go/dto"
 	"rtglabs-go/model"    // Import your model package
-	"rtglabs-go/provider" // Import your pagination provider
+	"rtglabs-go/provider" // Import your pagination provider and NullInt64ToIntPtr
 )
 
 // IndexWorkout retrieves a paginated list of workouts for a specific user, with optional filtering.
@@ -186,31 +186,19 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 			} else {
 				weModel.ExerciseInstanceID = nil
 			}
-			if jwr.WEOrder.Valid {
-				val := uint(jwr.WEOrder.Int64)
-				weModel.WorkoutOrder = &val
-			} else {
-				weModel.WorkoutOrder = nil
-			}
-			if jwr.WESets.Valid {
-				val := uint(jwr.WESets.Int64)
-				weModel.Sets = &val
-			} else {
-				weModel.Sets = nil
-			}
-			if jwr.WEWeight.Valid {
-				weModel.Weight = &jwr.WEWeight.Float64
-			} else {
-				weModel.Weight = nil
-			}
-			if jwr.WEReps.Valid {
-				val := uint(jwr.WEReps.Int64)
-				weModel.Reps = &val
-			} else {
-				weModel.Reps = nil
-			}
+			// --- FIX START ---
+			weModel.WorkoutOrder = provider.NullInt64ToIntPtr(jwr.WEOrder)
+			weModel.Sets = provider.NullInt64ToIntPtr(jwr.WESets)
+			weModel.Weight = provider.NullFloat64ToFloat64Ptr(jwr.WEWeight) // Already correct
+			weModel.Reps = provider.NullInt64ToIntPtr(jwr.WEReps)
+			// --- FIX END ---
+
 			weModel.CreatedAt = jwr.WECreatedAt.Time
-			weModel.UpdatedAt = jwr.WEUpdatedAt.Time
+			if jwr.WEUpdatedAt.Valid { // Ensure UpdatedAt is handled correctly
+				weModel.UpdatedAt = jwr.WEUpdatedAt.Time
+			} else {
+				weModel.UpdatedAt = jwr.WECreatedAt.Time // Fallback if UpdatedAt is null in DB
+			}
 			if jwr.WEDeletedAt.Valid {
 				weModel.DeletedAt = &jwr.WEDeletedAt.Time
 			} else {

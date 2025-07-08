@@ -26,10 +26,19 @@ func NewWorkoutHandler(db *sql.DB) *WorkoutHandler {
 
 // --- Helper Functions (Adjusted for `model` structs) ---
 
+// toUintPtr converts an *int to an *uint. It returns nil if the input is nil.
+func toUintPtr(i *int) *uint {
+	if i == nil {
+		return nil
+	}
+	u := uint(*i) // Perform the conversion
+	return &u
+}
+
 // toWorkoutResponse converts a model.Workout entity to a dto.WorkoutResponse DTO.
 // It will need to fetch WorkoutExercises separately, as SQL won't load edges automatically.
 
-func toWorkoutResponse(w *model.Workout, workoutExercisesDTO []dto.WorkoutExerciseResponse) dto.WorkoutResponse { // <--- MODIFIED HERE
+func toWorkoutResponse(w *model.Workout, workoutExercisesDTO []dto.WorkoutExerciseResponse) dto.WorkoutResponse {
 	var deletedAt *time.Time
 	if w.DeletedAt != nil {
 		deletedAt = w.DeletedAt
@@ -78,21 +87,19 @@ func toWorkoutExerciseResponse(
 		ID:                 we.ID,
 		WorkoutID:          workoutID,
 		ExerciseID:         exerciseID,
-		ExerciseInstanceID: we.ExerciseInstanceID, // Already a pointer in model
-		WorkoutOrder:       we.WorkoutOrder,       // Already a pointer in model
-		Sets:               we.Sets,               // Already a pointer in model
-		Weight:             we.Weight,             // Already a pointer in model
-		Reps:               we.Reps,               // Already a pointer in model
-		CreatedAt:          we.CreatedAt,
-		UpdatedAt:          we.UpdatedAt,
-		DeletedAt:          deletedAt,
-		Exercise:           exerciseDTO,
-		ExerciseInstance:   instanceDTO,
+		ExerciseInstanceID: we.ExerciseInstanceID,
+		// FIX: Convert *int to *uint using the helper function
+		WorkoutOrder:     toUintPtr(we.WorkoutOrder),
+		Sets:             toUintPtr(we.Sets),
+		Weight:           we.Weight, // Weight is *float64 in both, so no change needed
+		Reps:             toUintPtr(we.Reps),
+		CreatedAt:        we.CreatedAt,
+		UpdatedAt:        we.UpdatedAt,
+		DeletedAt:        deletedAt,
+		Exercise:         exerciseDTO,
+		ExerciseInstance: instanceDTO,
 	}
 }
-
-// These helper functions should already be in your `handlers` package from previous refactors
-// but included here for completeness of context for this file.
 
 // toExerciseResponse converts a model.Exercise entity to a dto.ExerciseResponse DTO.
 func toExerciseResponse(ex *model.Exercise) dto.ExerciseResponse {
@@ -121,7 +128,7 @@ func toExerciseInstanceResponse(ei *model.ExerciseInstance) dto.ExerciseInstance
 
 	return dto.ExerciseInstanceResponse{
 		ID:           ei.ID,
-		WorkoutLogID: ei.WorkoutLogID, // This assumes WorkoutLogID is directly on model.ExerciseInstance, already a pointer
+		WorkoutLogID: ei.WorkoutLogID,
 		ExerciseID:   exerciseID,
 		CreatedAt:    ei.CreatedAt,
 		UpdatedAt:    ei.UpdatedAt,

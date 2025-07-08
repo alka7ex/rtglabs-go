@@ -3,12 +3,11 @@ package server
 import (
 	"net/http"
 
-	// "rtglabs-go/config/database" // No longer explicitly import database for NewEntClient() here
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
 	exercise_handler "rtglabs-go/internal/handlers/exercise"
 	workout_handler "rtglabs-go/internal/handlers/workout"
-	// workout_log_handler "rtglabs-go/internal/handlers/workout_log"
+	workout_log_handler "rtglabs-go/internal/handlers/workout_log"
 
 	"github.com/labstack/echo/v4"
 )
@@ -29,7 +28,7 @@ func (s *Server) registerPrivateRoutes() {
 	//
 	workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
 	//
-	// workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB) // Change to s.sqlDB
+	workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB) // Change to s.sqlDB
 
 	// FIX 1: Create the group from the server's Echo instance.
 	g := s.echo.Group("/api")
@@ -77,9 +76,9 @@ func (s *Server) registerPrivateRoutes() {
 	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
 	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
 	//
-	// g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
-	// g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
-	// g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
+	g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
+	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
+	g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
 	// g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
-	// g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
+	g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
 }

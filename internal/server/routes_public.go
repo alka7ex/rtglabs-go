@@ -6,7 +6,6 @@ import (
 	"rtglabs-go/cmd/web"
 	handlers "rtglabs-go/internal/handlers/auth" // Assuming handlers are now in 'internal/handlers/auth'
 
-	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 )
 
@@ -20,7 +19,7 @@ func (s *Server) registerPublicRoutes() {
 	s.echo.GET("/assets/*", echo.WrapHandler(fileServer))
 
 	// Web templ examples
-	s.echo.GET("/web", echo.WrapHandler(templ.Handler(web.HelloForm())))
+	// s.echo.GET("/web", echo.WrapHandler(templ.Handler(web.HelloForm())))
 	s.echo.POST("/hello", echo.WrapHandler(http.HandlerFunc(web.HelloWebHandler)))
 
 	// Health check and Hello World
@@ -35,4 +34,3 @@ func (s *Server) registerPublicRoutes() {
 	s.echo.POST("/api/forgot-password", forgotPasswordHandler.ForgotPassword)
 	s.echo.POST("/api/reset-password", forgotPasswordHandler.ResetPassword)
 }
-

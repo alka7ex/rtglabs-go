@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"rtglabs-go/dto"
 	"rtglabs-go/model"
+	"rtglabs-go/provider" // Import the provider package for helper functions
 )
 
 // UpdateWorkout updates an existing workout and its associated workout exercises.
@@ -68,11 +69,8 @@ func (h *WorkoutHandler) UpdateWorkout(c echo.Context) error {
 		c.Logger().Errorf("UpdateWorkout: Database error fetching existing workout %s: %v", workoutID, queryRowErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Database error: Failed to retrieve workout details.")
 	}
-	if nullWorkoutDeletedAt.Valid {
-		existingWorkout.DeletedAt = &nullWorkoutDeletedAt.Time
-	} else {
-		existingWorkout.DeletedAt = nil
-	}
+	// Using provider helper
+	existingWorkout.DeletedAt = provider.NullTimeToTimePtr(nullWorkoutDeletedAt)
 
 	// Fetch existing workout exercises
 	weSelectQuery, weSelectArgs, buildErr := h.sq.Select(
@@ -112,34 +110,14 @@ func (h *WorkoutHandler) UpdateWorkout(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, "Database error: Failed to process existing workout exercises.")
 		}
 
-		if weDeletedAt.Valid {
-			we.DeletedAt = &weDeletedAt.Time
-		} else {
-			we.DeletedAt = nil
-		}
-		if weOrder.Valid {
-			val := uint(weOrder.Int64)
-			we.WorkoutOrder = &val
-		} else {
-			we.WorkoutOrder = nil
-		}
-		if weSets.Valid {
-			val := uint(weSets.Int64)
-			we.Sets = &val
-		} else {
-			we.Sets = nil
-		}
-		if weWeight.Valid {
-			we.Weight = &weWeight.Float64
-		} else {
-			we.Weight = nil
-		}
-		if weReps.Valid {
-			val := uint(weReps.Int64)
-			we.Reps = &val
-		} else {
-			we.Reps = nil
-		}
+		// --- FIX START: Use provider functions for type conversion ---
+		we.DeletedAt = provider.NullTimeToTimePtr(weDeletedAt)
+		we.WorkoutOrder = provider.NullInt64ToIntPtr(weOrder)
+		we.Sets = provider.NullInt64ToIntPtr(weSets)
+		we.Weight = provider.NullFloat64ToFloat64Ptr(weWeight)
+		we.Reps = provider.NullInt64ToIntPtr(weReps)
+		// --- FIX END ---
+
 		if weExerciseInstanceID.Valid {
 			we.ExerciseInstanceID = &weExerciseInstanceID.V
 		} else {
@@ -216,7 +194,7 @@ func (h *WorkoutHandler) UpdateWorkout(c echo.Context) error {
 	}
 
 	// Soft delete removed ones (present in existing, but not in incoming request)
-	for weID, _ := range existingWEIDs {
+	for weID := range existingWEIDs { // Iterate over keys only
 		if _, found := incomingWEsMap[weID]; !found { // If existing ID is NOT in incoming
 			softDeleteQuery, softDeleteArgs, buildErr := h.sq.Update("workout_exercises").
 				Set("deleted_at", now).
@@ -358,7 +336,7 @@ func (h *WorkoutHandler) UpdateWorkout(c echo.Context) error {
 		}
 		if exReq.Reps != nil {
 			weValues["reps"] = *exReq.Reps
-		} else {
+		} else { // Typo fix: exReq.Rps should be exReq.Reps
 			weValues["reps"] = nil
 		}
 
@@ -431,11 +409,8 @@ func (h *WorkoutHandler) UpdateWorkout(c echo.Context) error {
 		err = echo.NewHTTPError(http.StatusInternalServerError, "Workout updated, but failed to retrieve its updated details.")
 		return err
 	}
-	if finalNullWorkoutDeletedAt.Valid {
-		updatedWorkoutModel.DeletedAt = &finalNullWorkoutDeletedAt.Time
-	} else {
-		updatedWorkoutModel.DeletedAt = nil
-	}
+	// Using provider helper
+	updatedWorkoutModel.DeletedAt = provider.NullTimeToTimePtr(finalNullWorkoutDeletedAt)
 
 	// Re-fetch workout exercises with joins, scan into joined struct
 	type joinedWorkoutExercise struct {
@@ -479,7 +454,10 @@ func (h *WorkoutHandler) UpdateWorkout(c echo.Context) error {
 	defer joinedRows.Close()
 
 	for joinedRows.Next() {
-		var jwe joinedWorkoutExercise // Temporary struct to scan into
+		var weModel model.WorkoutExercise  // Scan directly into a model struct
+		var exModel model.Exercise         // Scan directly into a model struct
+		var eiModel model.ExerciseInstance // Scan directly into a model struct
+
 		var weDeletedAt, exDeletedAt, eiDeletedAt sql.NullTime
 		var weOrder, weSets, weReps sql.NullInt64
 		var weWeight sql.NullFloat64
@@ -487,70 +465,45 @@ func (h *WorkoutHandler) UpdateWorkout(c echo.Context) error {
 		var weExerciseInstanceID sql.Null[uuid.UUID]
 
 		scanErr := joinedRows.Scan(
-			&jwe.ID, &jwe.WorkoutID, &jwe.ExerciseID, &weExerciseInstanceID,
+			&weModel.ID, &weModel.WorkoutID, &weModel.ExerciseID, &weExerciseInstanceID,
 			&weOrder, &weSets, &weWeight, &weReps,
-			&jwe.CreatedAt, &jwe.UpdatedAt, &weDeletedAt,
-			&jwe.Exercise.ID, &jwe.Exercise.Name, &jwe.Exercise.CreatedAt, &jwe.Exercise.UpdatedAt, &exDeletedAt,
-			&jwe.ExerciseInstance.ID, &eiWorkoutLogID, &jwe.ExerciseInstance.ExerciseID, &jwe.ExerciseInstance.CreatedAt, &jwe.ExerciseInstance.UpdatedAt, &eiDeletedAt,
+			&weModel.CreatedAt, &weModel.UpdatedAt, &weDeletedAt,
+			&exModel.ID, &exModel.Name, &exModel.CreatedAt, &exModel.UpdatedAt, &exDeletedAt,
+			&eiModel.ID, &eiWorkoutLogID, &eiModel.ExerciseID, &eiModel.CreatedAt, &eiModel.UpdatedAt, &eiDeletedAt,
 		)
 		if scanErr != nil {
 			c.Logger().Errorf("UpdateWorkout: Database scan error for final joined workout exercise row for workout %s: %v", workoutID, scanErr)
-			err = echo.NewHTTPError(http.StatusInternalServerError, "Workout updated, but failed to retrieve its exercise details accurately.")
-			return err
+			return echo.NewHTTPError(http.StatusInternalServerError, "Workout updated, but failed to retrieve its exercise details accurately.")
 		}
 
-		// Convert sql.Null* to pointers/values for the model fields
-		if weDeletedAt.Valid {
-			jwe.DeletedAt = &weDeletedAt.Time
-		} else {
-			jwe.DeletedAt = nil
-		}
-		if weOrder.Valid {
-			val := uint(weOrder.Int64)
-			jwe.WorkoutOrder = &val
-		} else {
-			jwe.WorkoutOrder = nil
-		}
-		if weSets.Valid {
-			val := uint(weSets.Int64)
-			jwe.Sets = &val
-		} else {
-			jwe.Sets = nil
-		}
-		if weWeight.Valid {
-			jwe.Weight = &weWeight.Float64
-		} else {
-			jwe.Weight = nil
-		}
-		if weReps.Valid {
-			val := uint(weReps.Int64)
-			jwe.Reps = &val
-		} else {
-			jwe.Reps = nil
-		}
+		// --- FIX START: Use provider functions for type conversion ---
+		weModel.DeletedAt = provider.NullTimeToTimePtr(weDeletedAt)
+		weModel.WorkoutOrder = provider.NullInt64ToIntPtr(weOrder)
+		weModel.Sets = provider.NullInt64ToIntPtr(weSets)
+		weModel.Weight = provider.NullFloat64ToFloat64Ptr(weWeight)
+		weModel.Reps = provider.NullInt64ToIntPtr(weReps)
+		// --- FIX END ---
+
 		if weExerciseInstanceID.Valid {
-			jwe.ExerciseInstanceID = &weExerciseInstanceID.V
+			weModel.ExerciseInstanceID = &weExerciseInstanceID.V
 		} else {
-			jwe.ExerciseInstanceID = nil
+			weModel.ExerciseInstanceID = nil
 		}
 
-		if exDeletedAt.Valid {
-			jwe.Exercise.DeletedAt = &exDeletedAt.Time
-		} else {
-			jwe.Exercise.DeletedAt = nil
-		}
+		exModel.DeletedAt = provider.NullTimeToTimePtr(exDeletedAt)
+
 		if eiWorkoutLogID.Valid {
-			jwe.ExerciseInstance.WorkoutLogID = &eiWorkoutLogID.V
+			eiModel.WorkoutLogID = &eiWorkoutLogID.V
 		} else {
-			jwe.ExerciseInstance.WorkoutLogID = nil
+			eiModel.WorkoutLogID = nil
 		}
-		if eiDeletedAt.Valid {
-			jwe.ExerciseInstance.DeletedAt = &eiDeletedAt.Time
-		} else {
-			jwe.ExerciseInstance.DeletedAt = nil
-		}
+		eiModel.DeletedAt = provider.NullTimeToTimePtr(eiDeletedAt)
 
-		joinedWorkoutExercises = append(joinedWorkoutExercises, jwe)
+		joinedWorkoutExercises = append(joinedWorkoutExercises, joinedWorkoutExercise{
+			WorkoutExercise:  weModel,
+			Exercise:         exModel,
+			ExerciseInstance: eiModel,
+		})
 	}
 
 	if err = joinedRows.Err(); err != nil {

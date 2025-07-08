@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"unsafe" // Consider removing unsafe if possible with different pointer casting or explicit type conversions
+	// "unsafe" // This import will be removed as it's no longer needed
 
 	"rtglabs-go/dto"
 	"rtglabs-go/model"
+	"rtglabs-go/provider" // Import the provider package for helper functions
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -272,19 +273,23 @@ func (h *WorkoutHandler) StoreWorkout(c echo.Context) error {
 	defer joinedRows.Close()
 
 	for joinedRows.Next() {
-		var jwe joinedWorkoutExercise
+		var jwe model.WorkoutExercise // Scan directly into the model struct where possible
 		var weDeletedAt, exDeletedAt, eiDeletedAt sql.NullTime
 		var weOrder, weSets, weReps sql.NullInt64
 		var weWeight sql.NullFloat64
 		var eiWorkoutLogID sql.Null[uuid.UUID]
 		var weExerciseInstanceID sql.Null[uuid.UUID]
 
+		// Separate Exercise and ExerciseInstance models for scanning
+		var exModel model.Exercise
+		var eiModel model.ExerciseInstance
+
 		scanErr := joinedRows.Scan(
 			&jwe.ID, &jwe.WorkoutID, &jwe.ExerciseID, &weExerciseInstanceID,
 			&weOrder, &weSets, &weWeight, &weReps,
 			&jwe.CreatedAt, &jwe.UpdatedAt, &weDeletedAt,
-			&jwe.Exercise.ID, &jwe.Exercise.Name, &jwe.Exercise.CreatedAt, &jwe.Exercise.UpdatedAt, &exDeletedAt,
-			&jwe.ExerciseInstance.ID, &eiWorkoutLogID, &jwe.ExerciseInstance.ExerciseID, &jwe.ExerciseInstance.CreatedAt, &jwe.ExerciseInstance.UpdatedAt, &eiDeletedAt,
+			&exModel.ID, &exModel.Name, &exModel.CreatedAt, &exModel.UpdatedAt, &exDeletedAt,
+			&eiModel.ID, &eiWorkoutLogID, &eiModel.ExerciseID, &eiModel.CreatedAt, &eiModel.UpdatedAt, &eiDeletedAt,
 		)
 		if scanErr != nil {
 			c.Logger().Errorf("StoreWorkout: Failed to scan joined workout exercise row: %v", scanErr)
@@ -292,57 +297,36 @@ func (h *WorkoutHandler) StoreWorkout(c echo.Context) error {
 			return err
 		}
 
-		// Map nullable values to pointers in model structs
-		if weDeletedAt.Valid {
-			jwe.DeletedAt = &weDeletedAt.Time
-		} else {
-			jwe.DeletedAt = nil
-		}
-		if weOrder.Valid {
-			// UNSAFE: Reconsider this conversion. A safer way is to use a direct uint64 field
-			// in your model and cast it, or handle it as an int64 and then convert safely.
-			jwe.WorkoutOrder = (*uint)(unsafe.Pointer(&weOrder.Int64))
-		} else {
-			jwe.WorkoutOrder = nil
-		}
-		if weSets.Valid {
-			jwe.Sets = (*uint)(unsafe.Pointer(&weSets.Int64))
-		} else {
-			jwe.Sets = nil
-		}
-		if weWeight.Valid {
-			jwe.Weight = &weWeight.Float64
-		} else {
-			jwe.Weight = nil
-		}
-		if weReps.Valid {
-			jwe.Reps = (*uint)(unsafe.Pointer(&weReps.Int64))
-		} else {
-			jwe.Reps = nil
-		}
+		// Map nullable values to pointers in model structs using provider helpers
+		jwe.DeletedAt = provider.NullTimeToTimePtr(weDeletedAt)
+		jwe.WorkoutOrder = provider.NullInt64ToIntPtr(weOrder)
+		jwe.Sets = provider.NullInt64ToIntPtr(weSets)
+		jwe.Weight = provider.NullFloat64ToFloat64Ptr(weWeight)
+		jwe.Reps = provider.NullInt64ToIntPtr(weReps)
+
 		if weExerciseInstanceID.Valid {
 			jwe.ExerciseInstanceID = &weExerciseInstanceID.V
 		} else {
 			jwe.ExerciseInstanceID = nil
 		}
 
-		if exDeletedAt.Valid {
-			jwe.Exercise.DeletedAt = &exDeletedAt.Time
-		} else {
-			jwe.Exercise.DeletedAt = nil
-		}
-		if eiWorkoutLogID.Valid {
-			jwe.ExerciseInstance.WorkoutLogID = &eiWorkoutLogID.V
-		} else {
-			jwe.ExerciseInstance.WorkoutLogID = nil
-		}
-		if eiDeletedAt.Valid {
-			jwe.ExerciseInstance.DeletedAt = &eiDeletedAt.Time
-		} else {
-			jwe.ExerciseInstance.DeletedAt = nil
-		}
+		// Handle nullable fields for Exercise model
+		exModel.DeletedAt = provider.NullTimeToTimePtr(exDeletedAt)
 
-		joinedWorkoutExercises = append(joinedWorkoutExercises, jwe)
+		// Handle nullable fields for ExerciseInstance model
+		if eiWorkoutLogID.Valid {
+			eiModel.WorkoutLogID = &eiWorkoutLogID.V
+		} else {
+			eiModel.WorkoutLogID = nil
+		}
+		eiModel.DeletedAt = provider.NullTimeToTimePtr(eiDeletedAt)
+
+		// Append the fully populated models to a temporary structure for DTO conversion
+		joinedWorkoutExercises = append(joinedWorkoutExercises, joinedWorkoutExercise{
+			WorkoutExercise:  jwe,
+			Exercise:         exModel,
+			ExerciseInstance: eiModel,
+		})
 	}
 
 	if err = joinedRows.Err(); err != nil {
