@@ -6,15 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	// !!! IMPORTANT: Add this import for PostgreSQL array support !!!
 	"github.com/lib/pq"
-	// Assuming rtglabs-go/provider has NullFloat64ToFloat64, NullInt64ToInt, NullTimeToTimePtr if you use them here
 )
 
-// ... (existing WorkoutLogHandler struct, StoreWorkoutLog, GetWorkoutLog functions)
-
-// DestroyWorkoutLog performs a soft delete on a workout log and its associated
-// logged exercise instances and exercise sets.
 func (h *WorkoutLogHandler) DestroyWorkoutLog(c echo.Context) error {
 	workoutLogIDStr := c.Param("id")
 	workoutLogID, err := uuid.Parse(workoutLogIDStr)
@@ -167,4 +161,3 @@ func (h *WorkoutLogHandler) DestroyWorkoutLog(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Workout log and associated data soft-deleted successfully"})
 }
-

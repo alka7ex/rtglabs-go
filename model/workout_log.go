@@ -27,6 +27,13 @@ type WorkoutLog struct {
 	DeletedAt                  *time.Time `db:"deleted_at" json:"deletedAt,omitempty"` // For soft deletes, nullable
 }
 
+const (
+	WorkoutLogStatusInProgress = 0
+	WorkoutLogStatusCompleted  = 1
+	WorkoutLogStatusPaused     = 2
+	// Add other statuses if needed
+)
+
 // NOTE ON EDGES (Relationships):
 // - The 1:1 relationships with User and Workout (via UserID and WorkoutID foreign keys) are explained above.
 // - The `edge.To` relations (to ExerciseSet, ExerciseInstance) mean that:

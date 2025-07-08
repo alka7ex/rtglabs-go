@@ -79,6 +79,6 @@ func (s *Server) registerPrivateRoutes() {
 	g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
 	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
 	g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
-	// g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
+	g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
 	g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
 }

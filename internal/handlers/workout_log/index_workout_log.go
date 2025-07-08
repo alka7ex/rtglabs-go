@@ -13,22 +13,6 @@ import (
 	"rtglabs-go/provider" // For NullUUID and NullTimeToTimePtr, etc.
 )
 
-// IndexWorkoutLog retrieves a paginated list of workout logs for a specific user, with optional filtering.
-// @Summary List workout logs
-// @Description Get a paginated list of workout logs with optional filters.
-// @Tags WorkoutLogs
-// @Accept json
-// @Produce json
-// @Param page query int false "Page number" default(1)
-// @Param limit query int false "Number of items per page" default(15)
-// @Param sort_by query string false "Field to sort by (e.g., created_at, started_at, status)"
-// @Param order query string false "Sort order (asc or desc)"
-// @Param workout_id query string false "Filter by workout template ID" format(uuid)
-// @Param status query int false "Filter by workout log status"
-// @Success 200 {object} dto.ListWorkoutLogResponse "Successfully retrieved workout logs"
-// @Failure 400 {object} map[string]string "Bad request if query parameters are invalid"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /workout-logs [get]
 func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	userID, ok := c.Get("user_id").(uuid.UUID)
 	if !ok {
@@ -80,7 +64,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	}
 
 	// --- 1. Count Total Workout Logs ---
-	countBuilder := h.sq.Select("COUNT(DISTINCT wl.id)").From("workout_logs AS wl").Where(baseWhere) // COUNT(DISTINCT wl.id) for accurate count with joins
+	countBuilder := h.sq.Select("COUNT(DISTINCT wl.id)").From("workout_logs AS wl").Where(baseWhere)
 	countQuery, countArgs, err := countBuilder.ToSql()
 	if err != nil {
 		c.Logger().Errorf("IndexWorkoutLog: Failed to build count query: %v", err)
@@ -214,7 +198,8 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 
 	// Map to reconstruct the nested structure: WorkoutLog -> ExerciseInstanceLog -> ExerciseSet
 	workoutLogsMap := make(map[uuid.UUID]*dto.WorkoutLogResponse)
-	loggedExerciseInstancesMap := make(map[uuid.UUID]*dto.LoggedExerciseInstanceLog) // Map for lei to ensure uniqueness
+	// No need for a separate map for loggedExerciseInstancesMap in this structure
+	// We will create/retrieve it directly from workoutLogsMap entry's slice.
 
 	for rows.Next() {
 		var jwlr joinedWorkoutLogResult
@@ -259,21 +244,25 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 			workoutLogDTO.FinishedAt = provider.NullTimeToTimePtr(jwlr.FinishedAt)
 			workoutLogDTO.DeletedAt = provider.NullTimeToTimePtr(jwlr.DeletedAt)
 
+			// Handle WorkoutID (non-nullable UUID in DTO)
+			if jwlr.WorkoutID.Valid {
+				workoutLogDTO.WorkoutID = jwlr.WorkoutID.UUID
+			} else {
+				workoutLogDTO.WorkoutID = uuid.Nil // Assign zero UUID if DB value is NULL
+			}
+
 			// Handle nested Workout DTO
 			if jwlr.WID.Valid { // Check if workout was joined successfully
-				workoutLogDTO.WorkoutID = jwlr.WID.UUID // Assign concrete UUID
 				workoutLogDTO.Workout = dto.WorkoutResponse{
 					ID:        jwlr.WID.UUID,
-					UserID:    jwlr.WUserID.UUID, // Assuming it exists if WID is valid
+					UserID:    jwlr.WUserID.UUID, // Assuming WUserID is valid if WID is valid
 					Name:      jwlr.WName.String,
 					CreatedAt: jwlr.WCreatedAt.Time,
 					UpdatedAt: jwlr.WUpdatedAt.Time,
 					DeletedAt: provider.NullTimeToTimePtr(jwlr.WDeletedAt),
 				}
 			} else {
-				// If no workout is associated (WorkoutID is NULL or no join match),
-				// set WorkoutID to uuid.Nil and Workout to its zero value.
-				workoutLogDTO.WorkoutID = uuid.Nil
+				// If no workout is associated, set Workout to its zero value.
 				workoutLogDTO.Workout = dto.WorkoutResponse{}
 			}
 
@@ -283,22 +272,31 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		// If there's a LoggedExerciseInstance for this row (LEFT JOIN might return NULLs)
 		if jwlr.LEIID.Valid {
 			leiUUID := jwlr.LEIID.UUID
-			// Find the existing ExerciseInstanceLog DTO within the current workoutLogDTO
-			eiDTO, existsLei := loggedExerciseInstancesMap[leiUUID] // Use a separate map for LEIs across all workout logs
-			if !existsLei {                                         // If not found, create a new one
-				eiDTO = &dto.LoggedExerciseInstanceLog{
+			// Find or create the LoggedExerciseInstance within the workoutLogDTO's slice
+			var leiDTO *dto.LoggedExerciseInstanceLog
+			foundLei := false
+			for i := range workoutLogDTO.LoggedExerciseInstances {
+				if workoutLogDTO.LoggedExerciseInstances[i].ID == leiUUID {
+					leiDTO = &workoutLogDTO.LoggedExerciseInstances[i]
+					foundLei = true
+					break
+				}
+			}
+
+			if !foundLei { // If not found, create a new one and append
+				newLei := dto.LoggedExerciseInstanceLog{
 					ID:           leiUUID,
 					WorkoutLogID: jwlr.LEIWorkoutLogID.UUID,
 					ExerciseID:   jwlr.LEIExerciseID.UUID,
-					CreatedAt:    jwlr.LEICreatedAt.Time,
-					UpdatedAt:    jwlr.LEIUpdatedAt.Time,
+					CreatedAt:    jwlr.LEICreatedAt.Time, // Direct .Time access
+					UpdatedAt:    jwlr.LEIUpdatedAt.Time, // Direct .Time access
 					DeletedAt:    provider.NullTimeToTimePtr(jwlr.LEIDeletedAt),
 					ExerciseSets: []dto.ExerciseSetResponse{}, // Initialize slice
 				}
 
 				// Populate Exercise field
 				if jwlr.ExID.Valid {
-					eiDTO.Exercise = dto.ExerciseResponse{
+					newLei.Exercise = dto.ExerciseResponse{
 						ID:        jwlr.ExID.UUID,
 						Name:      jwlr.ExName.String,
 						CreatedAt: jwlr.ExCreatedAt.Time,
@@ -306,29 +304,30 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 						DeletedAt: provider.NullTimeToTimePtr(jwlr.ExDeletedAt),
 					}
 				}
-
-				workoutLogDTO.LoggedExerciseInstances = append(workoutLogDTO.LoggedExerciseInstances, *eiDTO)
-				loggedExerciseInstancesMap[leiUUID] = eiDTO // Store in map for subsequent sets
+				workoutLogDTO.LoggedExerciseInstances = append(workoutLogDTO.LoggedExerciseInstances, newLei)
+				// Get a pointer to the newly appended element for further modification
+				leiDTO = &workoutLogDTO.LoggedExerciseInstances[len(workoutLogDTO.LoggedExerciseInstances)-1]
 			}
 
 			// If there's an ExerciseSet for this row (LEFT JOIN might return NULLs)
 			if jwlr.ESID.Valid {
 				esDTO := dto.ExerciseSetResponse{
-					ID:           jwlr.ESID.UUID,
-					WorkoutLogID: jwlr.ESWorkoutLogID.UUID,
-					ExerciseID:   jwlr.ESExerciseID.UUID,
-					SetNumber:    int(jwlr.ESSetNumber.Int64),
-					Status:       int(jwlr.ESStatus.Int64),
-					CreatedAt:    jwlr.ESCreatedAt.Time,
-					UpdatedAt:    jwlr.ESUpdatedAt.Time,
+					ID:                       jwlr.ESID.UUID,
+					WorkoutLogID:             jwlr.ESWorkoutLogID.UUID,
+					ExerciseID:               jwlr.ESExerciseID.UUID,
+					LoggedExerciseInstanceID: jwlr.ESLoggedExerciseInstanceID.UUID,
+					Status:                   provider.NullInt64ToInt(jwlr.ESStatus), // Non-nullable int
+					CreatedAt:                jwlr.ESCreatedAt.Time,                  // Direct .Time access
+					UpdatedAt:                jwlr.ESUpdatedAt.Time,                  // Direct .Time access
 				}
-				// Handle nullable fields from DB scan results
-				esDTO.Weight = provider.NullFloat64ToFloat64(jwlr.ESWeight)
-				esDTO.Reps = provider.NullInt64ToInt(jwlr.ESReps)
+				// Handle nullable fields from DB scan results, converting to *int
+				esDTO.SetNumber = provider.NullInt64ToIntPtr(jwlr.ESSetNumber)
+				esDTO.Reps = provider.NullInt64ToIntPtr(jwlr.ESReps)
+				esDTO.Weight = provider.NullFloat64ToFloat64(jwlr.ESWeight) // Non-nullable float64
 				esDTO.FinishedAt = provider.NullTimeToTimePtr(jwlr.ESFinishedAt)
 				esDTO.DeletedAt = provider.NullTimeToTimePtr(jwlr.ESDeletedAt)
 
-				eiDTO.ExerciseSets = append(eiDTO.ExerciseSets, esDTO)
+				leiDTO.ExerciseSets = append(leiDTO.ExerciseSets, esDTO)
 			}
 		}
 	}

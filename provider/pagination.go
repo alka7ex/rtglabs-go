@@ -2,9 +2,11 @@ package provider
 
 import (
 	"fmt"
-	"math" // Needed for math.Ceil
+	"math"
 	"net/url"
+	"os"
 	"strconv"
+	"strings"
 )
 
 // Link represents a single pagination link.
@@ -31,15 +33,25 @@ type PaginationResponse struct {
 }
 
 // GeneratePaginationData generates the pagination response for a list.
-// `baseURL` should be the full base URL including scheme and host (e.g., "http://localhost:8000/api/workouts")
-func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryParams url.Values) PaginationResponse {
+//
+// `path` should be a relative API path, e.g., "/api/exercise"
+// This function will prepend APP_BASE_URL to it.
+func GeneratePaginationData(totalCount, page, limit int, path string, queryParams url.Values) PaginationResponse {
+	appBaseURL := os.Getenv("APP_BASE_URL") // e.g., https://api2.rtglabs.net
+	if appBaseURL == "" {
+		appBaseURL = "http://localhost:8080" // Fallback
+	}
+
+	// Clean up slashes to avoid malformed URLs
+	baseURL := strings.TrimRight(appBaseURL, "/") + "/" + strings.TrimLeft(path, "/")
+
 	// Calculate last page
 	lastPage := int(math.Ceil(float64(totalCount) / float64(limit)))
 	if lastPage == 0 && totalCount == 0 {
 		lastPage = 1 // Laravel-like: if total is 0, there's still 1 page
 	}
 
-	// Ensure page is within valid bounds after calculating lastPage
+	// Ensure page is within bounds
 	if page < 1 {
 		page = 1
 	}
@@ -50,26 +62,22 @@ func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryPa
 	// Helper to build a full URL for a given page, returning *string (nullable)
 	buildPageURL := func(p int) *string {
 		if p < 1 || p > lastPage {
-			return nil // Return nil if page is out of bounds
+			return nil
 		}
 		q := make(url.Values)
 		for k, v := range queryParams {
-			// Don't include 'page' and 'limit' from existing queryParams,
-			// as they will be explicitly set. Other filters should be carried over.
 			if k != "page" && k != "limit" {
 				q[k] = v
 			}
 		}
 		q.Set("page", strconv.Itoa(p))
-		q.Set("limit", strconv.Itoa(limit)) // Ensure limit is always in the URL
+		q.Set("limit", strconv.Itoa(limit))
 
-		// Construct the URL without the baseURL's path, then add query
-		// If baseURL already contains the path, just append query
 		fullURL := fmt.Sprintf("%s?%s", baseURL, q.Encode())
 		return &fullURL
 	}
 
-	// --- Calculate From and To (Pointers for nullability) ---
+	// --- Calculate From and To ---
 	var from, to *int
 	if totalCount > 0 {
 		tempFrom := (page-1)*limit + 1
@@ -80,12 +88,11 @@ func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryPa
 		from = &tempFrom
 		to = &tempTo
 	}
-	// If totalCount is 0, from and to remain nil, which serializes to null.
 
 	// --- Generate Links ---
 	links := make([]Link, 0)
 
-	// Add "Previous" link
+	// Previous
 	prevPageURL := buildPageURL(page - 1)
 	links = append(links, Link{
 		URL:    prevPageURL,
@@ -93,39 +100,32 @@ func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryPa
 		Active: false,
 	})
 
-	// Add individual page links
-	// Laravel usually shows a limited set of page numbers, e.g., current, 2 before, 2 after.
-	// For exact Laravel replica, this logic can be more complex (ellipsis, etc.).
-	// For now, let's show all pages or a reasonable subset (e.g., up to 5 surrounding pages).
-	// Let's implement a basic range: show current page, and 2 pages before/after if available.
+	// Pages
 	startPage := int(math.Max(1, float64(page-2)))
 	endPage := int(math.Min(float64(lastPage), float64(page+2)))
 
-	// Adjust range if it's too small at the ends
-	if endPage-startPage+1 < 5 { // If fewer than 5 pages in current window
-		if startPage == 1 { // If at the beginning, expand end
+	if endPage-startPage+1 < 5 {
+		if startPage == 1 {
 			endPage = int(math.Min(float64(lastPage), float64(startPage+4)))
-		} else if endPage == lastPage { // If at the end, expand start
+		} else if endPage == lastPage {
 			startPage = int(math.Max(1, float64(endPage-4)))
 		}
 	}
 
-	// Always show at least page 1 and last page if they are outside the range
 	pagesToShow := make(map[int]bool)
-	if lastPage > 0 { // Ensure lastPage is at least 1
+	if lastPage > 0 {
 		for i := startPage; i <= endPage; i++ {
 			pagesToShow[i] = true
 		}
-		pagesToShow[1] = true        // Always include page 1
-		pagesToShow[lastPage] = true // Always include last page
+		pagesToShow[1] = true
+		pagesToShow[lastPage] = true
 	}
 
-	// Sort the pages to display
+	// Sort pages
 	var sortedPages []int
 	for p := range pagesToShow {
 		sortedPages = append(sortedPages, p)
 	}
-	// Sort them numerically
 	for i := 0; i < len(sortedPages)-1; i++ {
 		for j := i + 1; j < len(sortedPages); j++ {
 			if sortedPages[i] > sortedPages[j] {
@@ -134,10 +134,9 @@ func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryPa
 		}
 	}
 
-	// Add page links, including ellipsis logic if desired (simplified for now)
 	lastAddedPage := 0
 	for _, p := range sortedPages {
-		if p > lastAddedPage+1 { // Add ellipsis if there's a gap
+		if p > lastAddedPage+1 {
 			links = append(links, Link{URL: nil, Label: "...", Active: false})
 		}
 		links = append(links, Link{
@@ -148,7 +147,7 @@ func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryPa
 		lastAddedPage = p
 	}
 
-	// Add "Next" link
+	// Next
 	nextPageURL := buildPageURL(page + 1)
 	links = append(links, Link{
 		URL:    nextPageURL,
@@ -156,7 +155,7 @@ func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryPa
 		Active: false,
 	})
 
-	// Set FirstPageURL and LastPageURL
+	// First and Last
 	firstPageURL := buildPageURL(1)
 	lastPageURL := buildPageURL(lastPage)
 
@@ -168,7 +167,7 @@ func GeneratePaginationData(totalCount, page, limit int, baseURL string, queryPa
 		LastPageURL:  lastPageURL,
 		Links:        links,
 		NextPageURL:  nextPageURL,
-		Path:         baseURL, // Path is the base URL without query params
+		Path:         baseURL, // full path with host
 		PerPage:      limit,
 		PrevPageURL:  prevPageURL,
 		To:           to,

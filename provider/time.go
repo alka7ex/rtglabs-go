@@ -56,4 +56,19 @@ func NullInt64ToInt(ni sql.NullInt64) int {
 	return 0 // Or return a default value like 0, or use a pointer for nullability
 }
 
-// ... potentially other helper functions
+// IntPtrToInt converts an *int to int, returning a defaultValue if the pointer is nil.
+func IntPtrToInt(p *int, defaultValue int) int {
+	if p != nil {
+		return *p
+	}
+	return defaultValue
+}
+
+// Float64PtrToFloat64 converts an *float64 to float64, returning a defaultValue if the pointer is nil.
+func Float64PtrToFloat64(p *float64, defaultValue float64) float64 {
+	if p != nil {
+		return *p
+	}
+	return defaultValue
+}
+

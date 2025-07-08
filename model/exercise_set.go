@@ -20,3 +20,10 @@ type ExerciseSet struct {
 	UpdatedAt                time.Time  `db:"updated_at"`
 	DeletedAt                *time.Time `db:"deleted_at"` // Nullable
 }
+
+const (
+	ExerciseSetStatusPending   = 0
+	ExerciseSetStatusCompleted = 1
+	// Add other statuses if needed
+)
+

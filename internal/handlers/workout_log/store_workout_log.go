@@ -3,13 +3,13 @@ package handler
 import (
 	"database/sql"
 	"net/http"
-	"rtglabs-go/dto"
-	"rtglabs-go/model"
-	"rtglabs-go/provider" // Ensure this is imported for helper functions like NullTimeToTimePtr
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"rtglabs-go/dto"
+	"rtglabs-go/model"
+	"rtglabs-go/provider"
 )
 
 func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
@@ -30,19 +30,17 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	tx, err := h.DB.BeginTx(ctx, nil) // Start a transaction for atomicity
+	tx, err := h.DB.BeginTx(ctx, nil)
 	if err != nil {
 		c.Logger().Errorf("StoreWorkoutLog: Failed to begin transaction: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create workout log")
 	}
-	// IMPORTANT: Named return parameter 'err' is crucial for this defer to work correctly
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
 			c.Logger().Errorf("StoreWorkoutLog: Recovered from panic during transaction, rolled back: %v", r)
 			c.JSON(http.StatusInternalServerError, map[string]string{"message": "An unexpected error occurred."})
-			// panic(r) // Re-panic if you want to crash the application
-		} else if err != nil { // This 'err' is the named return variable for the function
+		} else if err != nil { // This 'err' is the named return variable
 			tx.Rollback()
 			c.Logger().Errorf("StoreWorkoutLog: Transaction rolled back due to error: %v", err)
 		}
@@ -51,16 +49,15 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 	now := time.Now().UTC()
 
 	// 1. Fetch the workout template and its associated workout exercises
-	var workoutTemplate model.Workout // This is the variable that caused the "unused" warning
 	workoutExercises := make([]model.WorkoutExercise, 0)
 	exercisesMap := make(map[uuid.UUID]model.Exercise) // To store exercise details for efficiency
 
-	// Fetch Workout Template and its WorkoutExercises, along with Exercise details
+	// The query remains the same as it correctly fetches all necessary joined data
 	query := `
 		SELECT
 			w.id, w.user_id, w.name, w.created_at, w.updated_at, w.deleted_at,
 			we.id AS we_id, we.workout_id AS we_workout_id, we.exercise_id AS we_exercise_id,
-			we.exercise_instance_id AS we_exercise_instance_id, -- Keep this for template reference
+			we.exercise_instance_id AS we_exercise_instance_id,
 			we.workout_order, we.sets, we.weight, we.reps, we.created_at AS we_created_at, we.updated_at AS we_updated_at, we.deleted_at AS we_deleted_at,
 			e.id AS e_id, e.name AS e_name, e.created_at AS e_created_at, e.updated_at AS e_updated_at, e.deleted_at AS e_deleted_at
 		FROM workouts AS w
@@ -77,7 +74,17 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	workoutFetched := false
+	// Use temporary variables to capture the main workout template details from the first row
+	var (
+		workoutTemplateID           uuid.UUID
+		workoutTemplateUserID       uuid.UUID
+		workoutTemplateName         sql.NullString
+		workoutTemplateCreatedAt    time.Time
+		workoutTemplateUpdatedAt    time.Time
+		workoutTemplateDeletedAt    sql.NullTime
+		foundWorkoutTemplateDetails bool // Flag to ensure we populate workout details only once
+	)
+
 	for rows.Next() {
 		var (
 			wID, wUserID                       uuid.UUID
@@ -107,19 +114,17 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 			return err
 		}
 
-		// This populates `workoutTemplate` which will be used later
-		if !workoutFetched {
-			workoutTemplate = model.Workout{
-				ID:        wID,
-				UserID:    wUserID,
-				Name:      wName.String,
-				CreatedAt: wCreatedAt.Time,
-				UpdatedAt: wUpdatedAt.Time,
-				DeletedAt: provider.NullTimeToTimePtr(wDeletedAt),
-			}
-			workoutFetched = true
+		if !foundWorkoutTemplateDetails { // Store main workout details only once
+			workoutTemplateID = wID
+			workoutTemplateUserID = wUserID
+			workoutTemplateName = wName
+			workoutTemplateCreatedAt = wCreatedAt.Time
+			workoutTemplateUpdatedAt = wUpdatedAt.Time
+			workoutTemplateDeletedAt = wDeletedAt
+			foundWorkoutTemplateDetails = true
 		}
 
+		// Process workout exercises from the template
 		if weID.Valid {
 			we := model.WorkoutExercise{
 				ID:           weID.V,
@@ -127,7 +132,7 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 				ExerciseID:   weExerciseID.V,
 				WorkoutOrder: provider.NullInt64ToIntPtr(weWorkoutOrder),
 				Sets:         provider.NullInt64ToIntPtr(weSets),
-				Weight:       provider.NullFloat64ToFloat64Ptr(weWeight),
+				Weight:       provider.NullFloat64ToFloat64Ptr(weWeight), // Correct for model if it's *float64
 				Reps:         provider.NullInt64ToIntPtr(weReps),
 				CreatedAt:    weCreatedAt.Time,
 				UpdatedAt:    weUpdatedAt.Time,
@@ -139,6 +144,7 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 			workoutExercises = append(workoutExercises, we)
 		}
 
+		// Populate exercises map
 		if eID.Valid {
 			exercisesMap[eID.V] = model.Exercise{
 				ID:        eID.V,
@@ -155,18 +161,19 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process workout template data")
 	}
 
-	if !workoutFetched {
+	if !foundWorkoutTemplateDetails { // Check if any workout was found
 		return echo.NewHTTPError(http.StatusBadRequest, "Workout template not found or not accessible")
 	}
 
 	// 2. Create the new WorkoutLog entry
 	newWorkoutLogID := uuid.New()
 	workoutLog := model.WorkoutLog{
-		ID:                         newWorkoutLogID,
-		WorkoutID:                  &req.WorkoutID, // Link to the template workout
-		UserID:                     userID,
-		StartedAt:                  &now, // Set to current time as it's "created successfully"
-		Status:                     0,    // e.g., 0 for "Planned" or "Active"
+		ID:        newWorkoutLogID,
+		WorkoutID: &req.WorkoutID, // req.WorkoutID is uuid.UUID, so &req.WorkoutID gives *uuid.UUID
+		UserID:    userID,
+		StartedAt: &now, // Set to current time as it's "created successfully"
+		Status:    0,    // e.g., 0 for "Planned" or "Active"
+		// DTO fields TotalActiveDurationSeconds and TotalPauseDurationSeconds are uint, model uses uint as well
 		TotalActiveDurationSeconds: 0,
 		TotalPauseDurationSeconds:  0,
 		CreatedAt:                  now,
@@ -204,9 +211,10 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 		loggedInstance := model.LoggedExerciseInstance{
 			ID:           newLoggedExerciseInstanceID,
 			WorkoutLogID: newWorkoutLogID,
-			ExerciseID:   we.ExerciseID, // Use the base exercise ID from workout_exercises
+			ExerciseID:   we.ExerciseID,
 			CreatedAt:    now,
 			UpdatedAt:    now,
+			DeletedAt:    nil, // Explicitly set to nil for a new record
 		}
 		loggedExerciseInstances = append(loggedExerciseInstances, loggedInstance)
 	}
@@ -246,7 +254,7 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 		if we, found := workoutExerciseMapByExerciseID[lei.ExerciseID]; found {
 			numSets := 0
 			if we.Sets != nil {
-				numSets = int(*we.Sets)
+				numSets = *we.Sets // Dereference *int to get the int value
 			}
 
 			for i := 1; i <= numSets; i++ {
@@ -256,11 +264,11 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 					WorkoutLogID:             lei.WorkoutLogID,
 					ExerciseID:               lei.ExerciseID,
 					LoggedExerciseInstanceID: lei.ID,
-					SetNumber:                i,
+					SetNumber:                i, // Assign address of i for *int
 					Weight:                   we.Weight,
 					Reps:                     we.Reps,
 					FinishedAt:               nil,
-					Status:                   0, // Pending/Not Started
+					Status:                   0, // Pending/Not Started (int, not *int)
 					CreatedAt:                now,
 					UpdatedAt:                now,
 					DeletedAt:                nil,
@@ -297,18 +305,19 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 	}
 
 	// Commit the transaction
-	if err = tx.Commit(); err != nil { // Assign to 'err' for the defer to catch it
+	if err = tx.Commit(); err != nil {
 		c.Logger().Errorf("StoreWorkoutLog: Failed to commit transaction: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to finalize workout log creation")
 	}
 
 	// --- FINAL STEP: Fetch the complete Workout Log with all its nested data for the response ---
-	// This query will join workout_logs -> logged_exercise_instances -> exercises -> exercise_sets
+	// The query remains the same, as it's designed to fetch the full nested structure.
 	finalQuery := `
 		SELECT
 			wl.id, wl.workout_id, wl.user_id, wl.started_at, wl.finished_at, wl.status,
 			wl.total_active_duration_seconds, wl.total_pause_duration_seconds,
 			wl.created_at, wl.updated_at, wl.deleted_at,
+			w.id AS w_id, w.user_id AS w_user_id, w.name AS w_name, w.created_at AS w_created_at, w.updated_at AS w_updated_at, w.deleted_at AS w_deleted_at,
 			lei.id AS lei_id, lei.workout_log_id AS lei_workout_log_id, lei.exercise_id AS lei_exercise_id,
 			lei.created_at AS lei_created_at, lei.updated_at AS lei_updated_at, lei.deleted_at AS lei_deleted_at,
 			e.id AS e_id, e.name AS e_name, e.created_at AS e_created_at, e.updated_at AS e_updated_at, e.deleted_at AS e_deleted_at,
@@ -316,6 +325,7 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 			es.logged_exercise_instance_id AS es_lei_id, es.set_number, es.weight, es.reps,
 			es.finished_at AS es_finished_at, es.status AS es_status, es.created_at AS es_created_at, es.updated_at AS es_updated_at, es.deleted_at AS es_deleted_at
 		FROM workout_logs AS wl
+		LEFT JOIN workouts AS w ON wl.workout_id = w.id
 		LEFT JOIN logged_exercise_instances AS lei ON wl.id = lei.workout_log_id AND lei.deleted_at IS NULL
 		LEFT JOIN exercises AS e ON lei.exercise_id = e.id AND e.deleted_at IS NULL
 		LEFT JOIN exercise_sets AS es ON lei.id = es.logged_exercise_instance_id AND es.deleted_at IS NULL
@@ -330,19 +340,26 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 	defer finalRows.Close()
 
 	var finalWorkoutLog dto.WorkoutLogResponse
-	var currentWorkoutLog *model.WorkoutLog
-	loggedExerciseInstanceMap := make(map[uuid.UUID]dto.LoggedExerciseInstanceLog) // Map to build nested LEIs
+	currentWorkoutLogFetched := false // Flag to know if the main workout log has been populated
+	// Use a map to track and retrieve pointers to LoggedExerciseInstanceLog
+	// within the finalWorkoutLog.LoggedExerciseInstances slice.
+	// This avoids duplicate entries and allows sets to be appended correctly.
+	leiPointerMap := make(map[uuid.UUID]*dto.LoggedExerciseInstanceLog)
 
 	for finalRows.Next() {
 		var (
-			wlID, wlWorkoutID, wlUserID           uuid.UUID
+			wlID, wlUserID                        uuid.UUID
+			wlWorkoutID                           sql.Null[uuid.UUID]
 			wlStartedAt, wlFinishedAt             sql.NullTime
 			wlStatus                              int
 			wlTotalActiveDurationSeconds          uint
 			wlTotalPauseDurationSeconds           uint
 			wlCreatedAt, wlUpdatedAt, wlDeletedAt sql.NullTime
 
-			// Removed workout (w) fields from scan, as we use `workoutTemplate`
+			wID, wUserID                       sql.Null[uuid.UUID]
+			wName                              sql.NullString
+			wCreatedAt, wUpdatedAt, wDeletedAt sql.NullTime
+
 			leiID, leiWorkoutLogID, leiExerciseID    sql.Null[uuid.UUID]
 			leiCreatedAt, leiUpdatedAt, leiDeletedAt sql.NullTime
 
@@ -351,11 +368,11 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 			eCreatedAt, eUpdatedAt, eDeletedAt sql.NullTime
 
 			esID, esWorkoutLogID, esExerciseID, esLeiID sql.Null[uuid.UUID]
-			esSetNumber                                 int
+			esSetNumber                                 sql.NullInt64
 			esWeight                                    sql.NullFloat64
 			esReps                                      sql.NullInt64
 			esFinishedAt                                sql.NullTime
-			esStatus                                    sql.NullInt64 // status can be 0, 1 etc.
+			esStatus                                    sql.NullInt64
 			esCreatedAt, esUpdatedAt, esDeletedAt       sql.NullTime
 		)
 
@@ -363,6 +380,7 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 			&wlID, &wlWorkoutID, &wlUserID, &wlStartedAt, &wlFinishedAt, &wlStatus,
 			&wlTotalActiveDurationSeconds, &wlTotalPauseDurationSeconds,
 			&wlCreatedAt, &wlUpdatedAt, &wlDeletedAt,
+			&wID, &wUserID, &wName, &wCreatedAt, &wUpdatedAt, &wDeletedAt,
 			&leiID, &leiWorkoutLogID, &leiExerciseID, &leiCreatedAt, &leiUpdatedAt, &leiDeletedAt,
 			&eID, &eName, &eCreatedAt, &eUpdatedAt, &eDeletedAt,
 			&esID, &esWorkoutLogID, &esExerciseID, &esLeiID, &esSetNumber, &esWeight, &esReps,
@@ -373,85 +391,100 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process created workout log details.")
 		}
 
-		// Initialize top-level WorkoutLog if it hasn't been yet
-		if currentWorkoutLog == nil {
-			currentWorkoutLog = &model.WorkoutLog{
-				ID:                         wlID,
-				UserID:                     wlUserID,
-				TotalActiveDurationSeconds: wlTotalActiveDurationSeconds,
-				TotalPauseDurationSeconds:  wlTotalPauseDurationSeconds,
-				Status:                     wlStatus,
-				CreatedAt:                  wlCreatedAt.Time,
-				UpdatedAt:                  wlUpdatedAt.Time,
-				StartedAt:                  provider.NullTimeToTimePtr(wlStartedAt),
-				FinishedAt:                 provider.NullTimeToTimePtr(wlFinishedAt),
-				DeletedAt:                  provider.NullTimeToTimePtr(wlDeletedAt),
-			}
-			// Use the workout ID from the workout log itself, which should match req.WorkoutID
-			finalWorkoutLog.WorkoutID = wlWorkoutID
-
-			// Populate the nested Workout DTO using the already fetched `workoutTemplate`
-			finalWorkoutLog.Workout = dto.WorkoutResponse{
-				ID:        workoutTemplate.ID,
-				UserID:    workoutTemplate.UserID,
-				Name:      workoutTemplate.Name,
-				CreatedAt: workoutTemplate.CreatedAt,
-				UpdatedAt: workoutTemplate.UpdatedAt,
-				DeletedAt: workoutTemplate.DeletedAt,
+		if !currentWorkoutLogFetched {
+			finalWorkoutLog.ID = wlID
+			// Correctly assign WorkoutID (non-nullable uuid.UUID)
+			if wlWorkoutID.Valid {
+				finalWorkoutLog.WorkoutID = wlWorkoutID.V
+			} else {
+				finalWorkoutLog.WorkoutID = uuid.Nil // Assign zero UUID if null
 			}
 
-			finalWorkoutLog.ID = currentWorkoutLog.ID
-			finalWorkoutLog.UserID = currentWorkoutLog.UserID
-			finalWorkoutLog.StartedAt = currentWorkoutLog.StartedAt
-			finalWorkoutLog.FinishedAt = currentWorkoutLog.FinishedAt
-			finalWorkoutLog.Status = currentWorkoutLog.Status
-			finalWorkoutLog.TotalActiveDurationSeconds = currentWorkoutLog.TotalActiveDurationSeconds
-			finalWorkoutLog.TotalPauseDurationSeconds = currentWorkoutLog.TotalPauseDurationSeconds
-			finalWorkoutLog.CreatedAt = currentWorkoutLog.CreatedAt
-			finalWorkoutLog.UpdatedAt = currentWorkoutLog.UpdatedAt
-			finalWorkoutLog.DeletedAt = currentWorkoutLog.DeletedAt
+			finalWorkoutLog.UserID = wlUserID
+			finalWorkoutLog.StartedAt = provider.NullTimeToTimePtr(wlStartedAt)
+			finalWorkoutLog.FinishedAt = provider.NullTimeToTimePtr(wlFinishedAt)
+			finalWorkoutLog.Status = wlStatus
+			finalWorkoutLog.TotalActiveDurationSeconds = wlTotalActiveDurationSeconds
+			finalWorkoutLog.TotalPauseDurationSeconds = wlTotalPauseDurationSeconds
+			finalWorkoutLog.CreatedAt = wlCreatedAt.Time
+			finalWorkoutLog.UpdatedAt = wlUpdatedAt.Time
+			finalWorkoutLog.DeletedAt = provider.NullTimeToTimePtr(wlDeletedAt)
+			finalWorkoutLog.LoggedExerciseInstances = []dto.LoggedExerciseInstanceLog{} // Initialize the slice
+
+			// Populate nested WorkoutResponse
+			if wID.Valid {
+				finalWorkoutLog.Workout = dto.WorkoutResponse{
+					ID:        wID.V,
+					UserID:    wUserID.V, // Non-nullable, assume valid if wID is valid
+					Name:      wName.String,
+					CreatedAt: wCreatedAt.Time,
+					UpdatedAt: wUpdatedAt.Time,
+					DeletedAt: provider.NullTimeToTimePtr(wDeletedAt),
+				}
+			} else {
+				// If no workout is associated (e.g., deleted template),
+				// use details from the initial template fetch for response consistency
+				finalWorkoutLog.Workout = dto.WorkoutResponse{
+					ID:        workoutTemplateID,
+					UserID:    workoutTemplateUserID,
+					Name:      workoutTemplateName.String,
+					CreatedAt: workoutTemplateCreatedAt,
+					UpdatedAt: workoutTemplateUpdatedAt,
+					DeletedAt: provider.NullTimeToTimePtr(workoutTemplateDeletedAt),
+				}
+			}
+			currentWorkoutLogFetched = true
 		}
 
-		// Populate LoggedExerciseInstances
 		if leiID.Valid {
 			leiUUID := leiID.V
-			lei, exists := loggedExerciseInstanceMap[leiUUID]
+			leiPointer, exists := leiPointerMap[leiUUID]
 			if !exists {
-				lei = dto.LoggedExerciseInstanceLog{
+				// Create a new LoggedExerciseInstanceLog DTO
+				newLei := dto.LoggedExerciseInstanceLog{
 					ID:           leiUUID,
 					WorkoutLogID: leiWorkoutLogID.V,
 					ExerciseID:   leiExerciseID.V,
-					CreatedAt:    leiCreatedAt.Time,
-					UpdatedAt:    leiUpdatedAt.Time,
+					CreatedAt:    leiCreatedAt.Time, // Non-nullable time.Time
+					UpdatedAt:    leiUpdatedAt.Time, // Non-nullable time.Time
 					DeletedAt:    provider.NullTimeToTimePtr(leiDeletedAt),
-					Exercise: dto.ExerciseResponse{
+					ExerciseSets: []dto.ExerciseSetResponse{},
+				}
+				// Populate nested ExerciseResponse
+				if eID.Valid {
+					newLei.Exercise = dto.ExerciseResponse{
 						ID:        eID.V,
 						Name:      eName.String,
 						CreatedAt: eCreatedAt.Time,
 						UpdatedAt: eUpdatedAt.Time,
 						DeletedAt: provider.NullTimeToTimePtr(eDeletedAt),
-					},
-					ExerciseSets: []dto.ExerciseSetResponse{}, // Initialize slice
+					}
 				}
+				// Append the new LoggedExerciseInstanceLog to the main workout log's slice
+				finalWorkoutLog.LoggedExerciseInstances = append(finalWorkoutLog.LoggedExerciseInstances, newLei)
+				// Get a pointer to the newly appended element in the slice
+				leiPointer = &finalWorkoutLog.LoggedExerciseInstances[len(finalWorkoutLog.LoggedExerciseInstances)-1]
+				leiPointerMap[leiUUID] = leiPointer // Store the pointer in the map for future set additions
 			}
 
-			// Populate ExerciseSets for this LoggedExerciseInstance
 			if esID.Valid {
-				lei.ExerciseSets = append(lei.ExerciseSets, dto.ExerciseSetResponse{
-					ID:           esID.V,
-					WorkoutLogID: esWorkoutLogID.V,
-					ExerciseID:   esExerciseID.V,
-					SetNumber:    esSetNumber,
-					Weight:       provider.NullFloat64ToFloat64(esWeight),
-					Reps:         provider.NullInt64ToInt(esReps),
-					FinishedAt:   provider.NullTimeToTimePtr(esFinishedAt),
-					Status:       provider.NullInt64ToInt(esStatus),
-					CreatedAt:    esCreatedAt.Time,
-					UpdatedAt:    esUpdatedAt.Time,
-					DeletedAt:    provider.NullTimeToTimePtr(esDeletedAt),
-				})
+				esDTO := dto.ExerciseSetResponse{
+					ID:                       esID.V,
+					WorkoutLogID:             esWorkoutLogID.V,
+					ExerciseID:               esExerciseID.V,
+					LoggedExerciseInstanceID: esLeiID.V, // Non-nullable uuid.UUID
+					SetNumber:                provider.NullInt64ToIntPtr(esSetNumber),
+					Weight:                   provider.NullFloat64ToFloat64(esWeight), // Non-nullable float64
+					Reps:                     provider.NullInt64ToIntPtr(esReps),
+					FinishedAt:               provider.NullTimeToTimePtr(esFinishedAt),
+					Status:                   provider.NullInt64ToInt(esStatus), // Non-nullable int
+					CreatedAt:                esCreatedAt.Time,                  // Non-nullable time.Time
+					UpdatedAt:                esUpdatedAt.Time,                  // Non-nullable time.Time
+					DeletedAt:                provider.NullTimeToTimePtr(esDeletedAt),
+				}
+				// Append the set to the correct LoggedExerciseInstance using the pointer
+				leiPointer.ExerciseSets = append(leiPointer.ExerciseSets, esDTO)
 			}
-			loggedExerciseInstanceMap[leiUUID] = lei // Update map with appended set
 		}
 	}
 
@@ -460,28 +493,8 @@ func (h *WorkoutLogHandler) StoreWorkoutLog(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process created workout log details.")
 	}
 
-	// Convert map values to slice for the DTO
-	for _, lei := range loggedExerciseInstanceMap {
-		finalWorkoutLog.LoggedExerciseInstances = append(finalWorkoutLog.LoggedExerciseInstances, lei)
-	}
-
 	return c.JSON(http.StatusCreated, dto.CreateWorkoutLogResponse{
 		Message:    "Workout log created successfully!",
 		WorkoutLog: finalWorkoutLog,
 	})
 }
-
-// Add these helper functions to your provider package if they don't exist:
-// func NullFloat64ToFloat64(nf sql.NullFloat64) float64 {
-// 	if nf.Valid {
-// 		return nf.Float64
-// 	}
-// 	return 0.0 // Default or handle as appropriate for your application
-// }
-
-// func NullInt64ToInt(ni sql.NullInt64) int {
-// 	if ni.Valid {
-// 		return int(ni.Int64)
-// 	}
-// 	return 0 // Default or handle as appropriate for your application
-// }
