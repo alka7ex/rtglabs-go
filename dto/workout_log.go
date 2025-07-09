@@ -34,9 +34,10 @@ type UpdateWorkoutLogRequest struct {
 // UpdateLoggedExerciseInstanceRequest defines an individual exercise instance in an update request.
 // Aligned with Zod's `workoutLogUpdateExerciseInstanceRequestSchema`
 type UpdateLoggedExerciseInstanceRequest struct {
-	ID           *uuid.UUID                 `json:"id"`                                         // Null for new, ID for existing
-	ExerciseID   *uuid.UUID                 `json:"exercise_id" validate:"required_without=ID"` // Required if creating new LEI
-	ExerciseSets []UpdateExerciseSetRequest `json:"exercise_sets"`
+	ID                             *uuid.UUID                 `json:"id"`                                         // Null for new, ID for existing
+	ExerciseID                     *uuid.UUID                 `json:"exercise_id" validate:"required_without=ID"` // Required if creating new LEI
+	LoggedExerciseInstanceClientID *string                    `json:"logged_exercise_instance_client_id"`         // Added for client-side ID mapping of new instances
+	ExerciseSets                   []UpdateExerciseSetRequest `json:"exercise_sets"`
 }
 
 // UpdateExerciseSetRequest defines an individual exercise set in an update request.

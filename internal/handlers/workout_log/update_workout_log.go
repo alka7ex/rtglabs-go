@@ -74,11 +74,13 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 		Set("updated_at", now).
 		Where("id = ? AND user_id = ? AND deleted_at IS NULL", workoutLogID, userID)
 
-	// Based on new DTO, UpdateWorkoutLogRequest no longer has a 'Status' field.
-	// If FinishedAt is provided, the status is not automatically set to Completed here.
-	// If you need to update status, you must add 'Status *int' to UpdateWorkoutLogRequest DTO.
 	if req.FinishedAt != nil {
-		updateWLBuilder = updateWLBuilder.Set("finished_at", req.FinishedAt)
+		updateWLBuilder = updateWLBuilder.Set("finished_at", req.FinishedAt).Set("status", model.WorkoutLogStatusCompleted) // Assuming status update
+	} else {
+		// If FinishedAt is explicitly set to null (client sends null), set status back to in progress if needed
+		// Or handle based on your specific business logic for resetting status
+		// For now, if FinishedAt is nil, we assume it's still in progress or status isn't being explicitly changed
+		updateWLBuilder = updateWLBuilder.Set("status", model.WorkoutLogStatusInProgress) // Default to in progress if not finished
 	}
 
 	updateWLQuery, argsWL, buildErr := updateWLBuilder.ToSql()
@@ -128,45 +130,19 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 		return err
 	}
 
+	// This map will store the mapping from client_id to actual DB UUID for NEW LEIs created in this transaction
+	// This is important if you want sets to refer to a new LEI created earlier in the *same* request.
+	// However, given your current DTO structure where sets are nested directly under their parent LEI,
+	// this map isn't strictly necessary for *this* current code, but it's good practice for more complex scenarios.
+	// For this specific setup, `newLEIID` (the direct UUID generated for the new LEI) is what's passed to `processExerciseSets`.
+	// So, we'll keep `logged_exercise_instance_client_id` just for binding in the DTO, not for complex mapping in the handler here.
+
 	requestedLEIIDs := make(map[uuid.UUID]struct{})
 	for _, leiReq := range req.LoggedExerciseInstances {
 		// If ID is provided and valid, mark it as requested
 		if leiReq.ID != nil && *leiReq.ID != uuid.Nil {
 			requestedLEIIDs[*leiReq.ID] = struct{}{}
-		}
 
-		// The DTO UpdateLoggedExerciseInstanceRequest no longer has IsDeleted.
-		// So explicit deletion from request is removed.
-		// Deletion will be handled by comparing existing vs. requested IDs at the end of the loop.
-
-		if leiReq.ID == nil || *leiReq.ID == uuid.Nil {
-			// --- CREATE NEW LoggedExerciseInstance ---
-			// Validation for missing ExerciseID for new LEI is handled at the top of the function.
-			newLEIID := uuid.New()
-			insertLEIBuilder := h.sq.Insert("logged_exercise_instances").
-				Columns("id", "workout_log_id", "exercise_id", "created_at", "updated_at").
-				Values(newLEIID, workoutLogID, *leiReq.ExerciseID, now, now) // Dereference leiReq.ExerciseID
-
-			insertLEIQuery, argsInsertLEI, buildErr := insertLEIBuilder.ToSql()
-			if buildErr != nil {
-				c.Logger().Errorf("UpdateWorkoutLog: Failed to build insert LEI query: %v", buildErr)
-				err = echo.NewHTTPError(http.StatusInternalServerError, "Failed to create new exercise instance")
-				return err
-			}
-			_, execErr := tx.ExecContext(ctx, insertLEIQuery, argsInsertLEI...)
-			if execErr != nil {
-				c.Logger().Errorf("UpdateWorkoutLog: Failed to insert new LEI %s: %v", newLEIID, execErr)
-				err = echo.NewHTTPError(http.StatusInternalServerError, "Failed to create new exercise instance")
-				return err
-			}
-
-			// Process exercise sets for the newly created LEI
-			err = h.processExerciseSets(tx, ctx, c.Logger(), workoutLogID, newLEIID, leiReq.ExerciseID, leiReq.ExerciseSets, now) // Pass *uuid.UUID
-			if err != nil {
-				return err
-			}
-
-		} else {
 			// --- UPDATE EXISTING LoggedExerciseInstance (and its sets) ---
 			currentLEIID := *leiReq.ID
 
@@ -193,7 +169,33 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 			}
 
 			// Process exercise sets for the existing LEI
-			err = h.processExerciseSets(tx, ctx, c.Logger(), workoutLogID, currentLEIID, leiReq.ExerciseID, leiReq.ExerciseSets, now) // Pass *uuid.UUID
+			err = h.processExerciseSets(tx, ctx, c.Logger(), workoutLogID, currentLEIID, leiReq.ExerciseID, leiReq.ExerciseSets, now)
+			if err != nil {
+				return err
+			}
+
+		} else {
+			// --- CREATE NEW LoggedExerciseInstance ---
+			// Validation for missing ExerciseID for new LEI is handled at the top of the function.
+			newLEIID := uuid.New()
+			insertLEIBuilder := h.sq.Insert("logged_exercise_instances").
+				Columns("id", "workout_log_id", "exercise_id", "created_at", "updated_at").
+				Values(newLEIID, workoutLogID, *leiReq.ExerciseID, now, now) // Dereference leiReq.ExerciseID
+
+			insertLEIQuery, argsInsertLEI, buildErr := insertLEIBuilder.ToSql()
+			if buildErr != nil {
+				c.Logger().Errorf("UpdateWorkoutLog: Failed to build insert LEI query: %v", buildErr)
+				err = echo.NewHTTPError(http.StatusInternalServerError, "Failed to create new exercise instance")
+				return err
+			}
+			_, execErr := tx.ExecContext(ctx, insertLEIQuery, argsInsertLEI...)
+			if execErr != nil {
+				c.Logger().Errorf("UpdateWorkoutLog: Failed to insert new LEI %s: %v", newLEIID, execErr)
+				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create new exercise instance")
+			}
+
+			// Process exercise sets for the newly created LEI
+			err = h.processExerciseSets(tx, ctx, c.Logger(), workoutLogID, newLEIID, leiReq.ExerciseID, leiReq.ExerciseSets, now)
 			if err != nil {
 				return err
 			}
@@ -218,8 +220,6 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 	}
 
 	// Fetch the updated workout log details for the response
-	// After tx.Commit(), the transaction object is no longer valid for queries.
-	// We need to use the main database connection (h.DB) for fetching.
 	updatedWorkoutLog, fetchErr := h.fetchWorkoutLogDetails(ctx, c.Logger(), workoutLogID, userID)
 	if fetchErr != nil {
 		c.Logger().Errorf("UpdateWorkoutLog: Failed to fetch updated workout log details after commit: %v", fetchErr)
@@ -235,8 +235,7 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 // Helper function to process exercise sets (create, update, soft-delete)
 func (h *WorkoutLogHandler) processExerciseSets(tx *sql.Tx, ctx context.Context, logger echo.Logger,
 	workoutLogID, loggedExerciseInstanceID uuid.UUID,
-	// exerciseID is now *uuid.UUID (nullable) according to the new DTO
-	exerciseID *uuid.UUID,
+	exerciseID *uuid.UUID, // This `exerciseID` is the one from the parent LEI, used for new sets
 	setRequests []dto.UpdateExerciseSetRequest, now time.Time) error {
 
 	existingSetIDs := make(map[uuid.UUID]struct{})
@@ -265,25 +264,30 @@ func (h *WorkoutLogHandler) processExerciseSets(tx *sql.Tx, ctx context.Context,
 			requestedSetIDs[*setReq.ID] = struct{}{}
 		}
 
-		// The DTO UpdateExerciseSetRequest no longer has IsDeleted.
-		// So explicit deletion from request is removed.
-		// Deletion will be handled by comparing existing vs. requested IDs at the end of the loop.
-
 		if setReq.ID == nil || *setReq.ID == uuid.Nil {
 			// --- CREATE NEW ExerciseSet ---
 			newSetID := uuid.New()
-			// setReq.ExerciseID is now non-nullable uuid.UUID in DTO, use directly.
-			// setReq.Weight is non-nullable float64 in DTO, use directly.
-			// setReq.Reps, setReq.SetNumber, setReq.Status are nullable.
+			// Use the exerciseID from the parent LEI (the `exerciseID` parameter passed to this function).
+			// If setReq.ExerciseID is always expected to match the parent, it's redundant here.
+			// Assuming setReq.ExerciseID is the authoritative one if present, otherwise fall back to parent.
+			finalExerciseID := setReq.ExerciseID // setReq.ExerciseID is non-nullable uuid.UUID in DTO
+			// If you want to allow individual set exercise IDs to override the LEI's exercise ID,
+			// or if the DTO's setReq.ExerciseID might be the source of truth for new sets:
+			// if setReq.ExerciseID != uuid.Nil {
+			// 	 finalExerciseID = setReq.ExerciseID
+			// } else if exerciseID != nil {
+			//   finalExerciseID = *exerciseID // Fallback to parent LEI's exerciseID
+			// }
+
 			insertESBuilder := h.sq.Insert("exercise_sets").
 				Columns("id", "workout_log_id", "exercise_id", "logged_exercise_instance_id",
-														"set_number", "weight", "reps", "finished_at", "status", "created_at", "updated_at").
-				Values(newSetID, workoutLogID, setReq.ExerciseID, loggedExerciseInstanceID, // Use setReq.ExerciseID directly
-					provider.IntPtrToInt(setReq.SetNumber, i+1), // Default to i+1 if SetNumber is nil
-					setReq.Weight,                        // Direct use for non-nullable float64
-					provider.IntPtrToInt(setReq.Reps, 0), // Default to 0 if Reps is nil
+					"set_number", "weight", "reps", "finished_at", "status", "created_at", "updated_at").
+				Values(newSetID, workoutLogID, finalExerciseID, loggedExerciseInstanceID,
+					provider.IntPtrToInt(setReq.SetNumber, i+1),
+					setReq.Weight,
+					provider.IntPtrToInt(setReq.Reps, 0),
 					setReq.FinishedAt,
-					provider.IntPtrToInt(setReq.Status, model.ExerciseSetStatusPending), // Default status
+					provider.IntPtrToInt(setReq.Status, model.ExerciseSetStatusPending),
 					now, now)
 
 			insertESQuery, argsInsertES, buildErr := insertESBuilder.ToSql()
@@ -304,14 +308,12 @@ func (h *WorkoutLogHandler) processExerciseSets(tx *sql.Tx, ctx context.Context,
 				Set("updated_at", now).
 				Where("id = ? AND logged_exercise_instance_id = ? AND deleted_at IS NULL", currentSetID, loggedExerciseInstanceID)
 
-			// setReq.ExerciseID is non-nullable, but it's probably not intended to be updated after creation for a set.
-			// If it needs to be updated:
+			// Assuming ExerciseID for an ExerciseSet is not typically changed after creation.
+			// If it can be changed:
 			// updateESBuilder = updateESBuilder.Set("exercise_id", setReq.ExerciseID)
 
-			// setReq.Weight is non-nullable (float64) in the DTO, so no nil check needed.
 			updateESBuilder = updateESBuilder.Set("weight", setReq.Weight)
 
-			// setReq.Reps, setReq.Status, setReq.SetNumber are nullable in DTO.
 			if setReq.Reps != nil {
 				updateESBuilder = updateESBuilder.Set("reps", *setReq.Reps)
 			}
@@ -345,7 +347,6 @@ func (h *WorkoutLogHandler) processExerciseSets(tx *sql.Tx, ctx context.Context,
 	// Soft delete any existing sets that were not present in the request
 	for existingSetID := range existingSetIDs {
 		if _, found := requestedSetIDs[existingSetID]; !found {
-			// This means the existing set was removed from the request, so soft-delete it.
 			err := h.softDeleteExerciseSet(tx, ctx, logger, loggedExerciseInstanceID, existingSetID, now)
 			if err != nil {
 				return err
@@ -358,7 +359,7 @@ func (h *WorkoutLogHandler) processExerciseSets(tx *sql.Tx, ctx context.Context,
 
 // softDeleteLoggedExerciseInstance is a helper to soft delete a logged exercise instance and its sets.
 func (h *WorkoutLogHandler) softDeleteLoggedExerciseInstance(tx *sql.Tx, ctx context.Context, logger echo.Logger, workoutLogID uuid.UUID, leiID uuid.UUID, now time.Time) error {
-	if leiID == uuid.Nil { // Check against uuid.Nil directly
+	if leiID == uuid.Nil {
 		logger.Warn("softDeleteLoggedExerciseInstance: Attempted to soft delete nil LoggedExerciseInstance ID")
 		return nil
 	}
@@ -366,7 +367,7 @@ func (h *WorkoutLogHandler) softDeleteLoggedExerciseInstance(tx *sql.Tx, ctx con
 	updateLEIQuery, argsLEI, buildErr := h.sq.Update("logged_exercise_instances").
 		Set("deleted_at", now).
 		Set("updated_at", now).
-		Where("id = ? AND workout_log_id = ? AND deleted_at IS NULL", leiID, workoutLogID). // Use leiID directly
+		Where("id = ? AND workout_log_id = ? AND deleted_at IS NULL", leiID, workoutLogID).
 		ToSql()
 	if buildErr != nil {
 		logger.Errorf("softDeleteLoggedExerciseInstance: Failed to build delete LEI query for %s: %v", leiID, buildErr)
@@ -387,7 +388,7 @@ func (h *WorkoutLogHandler) softDeleteLoggedExerciseInstance(tx *sql.Tx, ctx con
 	updateESQuery, argsES, buildErr := h.sq.Update("exercise_sets").
 		Set("deleted_at", now).
 		Set("updated_at", now).
-		Where("logged_exercise_instance_id = ? AND deleted_at IS NULL", leiID). // Use leiID directly
+		Where("logged_exercise_instance_id = ? AND deleted_at IS NULL", leiID).
 		ToSql()
 	if buildErr != nil {
 		logger.Errorf("softDeleteLoggedExerciseInstance: Failed to build delete ES query for LEI %s: %v", leiID, buildErr)
@@ -404,7 +405,7 @@ func (h *WorkoutLogHandler) softDeleteLoggedExerciseInstance(tx *sql.Tx, ctx con
 
 // softDeleteExerciseSet is a helper to soft delete a single exercise set.
 func (h *WorkoutLogHandler) softDeleteExerciseSet(tx *sql.Tx, ctx context.Context, logger echo.Logger, loggedExerciseInstanceID uuid.UUID, setID uuid.UUID, now time.Time) error {
-	if setID == uuid.Nil { // Check against uuid.Nil directly
+	if setID == uuid.Nil {
 		logger.Warn("softDeleteExerciseSet: Attempted to soft delete nil ExerciseSet ID")
 		return nil
 	}
@@ -412,7 +413,7 @@ func (h *WorkoutLogHandler) softDeleteExerciseSet(tx *sql.Tx, ctx context.Contex
 	updateESQuery, argsES, buildErr := h.sq.Update("exercise_sets").
 		Set("deleted_at", now).
 		Set("updated_at", now).
-		Where("id = ? AND logged_exercise_instance_id = ? AND deleted_at IS NULL", setID, loggedExerciseInstanceID). // Use setID directly
+		Where("id = ? AND logged_exercise_instance_id = ? AND deleted_at IS NULL", setID, loggedExerciseInstanceID).
 		ToSql()
 	if buildErr != nil {
 		logger.Errorf("softDeleteExerciseSet: Failed to build delete ES query for %s: %v", setID, buildErr)
@@ -432,12 +433,10 @@ func (h *WorkoutLogHandler) softDeleteExerciseSet(tx *sql.Tx, ctx context.Contex
 }
 
 // fetchWorkoutLogDetails is a helper to fetch the complete workout log details after an update.
-// Removed the 'tx *sql.Tx' parameter as it's not needed after tx.Commit().
 func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger echo.Logger, workoutLogID, userID uuid.UUID) (dto.WorkoutLogResponse, error) {
 	var workoutLog dto.WorkoutLogResponse
 	leiPointerMap := make(map[uuid.UUID]*dto.LoggedExerciseInstanceLog)
 
-	// Always use h.DB (the main database connection pool) for fetching details after a transaction is committed.
 	queryRunner := h.DB
 
 	query := `
@@ -519,13 +518,12 @@ func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger e
 		}
 
 		// Only populate main workoutLog fields once
-		if workoutLog.ID == uuid.Nil { // Check if ID is still the zero value
+		if workoutLog.ID == uuid.Nil {
 			workoutLog.ID = wlID
-			// WorkoutID in DTO is non-nullable uuid.UUID
 			if wlWorkoutID.Valid {
 				workoutLog.WorkoutID = wlWorkoutID.V
 			} else {
-				workoutLog.WorkoutID = uuid.Nil // Assign zero UUID if null
+				workoutLog.WorkoutID = uuid.Nil
 			}
 			workoutLog.UserID = wlUserID
 			workoutLog.StartedAt = provider.NullTimeToTimePtr(wlStartedAt)
@@ -536,7 +534,7 @@ func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger e
 			workoutLog.CreatedAt = wlCreatedAt.Time
 			workoutLog.UpdatedAt = wlUpdatedAt.Time
 			workoutLog.DeletedAt = provider.NullTimeToTimePtr(wlDeletedAt)
-			workoutLog.LoggedExerciseInstances = []dto.LoggedExerciseInstanceLog{} // Correct field name
+			workoutLog.LoggedExerciseInstances = []dto.LoggedExerciseInstanceLog{}
 
 			if wID.Valid {
 				workoutLog.Workout = dto.WorkoutResponse{
@@ -548,10 +546,9 @@ func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger e
 					DeletedAt: provider.NullTimeToTimePtr(wDeletedAt),
 				}
 			} else {
-				// Fallback if workout template isn't found
 				workoutLog.Workout = dto.WorkoutResponse{
 					ID:        uuid.Nil,
-					UserID:    uuid.Nil, // Assuming UserID for workout can be nil if workout is nil
+					UserID:    uuid.Nil,
 					Name:      "",
 					CreatedAt: time.Time{},
 					UpdatedAt: time.Time{},
@@ -564,17 +561,15 @@ func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger e
 			leiUUID := leiID.V
 			lei, exists := leiPointerMap[leiUUID]
 			if !exists {
-				// Create a new LoggedExerciseInstanceLog DTO
 				newLei := dto.LoggedExerciseInstanceLog{
 					ID:           leiUUID,
 					WorkoutLogID: leiWorkoutLogID.V,
-					ExerciseID:   leiExerciseID.V, // ExerciseID is uuid.UUID here (non-nullable from DB)
+					ExerciseID:   leiExerciseID.V,
 					CreatedAt:    leiCreatedAt.Time,
 					UpdatedAt:    leiUpdatedAt.Time,
 					DeletedAt:    provider.NullTimeToTimePtr(leiDeletedAt),
 					ExerciseSets: []dto.ExerciseSetResponse{},
 				}
-				// Populate nested ExerciseResponse
 				if eID.Valid {
 					newLei.Exercise = dto.ExerciseResponse{
 						ID:        eID.V,
@@ -584,14 +579,11 @@ func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger e
 						DeletedAt: provider.NullTimeToTimePtr(eDeletedAt),
 					}
 				}
-				// Append the new LoggedExerciseInstanceLog to the main workout log's slice
 				workoutLog.LoggedExerciseInstances = append(workoutLog.LoggedExerciseInstances, newLei)
-				// Get a pointer to the newly appended element in the slice
 				lei = &workoutLog.LoggedExerciseInstances[len(workoutLog.LoggedExerciseInstances)-1]
-				leiPointerMap[leiUUID] = lei // Store the pointer in the map for future set additions
+				leiPointerMap[leiUUID] = lei
 			}
 
-			// Handle ExerciseSets for this LoggedExerciseInstance
 			if esID.Valid {
 				esDTO := dto.ExerciseSetResponse{
 					ID:                       esID.V,
@@ -602,12 +594,11 @@ func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger e
 					Weight:                   provider.NullFloat64ToFloat64(esWeight),
 					Reps:                     provider.NullInt64ToIntPtr(esReps),
 					FinishedAt:               provider.NullTimeToTimePtr(esFinishedAt),
-					Status:                   provider.NullInt64ToInt(esStatus), // Status is non-nullable int in DTO
+					Status:                   provider.NullInt64ToInt(esStatus),
 					CreatedAt:                esCreatedAt.Time,
 					UpdatedAt:                esUpdatedAt.Time,
 					DeletedAt:                provider.NullTimeToTimePtr(esDeletedAt),
 				}
-				// Append the set to the correct LoggedExerciseInstance using the pointer
 				lei.ExerciseSets = append(lei.ExerciseSets, esDTO)
 			}
 		}
