@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- For PostgreSQL, or UUID() for MySQL, etc.
+    id UUID UNIQUE PRIMARY KEY DEFAULT gen_random_uuid(), -- For PostgreSQL, or UUID() for MySQL, etc.
     user_id UUID  NOT NULL,      -- Foreign Key to users.id, UNIQUE due to Ent schema
     token VARCHAR(255) UNIQUE NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,

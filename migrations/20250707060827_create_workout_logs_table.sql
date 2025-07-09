@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS workout_logs (
-    id UUID PRIMARY KEY,
+    id UUID UNIQUE PRIMARY KEY,
     user_id UUID  NOT NULL,      -- Foreign Key to users.id, UNIQUE due to Ent schema
     workout_id UUID  NULL,       -- Foreign Key to workouts.id, UNIQUE and NULLABLE
     started_at TIMESTAMP WITH TIME ZONE NULL,

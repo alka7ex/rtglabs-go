@@ -1,64 +1,40 @@
-# Name of your application. Used to uniquely configure containers.
 service: rtglabs-go
 
-# Name of the container image.
 image: alka7ex/rtglabs-go
 
-# Deploy to these servers.
 servers:
   web:
-    - 103.127.134.82 # Alamat IP server Anda
-
-# Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
+    - 103.127.134.82 
 proxy:
   ssl: true
-  host: api3.rtglabs.net # Domain aktual Anda untuk aplikasi
-  # Proxy connects to your container on port 80 by default.
-  app_port: 8080 # Aplikasi Go Anda mendengarkan di port 8080
+  host: api.rtglabs.net  
+  app_port: 8080 
   healthcheck:
-    interval: 10 # Periksa setiap 10 detik
-    path: /health # Pastikan aplikasi Go Anda memiliki endpoint ini dan mengembalikan 200 OK
+    interval: 10 
+    path: /health 
 
-# Credentials for your image host.
 registry:
-  username: alka7ex # Username Docker Hub Anda
+  username: alka7ex  
   password:
-    - KAMAL_REGISTRY_PASSWORD # Secret ini akan dibaca dari .kamal/secrets/rtglabs-go.yml
+    - KAMAL_REGISTRY_PASSWORD 
 
-# Configure builder setup.
 builder:
-  arch: amd64 # Arsitektur server Anda
+  arch: amd64 
 
-# Inject ENV variables into containers (secrets come from .kamal/secrets).
 env:
   clear:
-    PORT: 8080 # Aplikasi Go Anda akan mendengarkan di port ini
-    APP_ENV: production # Untuk deployment produksi, bukan 'local'
-    # DATABASE_URL akan diambil dari secret karena mengandung path dan bersifat sensitif bagi koneksi DB
+    PORT: 8080 
+    APP_ENV: production  
     SMTP_HOST: "smtp-relay.brevo.com"
     SMTP_PORT: "587"
     SMTP_USERNAME: "8f3b8e001@smtp-brevo.com"
     SMTP_FROM_EMAIL: "connect@rtglabs.net"
-    # APP_BASE_URL harus sesuai dengan host proxy dan menggunakan HTTPS untuk produksi
     APP_BASE_URL: https://api3.rtglabs.net
+    DB_DRIVER: "postgres"
   secret:
-    - DATABASE_URL # Ini akan dibaca dari .kamal/secrets/rtglabs-go.yml
-    - SMTP_PASSWORD # Ini akan dibaca dari .kamal/secrets/rtglabs-go.yml
+    - DATABASE_URL 
+    - SMTP_PASSWORD 
 
-# Gunakan user SSH yang berbeda dari 'root'
 ssh:
   user: alka7ex
 
-# Gunakan volume penyimpanan persisten untuk SQLite DB
-volumes:
-  - "db_data:/app/db" # Mount volume bernama 'db_data' ke /app/db di dalam container.
-                      # Ini sangat penting agar database SQLite Anda persisten di setiap deployment.
-
-# --- Konfigurasi Opsional ---
-
-# aliases:
-#   shell: app exec --interactive --reuse "bash" # Akses shell container
-
-# boot:
-#   limit: 1 # Deploy satu host pada satu waktu (lebih aman untuk deployment single-host)
-#   wait: 2 # Tunggu 2 detik sebelum memeriksa host berikutnya

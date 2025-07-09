@@ -2,7 +2,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS logged_exercise_instances (
-    id UUID PRIMARY KEY,
+    id UUID UNIQUE PRIMARY KEY,
     workout_log_id UUID NOT NULL,       -- Links to the specific workout log this instance belongs to
     exercise_id UUID NOT NULL,          -- Links to the base exercise (e.g., "Push-up", "Squat")
     -- Add any other fields here that represent summary or specific details

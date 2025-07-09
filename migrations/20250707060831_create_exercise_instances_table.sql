@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS exercise_instances (
-    id UUID PRIMARY KEY,
+    id UUID UNIQUE PRIMARY KEY,
     exercise_id UUID NOT NULL,               -- REMOVED UNIQUE HERE
     workout_log_id UUID  NULL,         -- This UNIQUE is fine, as a workout_log likely links to one main instance
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

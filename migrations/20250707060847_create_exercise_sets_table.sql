@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS exercise_sets (
-    id UUID PRIMARY KEY,
+    id UUID UNIQUE PRIMARY KEY,
     weight NUMERIC(8,2) NULL,
     reps INTEGER NULL,
     set_number INTEGER NOT NULL,

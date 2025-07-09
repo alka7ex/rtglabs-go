@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS profiles (
-    id UUID PRIMARY KEY,
+    id UUID UNIQUE PRIMARY KEY,
     user_id UUID UNIQUE NOT NULL, -- Foreign Key to users.id, and must be unique for 1:1 relationship
     units INTEGER NOT NULL,
     age INTEGER NOT NULL,

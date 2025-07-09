@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS bodyweights (
-    id UUID PRIMARY KEY,
+    id UUID UNIQUE PRIMARY KEY,
     user_id UUID NOT NULL,      -- Foreign Key to users.id, UNIQUE due to Ent schema
     weight REAL NOT NULL,               -- Use NUMERIC(10, 2) or DECIMAL(10, 2) if higher precision is needed
     unit VARCHAR(50) NOT NULL,          -- Assuming a reasonable length for unit string

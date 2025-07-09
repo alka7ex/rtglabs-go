@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS workout_exercises (
-    id UUID PRIMARY KEY,
+    id UUID UNIQUE PRIMARY KEY,
     workout_order INTEGER NULL, -- "order" is a keyword in SQL, so it's quoted. Use BIGINT if uint can be very large.
     sets INTEGER NULL,
     weight REAL NULL,        -- Or NUMERIC(8,2), DECIMAL(8,2) if precise decimal required
