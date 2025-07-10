@@ -3,6 +3,8 @@ package web
 import (
 	"log"
 	"net/http"
+
+	page "rtglabs-go/cmd/web/page"
 )
 
 func HelloWebHandler(w http.ResponseWriter, r *http.Request) {
@@ -12,7 +14,7 @@ func HelloWebHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := r.FormValue("name")
-	component := HelloPost(name)
+	component := page.HomePost(name)
 	err = component.Render(r.Context(), w)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

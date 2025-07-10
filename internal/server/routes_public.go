@@ -3,9 +3,11 @@ package server
 import (
 	"net/http"
 
-	"rtglabs-go/cmd/web"
+	web "rtglabs-go/cmd/web"
+	page "rtglabs-go/cmd/web/page"
 	handlers "rtglabs-go/internal/handlers/auth" // Assuming handlers are now in 'internal/handlers/auth'
 
+	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 )
 
@@ -20,10 +22,11 @@ func (s *Server) registerPublicRoutes() {
 
 	// Web templ examples
 	// s.echo.GET("/web", echo.WrapHandler(templ.Handler(web.HelloForm())))
-	s.echo.POST("/hello", echo.WrapHandler(http.HandlerFunc(web.HelloWebHandler)))
+	s.echo.POST("/", echo.WrapHandler(http.HandlerFunc(web.HelloWebHandler)))
 
 	// Health check and Hello World
-	s.echo.GET("/", s.HelloWorldHandler)
+	s.echo.GET("/", echo.WrapHandler(templ.Handler(page.HomePage())))
+
 	s.echo.GET("/health", s.healthHandler)
 
 	// Auth routes (public for registration/login)
