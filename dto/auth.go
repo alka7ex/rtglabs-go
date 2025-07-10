@@ -65,3 +65,13 @@ type ResetPasswordRequest struct {
 	NewPassword        string `json:"new_password" validate:"required,min=8"` // Example validation
 	ConfirmNewPassword string `json:"confirm_new_password" validate:"required,eqfield=NewPassword"`
 }
+
+// LogoutRequest represents the request body for logging out a specific session.
+type LogoutRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+// LogoutResponse represents the response body for a successful logout.
+type LogoutResponse struct {
+	Message string `json:"message"`
+}

@@ -7,11 +7,10 @@ templ Base() { // Can be named Base, or Layout, etc.
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width,initial-scale=1"/>
 			<title>RTGLabs Go App</title>
-			// IMPORTANT: These paths must match how your web server serves static files.
-			// If `cmd/web/assets` is served under `/assets/` URL path, then use /assets/
 			<link href="/assets/css/output.css" rel="stylesheet"/>
-			<script src="/assets/js/htmx.min.js"></script>
 			<script src="https://unpkg.com/alpinejs" defer></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@imacrayon/alpine-ajax@0.12.4/dist/cdn.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script defer src="https://cdn.jsdelivr.net/npm/@imacrayon/alpine-ajax@0.12.4/dist/cdn.min.js"></script>
 		</head>
 		<body class="bg-gray-100 font-sans text-gray-800">

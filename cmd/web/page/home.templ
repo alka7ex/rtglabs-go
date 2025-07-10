@@ -4,9 +4,9 @@ package page // This should be 'page'
 import "rtglabs-go/cmd/web/layout"
 
 templ HomePage() {
-	@layout.Base() { // Use the Base component from the 'layout' package
+	@layout.Base() {
+		// Use the Base component from the 'layout' package
 		<h2 class="text-xl font-semibold mb-4">Welcome Home!</h2>
-
 		<form hx-post="/hello" method="POST" hx-target="#hello-container" class="space-y-4">
 			<div>
 				<label for="name" class="block text-sm font-medium text-gray-700">Enter your name:</label>
@@ -25,9 +25,7 @@ templ HomePage() {
 				Say Hello
 			</button>
 		</form>
-
-		<div id="hello-container" class="mt-6 text-center text-lg text-gray-800">
-			</div>
+		<div id="hello-container" class="mt-6 text-center text-lg text-gray-800"></div>
 	}
 }
 

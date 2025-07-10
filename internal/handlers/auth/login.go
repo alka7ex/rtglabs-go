@@ -96,20 +96,6 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Invalid email or password")
 	}
 
-	// Delete existing session for this user_id
-	deleteSessionQuery, deleteSessionArgs, err := h.sq.Delete("sessions").
-		Where(squirrel.Eq{"user_id": entUser.ID}).
-		ToSql()
-	if err != nil {
-		c.Logger().Errorf("StoreLogin: Failed to build delete session query: %v", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to manage session (delete query build error)")
-	}
-
-	_, err = h.DB.ExecContext(ctx, deleteSessionQuery, deleteSessionArgs...)
-	if err != nil {
-		c.Logger().Warnf("StoreLogin: Failed to delete old session for user %s: %v", entUser.ID, err)
-	}
-
 	// 3. Generate token and create NEW session
 	token := uuid.New().String()
 	expiry := time.Now().Add(7 * 24 * time.Hour)
@@ -170,4 +156,3 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response)
 }
-
