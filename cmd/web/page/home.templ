@@ -1,15 +1,36 @@
-package page
+package page // This should be 'page'
+
+// Import the layout package. Adjust the path if your module name is different.
+import "rtglabs-go/cmd/web/layout"
 
 templ HomePage() {
-		<form hx-post="/hello" method="POST" hx-target="#hello-container">
-			<input class="bg-gray-200 text-black p-2 border border-gray-400 rounded-lg"id="name" name="name" type="text"/>
-			<button type="submit" class="bg-orange-500 hover:bg-orange-700 text-white py-2 px-4 rounded">Submit</button>
+	@layout.Base() { // Use the Base component from the 'layout' package
+		<h2 class="text-xl font-semibold mb-4">Welcome Home!</h2>
+
+		<form hx-post="/hello" method="POST" hx-target="#hello-container" class="space-y-4">
+			<div>
+				<label for="name" class="block text-sm font-medium text-gray-700">Enter your name:</label>
+				<input
+					type="text"
+					id="name"
+					name="name"
+					placeholder="John Doe"
+					class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+				/>
+			</div>
+			<button
+				type="submit"
+				class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+			>
+				Say Hello
+			</button>
 		</form>
-		<div id="hello-container"></div>
+
+		<div id="hello-container" class="mt-6 text-center text-lg text-gray-800">
+			</div>
+	}
 }
 
-templ HomePost(name string) {
-	<div class="bg-green-100 p-4 shadow-md rounded-lg mt-6">
-		<p>Hello, { name }</p>
-	</div>
+templ HelloMessage(name string) {
+	<p class="text-green-700 font-bold">Hello, { name }!</p>
 }

@@ -1,11 +1,12 @@
 package server
 
 import (
-	"net/http"
+	"log"           // Add log import
+	"os"            // Add os import
+	"path/filepath" // Add path/filepath import
 
-	web "rtglabs-go/cmd/web"
 	page "rtglabs-go/cmd/web/page"
-	handlers "rtglabs-go/internal/handlers/auth" // Assuming handlers are now in 'internal/handlers/auth'
+	handlers "rtglabs-go/internal/handlers/auth"
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
@@ -13,16 +14,31 @@ import (
 
 // registerPublicRoutes registers all publicly accessible routes.
 func (s *Server) registerPublicRoutes() {
-	// Initialize handlers with s.sqlDB instead of s.entClient
+	// ... (your existing handlers initialization)
 	forgotPasswordHandler := handlers.NewForgotPasswordHandler(s.sqlDB, s.emailSender, s.appBaseURL)
+	authHandler := handlers.NewAuthHandler(s.sqlDB)
 
-	// Public static file server
-	fileServer := http.FileServer(http.FS(web.Files))
-	s.echo.GET("/assets/*", echo.WrapHandler(fileServer))
+	// --- MODIFIED STATIC FILE SERVER FOR DEVELOPMENT ---
+	// Determine the path to your 'assets' directory relative to the executable.
+	assetsDir := filepath.Join("cmd", "web", "assets") // Default for running from project root
+	if _, err := os.Stat(assetsDir); os.IsNotExist(err) {
+		// Fallback for compiled binaries
+		ex, err := os.Executable()
+		if err != nil {
+			log.Fatalf("Failed to get executable path: %v", err)
+		}
+		exPath := filepath.Dir(ex)
+		assetsDir = filepath.Join(exPath, "assets") // Assuming assets are copied next to the binary
+		if _, err := os.Stat(assetsDir); os.IsNotExist(err) {
+			log.Printf("Warning: Static assets directory not found at default path nor relative to executable: %s", assetsDir)
+		}
+	}
+	log.Printf("Serving static files from disk: %s at URL path /assets", assetsDir)
+	s.echo.Static("/assets", assetsDir) // Use echo.Static directly
 
-	// Web templ examples
-	// s.echo.GET("/web", echo.WrapHandler(templ.Handler(web.HelloForm())))
-	s.echo.POST("/", echo.WrapHandler(http.HandlerFunc(web.HelloWebHandler)))
+	// --- Original Static File Server (Comment out or remove) ---
+	// fileServer := http.FileServer(http.FS(web.Files))
+	// s.echo.GET("/assets/*", echo.WrapHandler(fileServer))
 
 	// Health check and Hello World
 	s.echo.GET("/", echo.WrapHandler(templ.Handler(page.HomePage())))
@@ -30,7 +46,6 @@ func (s *Server) registerPublicRoutes() {
 	s.echo.GET("/health", s.healthHandler)
 
 	// Auth routes (public for registration/login)
-	authHandler := handlers.NewAuthHandler(s.sqlDB) // Pass s.sqlDB instead of s.entClient
 	s.echo.POST("/api/register", authHandler.StoreRegister)
 	s.echo.POST("/api/login", authHandler.StoreLogin)
 
