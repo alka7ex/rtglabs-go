@@ -55,7 +55,9 @@ func (s *Server) registerPrivateRoutes() {
 		}
 	})
 
-	g.POST("/logout", authHandler.DestroySession) // Or DELETE /auth/session/:token if you prefer
+	g.POST("/logout", authHandler.DestroySession)           // Or DELETE /auth/session/:token if you prefer
+	g.GET("/validate-session", authHandler.ValidateSession) // New endpoint
+
 	// Protected Profile routes
 	g.GET("/user/profile", authHandler.GetProfile)
 	g.PUT("/user/profile", authHandler.UpdateProfile)
