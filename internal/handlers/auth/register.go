@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"strings" // Added for strings.Contains for error checking
+	"strings"
 	"time"
 
 	"rtglabs-go/dto"
@@ -16,7 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// StoreRegister handles user registration
+// Storeegister handles user registration
 func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
@@ -42,23 +42,18 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register user")
 	}
 
-	// --- CORRECTED: DEBUG LINES SHOULD BE HERE, BEFORE THE FIRST (AND ONLY) EXECUTION ---
 	c.Logger().Infof("Generated INSERT SQL: %s", insertUserQuery)
 	c.Logger().Infof("INSERT Args: %v", insertUserArgs)
-	// --- END DEBUG LINES ---
 
-	// --- CORRECTED: ONLY ONE EXECUTION CALL ---
 	_, err = h.DB.ExecContext(ctx, insertUserQuery, insertUserArgs...)
 	if err != nil {
-		// More specific error handling for unique constraint
 		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") { // PostgreSQL specific error
 			return echo.NewHTTPError(http.StatusConflict, "Email already registered")
 		}
-		// General error handling if it's not a unique constraint violation
 		c.Logger().Errorf("StoreRegister: Failed to create new user: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register user")
 	}
-	// ... (rest of your StoreRegister function remains the same from here)
+
 	var entUser model.User
 	var entProfile model.Profile
 
@@ -127,7 +122,30 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 		entProfile = model.Profile{} // Ensure it's zeroed if no profile found
 	}
 
-	// Prepare response DTO
+	// 3. Generate token and create NEW session for the newly registered user
+	token := uuid.New().String()
+	expiry := time.Now().Add(7 * 24 * time.Hour) // Session expires in 7 days
+
+	newSessionID := uuid.New()
+	currentTime := time.Now() // Get current time for created_at
+
+	insertSessionQuery, insertSessionArgs, err := h.sq.Insert("sessions").
+		Columns("id", "token", "expires_at", "user_id", "created_at").
+		Values(newSessionID, token, expiry, entUser.ID, currentTime).
+		ToSql()
+
+	if err != nil {
+		c.Logger().Errorf("StoreRegister: Failed to build insert session query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create session (insert query build error)")
+	}
+
+	_, err = h.DB.ExecContext(ctx, insertSessionQuery, insertSessionArgs...)
+	if err != nil {
+		c.Logger().Errorf("StoreRegister: Failed to create session: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create session")
+	}
+
+	// 4. Prepare response
 	responseUser := dto.UserWithProfileResponse{
 		BaseUserResponse: dto.BaseUserResponse{
 			ID:              entUser.ID,
@@ -153,9 +171,13 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, echo.Map{
-		"message": "Registered successfully!",
-		"user":    responseUser,
-	})
-}
+	// Construct the RegisterResponse with token and expiry
+	response := dto.RegisterResponse{
+		Message:   "Registered successfully!",
+		User:      responseUser,
+		Token:     token,
+		ExpiresAt: expiry.Format("2006-01-02 15:04:05"), // Format same as LoginResponse
+	}
 
+	return c.JSON(http.StatusCreated, response)
+}

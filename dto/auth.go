@@ -41,9 +41,12 @@ type UserWithProfileResponse struct {
 }
 
 // RegisterResponse represents the response body for a successful registration.
+// NOW INCLUDES TOKEN AND EXPIRES_AT
 type RegisterResponse struct {
-	Message string                  `json:"message"`
-	User    UserWithProfileResponse `json:"user"`
+	Message   string                  `json:"message"`
+	User      UserWithProfileResponse `json:"user"`
+	Token     string                  `json:"token"`
+	ExpiresAt string                  `json:"expires_at"` // Using a string to format the time
 }
 
 // LoginResponse represents the full response body for a successful login.

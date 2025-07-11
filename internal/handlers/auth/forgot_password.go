@@ -114,9 +114,9 @@ func (h *ForgotPasswordHandler) ForgotPassword(c echo.Context) error {
 	}
 
 	// 4. Send email
-	// resetLink := h.AppBaseURL + "/reset-password?token=" + token
+	resetLink := h.AppBaseURL + "/reset-password?token=" + token
 
-	resetLink := "https://tunnel.rtglabs.net" + "/reset-password?token=" + token
+	// resetLink := "https://tunnel.rtglabs.net" + "/reset-password?token=" + token
 	err = h.EmailSender.SendPasswordResetEmail(entUser.Email, resetLink)
 	if err != nil {
 		c.Logger().Errorf("ForgotPassword: Failed to send password reset email: %v", err)
