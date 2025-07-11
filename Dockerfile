@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy package.json and package-lock.json first to leverage Docker cache
 # This means if only source code changes, npm install isn't rerun.
-COPY package.json package-lock.json ./
+COPY package.json ./
 
 # Install Node.js dependencies
 RUN npm install

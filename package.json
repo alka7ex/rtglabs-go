@@ -1,0 +1,23 @@
+{
+  "name": "rtglabs-go",
+  "version": "1.0.0",
+  "description": "One Paragraph of project description goes here",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tailwind:build": "tailwindcss -i ./cmd/web/styles/input.css -o ./cmd/web/assets/css/output.css --minify"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.10",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.10"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.10",
+    "postcss-value-parser": "^4.2.0"
+  }
+}

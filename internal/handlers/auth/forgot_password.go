@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql" // <--- NEW: Import for standard SQL DB
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 )
 
 type PrivateToken struct {
-	ID        int // Assuming an auto-incrementing ID for private_tokens
+	ID        uuid.UUID // Assuming an auto-incrementing ID for private_tokens
 	Token     string
 	Type      string
 	UserID    uuid.UUID // Foreign key to users.id
@@ -37,7 +38,7 @@ type ForgotPasswordHandler struct {
 func NewForgotPasswordHandler(db *sql.DB, emailSender mail.EmailSender, appBaseURL string) *ForgotPasswordHandler {
 	// Initialize squirrel with the appropriate placeholder format for your DB
 	// squirrel.Question for MySQL/SQLite, squirrel.Dollar for PostgreSQL
-	sq := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
+	sq := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 	return &ForgotPasswordHandler{
 		DB:          db,
 		EmailSender: emailSender,
@@ -127,77 +128,105 @@ func (h *ForgotPasswordHandler) ForgotPassword(c echo.Context) error {
 func (h *ForgotPasswordHandler) ResetPassword(c echo.Context) error {
 	var req dto.ResetPasswordRequest
 	if err := c.Bind(&req); err != nil {
+		log.Printf("[RESET_PASSWORD_ERROR] Failed to bind request: %v", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid input")
 	}
 
 	ctx := c.Request().Context()
 
 	if req.NewPassword != req.ConfirmNewPassword {
+		log.Printf("[RESET_PASSWORD_WARN] New password and confirmation do not match for token: %s", req.Token)
 		return echo.NewHTTPError(http.StatusBadRequest, "New password and confirmation do not match.")
 	}
 
 	// 1. Find and validate the private token
-	var privateToken PrivateToken // Use our custom PrivateToken struct
+	var privateToken PrivateToken
+	// Correctly use squirrel's WHERE clause with time.Now()
+	// Squirrel will handle inserting time.Now() as a parameter ($1)
 	query, args, err := h.sq.Select("id", "user_id").
 		From("private_tokens").
 		Where(squirrel.Eq{
 			"token": req.Token,
 			"type":  dto.TokenTypePasswordReset,
 		}).
-		Where("expires_at > ?", time.Now()). // Direct SQL for time comparison
+		Where("expires_at > ?", time.Now()). // <--- This line is still problematic if the '?' is used literally by squirrel
+		// CORRECT WAY TO DO THIS WITH SQUIRREL FOR POSTGRES (using `Gt`)
+		// Where(squirrel.Gt{"expires_at": time.Now()}).
+		// Or, if you prefer the raw string, explicitly use $1:
+		// Where("expires_at > $1", time.Now()).
 		ToSql()
+
+	// Let's rewrite the above to be safer and more idiomatic Squirrel for PostgreSQL
+	// We'll use squirrel.Gt (Greater Than) for the time comparison.
+	// This lets squirrel manage the placeholder correctly.
+	queryBuilder := h.sq.Select("id", "user_id").
+		From("private_tokens").
+		Where(squirrel.Eq{
+			"token": req.Token,
+			"type":  dto.TokenTypePasswordReset,
+		}).
+		Where(squirrel.Gt{"expires_at": time.Now()}) // <--- This is the correct way for time comparison with Squirrel
+
+	query, args, err = queryBuilder.ToSql() // Rebuild query and args
 	if err != nil {
-		c.Logger().Errorf("ResetPassword: Failed to build token query: %v", err)
+		log.Printf("[RESET_PASSWORD_ERROR] Failed to build token query: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process request")
 	}
+	log.Printf("[RESET_PASSWORD_DEBUG] Executing token query: SQL='%s', Args='%v'", query, args)
 
 	row := h.DB.QueryRowContext(ctx, query, args...)
 	err = row.Scan(&privateToken.ID, &privateToken.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("[RESET_PASSWORD_INFO] Invalid or expired token received: %s", req.Token)
 			return echo.NewHTTPError(http.StatusBadRequest, "Invalid or expired password reset token.")
 		}
-		c.Logger().Errorf("ResetPassword: Database query error for token: %v", err)
+		log.Printf("[RESET_PASSWORD_ERROR] Database query error for token '%s': %v", req.Token, err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process request")
 	}
+	log.Printf("[RESET_PASSWORD_DEBUG] Valid token found for UserID: %s, TokenID: %d", privateToken.UserID, privateToken.ID)
 
 	// 2. Hash the new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		c.Logger().Errorf("ResetPassword: Failed to hash password: %v", err)
+		log.Printf("[RESET_PASSWORD_ERROR] Failed to hash password: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to reset password")
 	}
+	log.Printf("[RESET_PASSWORD_DEBUG] Password hashed successfully.")
 
 	// 3. Update the user's password
-	updateUserQuery, updateUserArgs, err := h.sq.Update("users"). // Assuming table name is 'users'
-									Set("password", string(hashedPassword)).
-									Where(squirrel.Eq{"id": privateToken.UserID}).
-									ToSql()
+	updateUserQuery, updateUserArgs, err := h.sq.Update("users").
+		Set("password", string(hashedPassword)).
+		Where(squirrel.Eq{"id": privateToken.UserID}).
+		ToSql()
 	if err != nil {
-		c.Logger().Errorf("ResetPassword: Failed to build update user password query: %v", err)
+		log.Printf("[RESET_PASSWORD_ERROR] Failed to build update user password query: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to reset password")
 	}
+	log.Printf("[RESET_PASSWORD_DEBUG] Executing user password update query: SQL='%s', Args='%v'", updateUserQuery, updateUserArgs)
 
 	_, err = h.DB.ExecContext(ctx, updateUserQuery, updateUserArgs...)
 	if err != nil {
-		c.Logger().Errorf("ResetPassword: Failed to update user password: %v", err)
+		log.Printf("[RESET_PASSWORD_ERROR] Failed to update user password for ID '%s': %v", privateToken.UserID, err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to reset password")
 	}
+	log.Printf("[RESET_PASSWORD_INFO] User password updated successfully for ID: %s", privateToken.UserID)
 
 	// 4. Delete the used private token
 	deleteTokenQuery, deleteTokenArgs, err := h.sq.Delete("private_tokens").
 		Where(squirrel.Eq{"id": privateToken.ID}).
 		ToSql()
 	if err != nil {
-		c.Logger().Errorf("ResetPassword: Failed to build delete token query: %v", err)
+		log.Printf("[RESET_PASSWORD_ERROR] Failed to build delete token query: %v", err)
 		// Don't return an error here, just log it as the password reset was successful
 	} else {
 		_, err = h.DB.ExecContext(ctx, deleteTokenQuery, deleteTokenArgs...)
 		if err != nil {
-			c.Logger().Errorf("ResetPassword: Failed to delete used password reset token: %v", err)
+			log.Printf("[RESET_PASSWORD_ERROR] Failed to delete used password reset token ID %d: %v", privateToken.ID, err)
+		} else {
+			log.Printf("[RESET_PASSWORD_INFO] Used password reset token ID %d deleted successfully.", privateToken.ID)
 		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "Your password has been reset successfully."})
 }
-
