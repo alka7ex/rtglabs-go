@@ -4,8 +4,10 @@ import (
 	"log"           // Add log import
 	"os"            // Add os import
 	"path/filepath" // Add path/filepath import
+	"strings"
 
 	page "rtglabs-go/cmd/web/page"
+	page_auth "rtglabs-go/cmd/web/page/auth"
 	handlers "rtglabs-go/internal/handlers/auth"
 
 	"github.com/a-h/templ"
@@ -51,4 +53,12 @@ func (s *Server) registerPublicRoutes() {
 
 	s.echo.POST("/api/forgot-password", forgotPasswordHandler.ForgotPassword)
 	s.echo.POST("/api/reset-password", forgotPasswordHandler.ResetPassword)
+	s.echo.GET("/reset-password", func(c echo.Context) error {
+		token := strings.TrimSpace(c.QueryParam("token"))
+		scheme := os.Getenv("APP_SCHEME") // example: rtglabsdev
+		if scheme == "" {
+			scheme = "rtglabs" // fallback default
+		}
+		return page_auth.ResetPasswordRedirect(scheme, token).Render(c.Request().Context(), c.Response().Writer)
+	})
 }
