@@ -1,34 +1,484 @@
 package page // This should be 'page'
 
-// Import the layout package. Adjust the path if your module name is different.
-import "rtglabs-go/cmd/web/layout"
+import (
+	"rtglabs-go/cmd/web/components"
+	"rtglabs-go/cmd/web/layout"
+)
 
-templ HomePage() {
-	@layout.Base() {
-		// Use the Base component from the 'layout' package
-		<h2 class="text-xl font-semibold mb-4">Welcome Home!</h2>
-		<form hx-post="/hello" method="POST" hx-target="#hello-container" class="space-y-4">
-			<div>
-				<label for="name" class="block text-sm font-medium text-gray-700">Enter your name:</label>
-				<input
-					type="text"
-					id="name"
-					name="name"
-					placeholder="John Doe"
-					class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-				/>
-			</div>
-			<button
-				type="submit"
-				class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-			>
-				Say Hello
-			</button>
-		</form>
-		<div id="hello-container" class="mt-6 text-center text-lg text-gray-800"></div>
+// Adjust the path if your module name is different.
+
+// --- Hero1 Component ---
+// Hero1Props defines the properties for the Hero1 component.
+type Hero1Props struct {
+	Badge       string
+	Heading     string
+	Description string
+	Buttons     struct {
+		Primary struct {
+			Text string
+			URL  string
+		}
+		Secondary struct {
+			Text string
+			URL  string
+		}
+	}
+	Image struct {
+		Src string
+		Alt string
 	}
 }
 
-templ HelloMessage(name string) {
-	<p class="text-green-700 font-bold">Hello, { name }!</p>
+// Hero1 renders a hero section with a badge, heading, description, buttons, and an image.
+templ Hero1(props Hero1Props) {
+	<section class="py-32">
+		<div class="container mx-auto px-4">
+			<div class="grid items-center gap-8 lg:grid-cols-2">
+				<div class="flex flex-col items-center text-center lg:items-start lg:text-left">
+					if props.Badge != "" {
+						<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+							{ props.Badge }
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-2 size-4">
+								<path d="M7 17L17 7"></path>
+								<path d="M7 7h10v10"></path>
+							</svg>
+						</span>
+					}
+					<h1 class="my-6 text-pretty text-4xl font-bold lg:text-6xl">
+						{ props.Heading }
+					</h1>
+					<p class="text-muted-foreground mb-8 max-w-xl lg:text-xl text-gray-500">
+						{ props.Description }
+					</p>
+					<div class="flex w-full flex-col justify-center gap-2 sm:flex-row lg:justify-start">
+						if props.Buttons.Primary.Text != "" {
+							<a href={ templ.URL(props.Buttons.Primary.URL) } class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2 w-full sm:w-auto">
+								{ props.Buttons.Primary.Text }
+							</a>
+						}
+						if props.Buttons.Secondary.Text != "" {
+							<a href={ templ.URL(props.Buttons.Secondary.URL) } class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full sm:w-auto">
+								{ props.Buttons.Secondary.Text }
+								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-2 size-4">
+									<path d="M5 12h14"></path>
+									<path d="m12 5 7 7-7 7"></path>
+								</svg>
+							</a>
+						}
+					</div>
+				</div>
+				<img
+					src={ templ.URL(props.Image.Src) }
+					alt={ props.Image.Alt }
+					class="max-h-96 w-full rounded-md object-cover"
+				/>
+			</div>
+		</div>
+	</section>
+}
+
+// --- Feature43 Component ---
+// Reason struct for Feature43
+type Reason struct {
+	Title       string
+	Description string
+	Icon        templ.Component // Use templ.Component for embedding SVG icons
+}
+
+// Feature43Props defines the properties for the Feature43 component.
+type Feature43Props struct {
+	Heading string
+	Reasons []Reason
+}
+
+// Feature43 renders a section highlighting reasons.
+templ Feature43(props Feature43Props) {
+	<section class="py-32">
+		<div class="container mx-auto px-4">
+			<div class="mb-10 text-center md:mb-20">
+				<h2 class="mb-2 text-3xl font-semibold lg:text-5xl">
+					{ props.Heading }
+				</h2>
+			</div>
+			<div class="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
+				for _, reason := range props.Reasons {
+					<div class="flex flex-col">
+						<div class="mb-5 flex size-16 items-center justify-center rounded-full bg-accent">
+							@reason.Icon
+							// Render the SVG icon component
+						</div>
+						<h3 class="mb-2 text-xl font-semibold">{ reason.Title }</h3>
+						<p class="text-muted-foreground text-gray-500">{ reason.Description }</p>
+					</div>
+				}
+			</div>
+		</div>
+	</section>
+}
+
+// --- Pricing2 Component ---
+
+// PricingFeature defines a single feature for a pricing plan.
+type PricingFeature struct {
+	Text string
+}
+
+// PricingPlan defines a single pricing plan.
+type PricingPlan struct {
+	ID           string
+	Name         string
+	Description  string
+	MonthlyPrice string
+	YearlyPrice  string
+	Features     []PricingFeature
+	Button       struct {
+		Text string
+		URL  string
+	}
+}
+
+// Pricing2Props defines the properties for the Pricing2 component.
+type Pricing2Props struct {
+	Heading     string
+	Description string
+	Plans       []PricingPlan
+}
+
+// Pricing2 renders a pricing section with monthly/yearly toggle.
+templ Pricing2(props Pricing2Props) {
+	<section class="py-32">
+		<div class="container mx-auto px-4">
+			<div class="mx-auto flex max-w-5xl flex-col items-center gap-6 text-center">
+				<h2 class="text-4xl font-semibold text-pretty lg:text-6xl">
+					{ props.Heading }
+				</h2>
+				<p class="text-muted-foreground lg:text-xl text-gray-500">{ props.Description }</p>
+				<div class="flex items-center gap-3 text-lg">
+					Monthly
+					<div
+						class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+						role="switch"
+						id="yearly-toggle"
+						tabindex="0"
+						data-state="unchecked"
+						onclick="togglePricing(this)"
+					>
+						<span data-state="unchecked" class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"></span>
+					</div>
+					Yearly
+				</div>
+				<div class="flex flex-col items-stretch gap-6 md:flex-row" id="pricing-cards-container">
+					for _, plan := range props.Plans {
+						<div class="flex w-80 flex-col justify-between text-left border rounded-lg bg-card text-card-foreground shadow-sm">
+							<div class="flex flex-col space-y-1.5 p-6">
+								<h3 class="text-2xl font-semibold leading-none tracking-tight">{ plan.Name }</h3>
+								<p class="text-sm text-muted-foreground text-gray-500">
+									{ plan.Description }
+								</p>
+								<div class="flex items-end">
+									<span
+										class="text-4xl font-semibold pricing-price"
+										data-monthly={ plan.MonthlyPrice }
+										data-yearly={ plan.YearlyPrice }
+									>
+										{ plan.MonthlyPrice }
+									</span>
+									<span
+										class="text-2xl font-semibold text-muted-foreground pricing-period"
+										data-monthly="/mo"
+										data-yearly="/yr"
+									>
+										/mo
+									</span>
+								</div>
+							</div>
+							<div class="p-6 pt-0">
+								<div class="mb-6 h-px w-full bg-gray-200"></div>
+								if plan.ID == "pro" {
+									<p class="mb-3 font-semibold">
+										Everything in Plus, and:
+									</p>
+								}
+								<ul class="space-y-4">
+									for _, feature := range plan.Features {
+										<li class="flex items-center gap-2 text-sm">
+											<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z"></path><path d="m9 12 2 2 4-4"></path></svg> <span>{ feature.Text }</span>
+										</li>
+									}
+								</ul>
+							</div>
+							<div class="flex items-center p-6 pt-0 mt-auto">
+								<a href={ templ.URL(plan.Button.URL) } target="_blank" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2 w-full">
+									{ plan.Button.Text }
+								</a>
+							</div>
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	</section>
+	// Client-side JavaScript for the pricing toggle
+	<script>
+		function togglePricing(switchElement) {
+			const isChecked = switchElement.getAttribute('data-state') === 'checked';
+			switchElement.setAttribute('data-state', isChecked ? 'unchecked' : 'checked');
+
+			const circle = switchElement.querySelector('span');
+			circle.setAttribute('data-state', isChecked ? 'unchecked' : 'checked');
+
+			const prices = document.querySelectorAll('.pricing-price');
+			const periods = document.querySelectorAll('.pricing-period');
+
+			prices.forEach(priceElement => {
+				if (isChecked) { // Was checked (yearly), now uncheck (monthly)
+					priceElement.textContent = priceElement.getAttribute('data-monthly');
+				} else { // Was unchecked (monthly), now check (yearly)
+					priceElement.textContent = priceElement.getAttribute('data-yearly');
+				}
+			});
+
+			periods.forEach(periodElement => {
+				if (isChecked) { // Was checked (yearly), now uncheck (monthly)
+					periodElement.textContent = periodElement.getAttribute('data-monthly');
+				} else { // Was unchecked (monthly), now check (yearly)
+					periodElement.textContent = periodElement.getAttribute('data-yearly');
+				}
+			});
+		}
+	</script>
+}
+
+// --- Main HomePage Component ---
+templ HomePage() {
+	@layout.Base() {
+		@components.Header(components.HeaderProps{
+			Logo: struct {
+				Src  string
+				Alt  string
+				Text string
+				URL  string
+			}{
+				Src:  "https://deifkwefumgah.cloudfront.net/shadcnblocks/images/logo/shadcnblocks-logo.svg",
+				Alt:  "Shadcnblocks Logo",
+				Text: "Shadcnblocks.com",
+				URL:  "/",
+			},
+			NavLinks: []components.NavLink{
+				{Text: "Blocks", URL: "/blocks"},
+				{Text: "Templates", URL: "/templates"},
+				{Text: "Figma", URL: "/figma"},
+				{Text: "Themes", URL: "/themes"},
+				{Text: "Admin", URL: "/admin-dashboard"},
+			},
+			Addons: []components.NavLink{
+				{Text: "Docs", URL: "/docs"},
+				{Text: "Community", URL: "/community"},
+				{Text: "Support", URL: "/support"},
+			},
+			AuthLinks: struct {
+				Login     components.NavLink
+				Signup    components.NavLink
+				AllAccess components.NavLink
+			}{
+				Login:     components.NavLink{Text: "Login", URL: "/auth/login"},
+				Signup:    components.NavLink{Text: "Signup", URL: "/auth/signup"},
+				AllAccess: components.NavLink{Text: "All Access", URL: "/pricing"},
+			},
+		})
+		@Hero1(Hero1Props{
+			Badge:       "🚀 Your Website, Supercharged",
+			Heading:     "Blazing Fast Web Apps with Go and Templ",
+			Description: "Craft beautiful and performant web experiences using the power of Go and the simplicity of Templ. Get started building today!",
+			Buttons: struct {
+				Primary struct {
+					Text string
+					URL  string
+				}
+				Secondary struct {
+					Text string
+					URL  string
+				}
+			}{
+				Primary: struct {
+					Text string
+					URL  string
+				}{
+					Text: "Explore Features",
+					URL:  "/features",
+				},
+				Secondary: struct {
+					Text string
+					URL  string
+				}{
+					Text: "View on GitHub",
+					URL:  "https://github.com/your-repo", // Replace with your GitHub URL
+				},
+			},
+			Image: struct {
+				Src string
+				Alt string
+			}{
+				Src: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/placeholder-1.svg", // Or use a different image URL
+				Alt: "Hero section showcasing modern web development",
+			},
+		})
+		// Feature Section
+		@Feature43(Feature43Props{
+			Heading: "Why Work With Us?",
+			Reasons: []Reason{
+				{
+					Title:       "Quality Assurance",
+					Description: "We deliver robust and reliable solutions, meticulously tested for peak performance and user satisfaction.",
+					Icon:        templ.Component(templ.Raw(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`)), // GitPullRequest
+				},
+				{
+					Title:       "Extensive Experience",
+					Description: "Our team brings years of expertise across diverse projects, ensuring innovative and effective solutions for any challenge.",
+					Icon:        templ.Component(templ.Raw(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>`)), // SquareKanban
+				},
+				{
+					Title:       "Dedicated Support",
+					Description: "We offer responsive and comprehensive support, ensuring your operations run smoothly with minimal downtime.",
+					Icon:        templ.Component(templ.Raw(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M4 12V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6"></path><path d="M12 12v8"></path><path d="M4 18h16"></path><path d="M17 12l-5 5-5-5"></path></svg>`)), // RadioTower
+				},
+				{
+					Title:       "Constant Innovation",
+					Description: "We stay ahead of industry trends, integrating cutting-edge technologies to keep your solutions modern and competitive.",
+					Icon:        templ.Component(templ.Raw(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M14.5 4l-4 4-2 2L2 16.5 7.5 22l8.5-8.5 2-2 4-4"></path><path d="M18 10l-4-4"></path><path d="M17.5 12.5l2-2"></path><path d="M21 7l-4-4"></path></svg>`)), // WandSparkles
+				},
+				{
+					Title:       "Proven Results",
+					Description: "Our focus is on delivering measurable outcomes that drive your business forward and achieve your strategic objectives.",
+					Icon:        templ.Component(templ.Raw(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M3 20h18"></path><path d="M3 10l9-6 9 6"></path><path d="M4 12v8h16v-8"></path></svg>`)), // Layers
+				},
+				{
+					Title:       "Maximized Efficiency",
+					Description: "We streamline processes and optimize workflows to ensure maximum efficiency, saving you time and resources.",
+					Icon:        templ.Component(templ.Raw(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M15.5 16H14a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a2 2 0 0 0-2-2v-2.5a2 2 0 0 1 2-2H8a2 2 0 0 1 2 2v2.5a2 2 0 0 0 2 2h1.5"></path><path d="M18 20V5h-2V2H8v3H6v15a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2Z"></path></svg>`)), // BatteryCharging
+				},
+			},
+		})
+		// Pricing Section
+		@Pricing2(Pricing2Props{
+			Heading:     "Flexible Pricing Plans",
+			Description: "Choose the plan that best fits your needs, with options for monthly or annual billing.",
+			Plans: []PricingPlan{
+				{
+					ID:           "plus",
+					Name:         "Plus",
+					Description:  "Ideal for personal projects and small teams.",
+					MonthlyPrice: "$19",
+					YearlyPrice:  "$179",
+					Features: []PricingFeature{
+						{Text: "Up to 5 team members"},
+						{Text: "Basic components library"},
+						{Text: "Community support"},
+						{Text: "1GB storage space"},
+					},
+					Button: struct {
+						Text string
+						URL  string
+					}{
+						Text: "Get Started - Plus",
+						URL:  "https://shadcnblocks.com/purchase/plus",
+					},
+				},
+				{
+					ID:           "pro",
+					Name:         "Pro",
+					Description:  "Perfect for growing businesses and professionals.",
+					MonthlyPrice: "$49",
+					YearlyPrice:  "$359",
+					Features: []PricingFeature{
+						{Text: "Unlimited team members"},
+						{Text: "Advanced components"},
+						{Text: "Priority support"},
+						{Text: "Unlimited storage"},
+					},
+					Button: struct {
+						Text string
+						URL  string
+					}{
+						Text: "Get Started - Pro",
+						URL:  "https://shadcnblocks.com/purchase/pro",
+					},
+				},
+			},
+		})
+		@components.Footer2(components.Footer2Props{
+			Logo: struct {
+				URL   string
+				Src   string
+				Alt   string
+				Title string
+			}{
+				URL:   "https://www.shadcnblocks.com",
+				Src:   "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-1.svg",
+				Alt:   "blocks for shadcn/ui",
+				Title: "Shadcnblocks.com",
+			},
+			Tagline: "Components made easy.",
+			MenuItems: []components.MenuItem{
+				{
+					Title: "Product",
+					Links: []struct {
+						Text string
+						URL  string
+					}{
+						{Text: "Overview", URL: "#"},
+						{Text: "Pricing", URL: "#"},
+						{Text: "Marketplace", URL: "#"},
+						{Text: "Features", URL: "#"},
+						{Text: "Integrations", URL: "#"},
+						{Text: "Pricing", URL: "#"},
+					},
+				},
+				{
+					Title: "Company",
+					Links: []struct {
+						Text string
+						URL  string
+					}{
+						{Text: "About", URL: "#"},
+						{Text: "Team", URL: "#"},
+						{Text: "Blog", URL: "#"},
+						{Text: "Careers", URL: "#"},
+						{Text: "Contact", URL: "#"},
+						{Text: "Privacy", URL: "#"},
+					},
+				},
+				{
+					Title: "Resources",
+					Links: []struct {
+						Text string
+						URL  string
+					}{
+						{Text: "Help", URL: "#"},
+						{Text: "Sales", URL: "#"},
+						{Text: "Advertise", URL: "#"},
+					},
+				},
+				{
+					Title: "Social",
+					Links: []struct {
+						Text string
+						URL  string
+					}{
+						{Text: "Twitter", URL: "#"},
+						{Text: "Instagram", URL: "#"},
+						{Text: "LinkedIn", URL: "#"},
+					},
+				},
+			},
+			Copyright: "© 2024 Shadcnblocks.com. All rights reserved.",
+			BottomLinks: []struct {
+				Text string
+				URL  string
+			}{
+				{Text: "Terms and Conditions", URL: "#"},
+				{Text: "Privacy Policy", URL: "#"},
+			},
+		})
+	}
 }

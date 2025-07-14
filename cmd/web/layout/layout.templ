@@ -1,6 +1,7 @@
 package layout // This should be 'layout'
 
-templ Base() { // Can be named Base, or Layout, etc.
+templ Base() {
+	// Can be named Base, or Layout, etc.
 	<!DOCTYPE html>
 	<html lang="en" class="h-screen">
 		<head>
@@ -9,20 +10,13 @@ templ Base() { // Can be named Base, or Layout, etc.
 			<title>RTGLabs Go App</title>
 			<link href="/assets/css/output.css" rel="stylesheet"/>
 			<script src="https://unpkg.com/alpinejs" defer></script>
-<script defer src="https://cdn.jsdelivr.net/npm/@imacrayon/alpine-ajax@0.12.4/dist/cdn.min.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+			<script defer src="https://cdn.jsdelivr.net/npm/@imacrayon/alpine-ajax@0.12.4/dist/cdn.min.js"></script>
+			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script defer src="https://cdn.jsdelivr.net/npm/@imacrayon/alpine-ajax@0.12.4/dist/cdn.min.js"></script>
 		</head>
-		<body class="bg-gray-100 font-sans text-gray-800">
-			<header class="bg-blue-700 text-white p-4 text-center">
-				<h1 class="text-2xl font-bold">RTGLabs Go App</h1>
-			</header>
-			<main class="max-w-sm mx-auto p-4 bg-white shadow-md rounded-lg mt-10">
-				{ children... } // Placeholder for page-specific content
-			</main>
-			<footer class="mt-10 p-4 text-center text-gray-500 text-sm">
-				&copy; 2025 RTGLabs. All rights reserved.
-			</footer>
+		<body class="h-full">
+			{ children... }
+			// Placeholder for page-specific content
 		</body>
 	</html>
 }

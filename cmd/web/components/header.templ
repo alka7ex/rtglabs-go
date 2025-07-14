@@ -1,0 +1,158 @@
+package components
+
+// NavLink defines a single navigation link.
+type NavLink struct {
+	Text string
+	URL  string
+}
+
+// HeaderProps defines the properties for the Header component.
+type HeaderProps struct {
+	Logo struct {
+		Src  string
+		Alt  string
+		Text string
+		URL  string
+	}
+	NavLinks  []NavLink
+	Addons    []NavLink // Links for the "Addons" dropdown
+	AuthLinks struct {
+		Login     NavLink
+		Signup    NavLink
+		AllAccess NavLink
+	}
+}
+
+// Header renders the main navigation bar.
+templ Header(props HeaderProps) {
+	<nav class="fixed z-50 h-[60px] w-full bg-white transition-all duration-300 top-0">
+		<div class="container flex h-full items-center">
+			<nav class="hidden w-full items-center justify-between lg:flex">
+				<div class="flex w-full items-center justify-between gap-6">
+					<a href={ templ.URL(props.Logo.URL) } class="group flex items-center gap-1.5 font-semibold">
+						<img src={ templ.URL(props.Logo.Src) } class="w-6 transition-opacity duration-300 group-hover:opacity-65" alt={ props.Logo.Alt }/>
+						<span class="flex items-center gap-1 text-[16px] tracking-[-1px] transition-opacity duration-300 group-hover:opacity-65">
+							{ props.Logo.Text }
+						</span>
+					</a>
+					<div class="flex items-center">
+						for _, link := range props.NavLinks {
+							<nav aria-label="Main" data-orientation="horizontal" dir="ltr" class="group/navigation-menu relative flex max-w-max flex-1 items-center justify-center">
+								<a class="data-[active=true]:focus:bg-accent data-[active=true]:hover:bg-accent data-[active=true]:bg-accent/50 data-[active=true]:text-accent-foreground [&amp;_svg:not([class*='text-'])]:text-muted-foreground p-2 [&amp;_svg:not([class*='size-'])]:size-4 relative group h-9 w-max justify-center rounded-md bg-background px-4 py-2 font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50 focus-visible:ring-ring/50 outline-none transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 inline-flex flex-row items-center gap-1 text-xs" href={ templ.URL(link.URL) }>
+									{ link.Text }
+								</a>
+								<div class="absolute top-full left-0 isolate z-50 flex justify-center"></div>
+							</nav>
+						}
+						<nav aria-label="Main" data-orientation="horizontal" dir="ltr" class="group/navigation-menu relative flex max-w-max flex-1 items-center justify-center">
+							<div style="position:relative">
+								<ul data-orientation="horizontal" class="group flex flex-1 list-none items-center justify-center gap-1" dir="ltr">
+									<li class="relative text-muted-foreground">
+										<button
+											id="addons-trigger"
+											data-state="closed"
+											aria-expanded="false"
+											aria-controls="addons-content"
+											class="group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=open]:hover:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:focus:bg-accent data-[state=open]:bg-accent/50 focus-visible:ring-ring/50 outline-none transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 group text-xs"
+											onclick="toggleAddonsDropdown(this)"
+										>
+											<span>Addons</span>
+											<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down relative top-[1px] ml-1 size-3 transition duration-300 group-data-[state=open]:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+										</button>
+										<div id="addons-content" data-state="closed" class="absolute left-0 top-full z-10 hidden min-w-[160px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:block">
+											<ul class="flex flex-col p-1">
+												for _, addonLink := range props.Addons {
+													<li>
+														<a href={ templ.URL(addonLink.URL) } class="block w-full px-2 py-1 text-sm hover:bg-accent rounded-sm">
+															{ addonLink.Text }
+														</a>
+													</li>
+												}
+											</ul>
+										</div>
+									</li>
+								</ul>
+							</div>
+							<div class="absolute top-full left-0 isolate z-50 flex justify-center"></div>
+						</nav>
+					</div>
+					<div class="flex gap-2">
+						<a href={ templ.URL(props.AuthLinks.Login.URL) } class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 text-xs">
+							{ props.AuthLinks.Login.Text }
+						</a>
+						<a href={ templ.URL(props.AuthLinks.Signup.URL) } class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 text-xs">
+							{ props.AuthLinks.Signup.Text }
+						</a>
+						<a href={ templ.URL(props.AuthLinks.AllAccess.URL) } class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 text-xs">
+							{ props.AuthLinks.AllAccess.Text }
+						</a>
+					</div>
+				</div>
+			</nav>
+			<div class="flex w-full items-center justify-between lg:hidden">
+				<a href={ templ.URL(props.Logo.URL) } class="group flex items-center gap-1.5 font-semibold">
+					<img src={ templ.URL(props.Logo.Src) } class="w-6 transition-opacity duration-300 group-hover:opacity-65" alt={ props.Logo.Alt }/>
+					<span class="flex items-center gap-1 text-[16px] tracking-[-1px] transition-opacity duration-300 group-hover:opacity-65">
+						{ props.Logo.Text }
+					</span>
+				</a>
+				<button
+					id="mobile-menu-trigger"
+					class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9"
+					type="button"
+					aria-haspopup="dialog"
+					aria-expanded="false"
+					data-state="closed"
+					onclick="toggleMobileMenu(this)"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu size-4" aria-hidden="true"><path d="M4 12h16"></path><path d="M4 18h16"></path><path d="M4 6h16"></path></svg>
+				</button>
+			</div>
+		</div>
+	</nav>
+	<script>
+		function toggleAddonsDropdown(button) {
+			const dropdownContent = document.getElementById('addons-content');
+			const isClosed = button.getAttribute('data-state') === 'closed';
+
+			if (isClosed) {
+				button.setAttribute('data-state', 'open');
+				dropdownContent.setAttribute('data-state', 'open');
+				dropdownContent.classList.remove('hidden');
+			} else {
+				button.setAttribute('data-state', 'closed');
+				dropdownContent.setAttribute('data-state', 'closed');
+				dropdownContent.classList.add('hidden');
+			}
+		}
+
+		// Placeholder for mobile menu toggle - you'll likely want a full-screen overlay or similar
+		function toggleMobileMenu(button) {
+			const isClosed = button.getAttribute('data-state') === 'closed';
+			if (isClosed) {
+				button.setAttribute('data-state', 'open');
+				// Implement logic to show your mobile menu/sheet here
+				console.log("Mobile menu opened!");
+				alert("Mobile menu opened! You'll need to implement the actual mobile menu overlay/sheet.")
+			} else {
+				button.setAttribute('data-state', 'closed');
+				// Implement logic to hide your mobile menu/sheet here
+				console.log("Mobile menu closed!");
+			}
+		}
+
+		// Close dropdown when clicking outside
+		document.addEventListener('click', function(event) {
+			const addonsButton = document.getElementById('addons-trigger');
+			const addonsContent = document.getElementById('addons-content');
+
+			if (addonsButton && addonsContent &&
+				!addonsButton.contains(event.target) &&
+				!addonsContent.contains(event.target)) {
+				addonsButton.setAttribute('data-state', 'closed');
+				addonsContent.setAttribute('data-state', 'closed');
+				addonsContent.classList.add('hidden');
+			}
+		});
+	</script>
+}

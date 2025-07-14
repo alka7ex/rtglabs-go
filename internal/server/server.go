@@ -190,7 +190,6 @@ func (s *Server) PrintRoutes() {
 func (s *Server) RegisterRoutes() {
 	s.registerPublicRoutes()
 	s.registerPrivateRoutes()
-	s.PrintRoutes()
 }
 
 // HelloWorldHandler is a simple handler for the "/" route.
