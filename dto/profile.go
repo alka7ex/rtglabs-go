@@ -7,13 +7,13 @@ type GetProfileResponse struct {
 	UserID  uuid.UUID        `json:"user_id"`
 	Email   string           `json:"email"`
 	Name    string           `json:"name"`
-	Profile *ProfileResponse `json:"profile,omitempty"`
+	Profile *ProfileResponse `json:"profile"`
 }
 
 // Adjusted ProfileResponse for consistency
 type ProfileResponse struct {
 	ID        uuid.UUID `json:"id"`
-	UserID    uuid.UUID `json:"user_id,omitempty"`
+	UserID    uuid.UUID `json:"user_id"`
 	Units     int       `json:"units"`
 	Gender    int       `json:"gender"`
 	Age       int       `json:"age"`

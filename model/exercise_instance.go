@@ -12,10 +12,10 @@ import (
 type ExerciseInstance struct {
 	ID           uuid.UUID  `db:"id" json:"id"`                                 // From custommixin.UUID
 	ExerciseID   uuid.UUID  `db:"exercise_id" json:"exerciseId"`                // Foreign Key to exercises.id, UNIQUE and NOT NULL
-	WorkoutLogID *uuid.UUID `db:"workout_log_id" json:"workoutLogId,omitempty"` // Foreign Key to workout_logs.id, UNIQUE and NULLABLE
+	WorkoutLogID *uuid.UUID `db:"workout_log_id" json:"workoutLogId"` // Foreign Key to workout_logs.id, UNIQUE and NULLABLE
 	CreatedAt    time.Time  `db:"created_at" json:"createdAt"`                  // From custommixin.Timestamps
 	UpdatedAt    time.Time  `db:"updated_at" json:"updatedAt"`                  // From custommixin.Timestamps
-	DeletedAt    *time.Time `db:"deleted_at" json:"deletedAt,omitempty"`        // From custommixin.Timestamps (for soft deletes), nullable
+	DeletedAt    *time.Time `db:"deleted_at" json:"deletedAt"`        // From custommixin.Timestamps (for soft deletes), nullable
 }
 
 // NOTE ON EDGES (Relationships):

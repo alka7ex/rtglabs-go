@@ -34,7 +34,7 @@ type BodyweightResponse struct {
 	Unit      int        `json:"unit"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty"` // Use a pointer for nullable field
+	DeletedAt *time.Time `json:"deleted_at"` // Use a pointer for nullable field
 }
 
 // CreateBodyweightResponse defines the structure for a successful creation response.

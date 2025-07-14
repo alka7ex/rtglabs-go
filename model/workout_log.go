@@ -16,15 +16,15 @@ import (
 type WorkoutLog struct {
 	ID                         uuid.UUID  `db:"id" json:"id"`
 	UserID                     uuid.UUID  `db:"user_id" json:"userId"`                                           // FK to users.id, UNIQUE and NOT NULL
-	WorkoutID                  *uuid.UUID `db:"workout_id" json:"workoutId,omitempty"`                           // FK to workouts.id, UNIQUE and NULLABLE
-	StartedAt                  *time.Time `db:"started_at" json:"startedAt,omitempty"`                           // Nullable, uses pointer
-	FinishedAt                 *time.Time `db:"finished_at" json:"finishedAt,omitempty"`                         // Nullable, uses pointer
+	WorkoutID                  *uuid.UUID `db:"workout_id" json:"workoutId"`                           // FK to workouts.id, UNIQUE and NULLABLE
+	StartedAt                  *time.Time `db:"started_at" json:"startedAt"`                           // Nullable, uses pointer
+	FinishedAt                 *time.Time `db:"finished_at" json:"finishedAt"`                         // Nullable, uses pointer
 	Status                     int        `db:"status" json:"status"`                                            // Default 0
 	TotalActiveDurationSeconds uint       `db:"total_active_duration_seconds" json:"totalActiveDurationSeconds"` // Default 0
 	TotalPauseDurationSeconds  uint       `db:"total_pause_duration_seconds" json:"totalPauseDurationSeconds"`   // Default 0
 	CreatedAt                  time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt                  time.Time  `db:"updated_at" json:"updatedAt"`
-	DeletedAt                  *time.Time `db:"deleted_at" json:"deletedAt,omitempty"` // For soft deletes, nullable
+	DeletedAt                  *time.Time `db:"deleted_at" json:"deletedAt"` // For soft deletes, nullable
 }
 
 const (

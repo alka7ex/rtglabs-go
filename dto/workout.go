@@ -11,11 +11,11 @@ import (
 // This is for the *template* exercise instance used in workout blueprints.
 type ExerciseInstanceResponse struct {
 	ID           uuid.UUID  `json:"id"`
-	WorkoutLogID *uuid.UUID `json:"workout_log_id,omitempty"` // Consider if this field is truly relevant for a *template* instance.
+	WorkoutLogID *uuid.UUID `json:"workout_log_id"` // Removed ""
 	ExerciseID   uuid.UUID  `json:"exercise_id"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
-	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
+	DeletedAt    *time.Time `json:"deleted_at"` // Removed ""
 }
 
 // CreateWorkoutRequest represents the request body for creating a new workout template.
@@ -26,13 +26,13 @@ type CreateWorkoutRequest struct {
 
 // CreateWorkoutExerciseRequest represents a single exercise within a workout template creation request.
 type CreateWorkoutExerciseRequest struct {
-	ID                       *uuid.UUID `json:"id,omitempty" validate:"omitempty,uuid"`
+	ID                       *uuid.UUID `json:"id" validate:"omitempty,uuid"`
 	ExerciseID               uuid.UUID  `json:"exercise_id" validate:"required,uuid"`
-	WorkoutOrder             *uint      `json:"order,omitempty" validate:"omitempty,min=1"`
-	Sets                     *uint      `json:"sets,omitempty" validate:"omitempty,min=0"`
-	Weight                   *float64   `json:"weight,omitempty" validate:"omitempty,min=0"`
-	Reps                     *uint      `json:"reps,omitempty" validate:"omitempty,min=0"`
-	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id,omitempty"`
+	WorkoutOrder             *uint      `json:"order" validate:"omitempty,min=1"`
+	Sets                     *uint      `json:"sets" validate:"omitempty,min=0"`
+	Weight                   *float64   `json:"weight" validate:"omitempty,min=0"`
+	Reps                     *uint      `json:"reps" validate:"omitempty,min=0"`
+	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id"`
 }
 
 // WorkoutExerciseResponse represents a single exercise associated with a workout (pivot data).
@@ -41,16 +41,16 @@ type WorkoutExerciseResponse struct {
 	ID                 uuid.UUID                 `json:"id"`
 	WorkoutID          uuid.UUID                 `json:"workout_id"`
 	ExerciseID         uuid.UUID                 `json:"exercise_id"`
-	ExerciseInstanceID *uuid.UUID                `json:"exercise_instance_id,omitempty"` // Pointer to the template exercise instance
-	WorkoutOrder       *uint                     `json:"order,omitempty"`
-	Sets               *uint                     `json:"sets,omitempty"`
-	Weight             *float64                  `json:"weight,omitempty"`
-	Reps               *uint                     `json:"reps,omitempty"`
+	ExerciseInstanceID *uuid.UUID                `json:"exercise_instance_id"` // Removed ""
+	WorkoutOrder       *uint                     `json:"order"`                // Removed ""
+	Sets               *uint                     `json:"sets"`                 // Removed ""
+	Weight             *float64                  `json:"weight"`               // Removed ""
+	Reps               *uint                     `json:"reps"`                 // Removed ""
 	CreatedAt          time.Time                 `json:"created_at"`
 	UpdatedAt          time.Time                 `json:"updated_at"`
-	DeletedAt          *time.Time                `json:"deleted_at,omitempty"`
-	Exercise           *ExerciseResponse         `json:"exercise,omitempty"`          // Reference ExerciseResponse from dto/exercise.go
-	ExerciseInstance   *ExerciseInstanceResponse `json:"exercise_instance,omitempty"` // The template instance details
+	DeletedAt          *time.Time                `json:"deleted_at"`        // Removed ""
+	Exercise           *ExerciseResponse         `json:"exercise"`          // Removed ""
+	ExerciseInstance   *ExerciseInstanceResponse `json:"exercise_instance"` // Removed ""
 }
 
 // WorkoutResponse represents the full workout details to be returned in a response.
@@ -61,8 +61,8 @@ type WorkoutResponse struct {
 	Name             string                    `json:"name"`
 	CreatedAt        time.Time                 `json:"created_at"`
 	UpdatedAt        time.Time                 `json:"updated_at"`
-	DeletedAt        *time.Time                `json:"deleted_at,omitempty"`
-	WorkoutExercises []WorkoutExerciseResponse `json:"workout_exercises,omitempty"`
+	DeletedAt        *time.Time                `json:"deleted_at"`        // Removed ""
+	WorkoutExercises []WorkoutExerciseResponse `json:"workout_exercises"` // Removed "" - For slice, an empty slice [] will be []
 }
 
 // CreateWorkoutResponse is the response for a successful workout template creation.
@@ -90,12 +90,12 @@ type UpdateWorkoutRequest struct {
 
 // UpdateWorkoutExerciseRequest represents a single exercise within a workout template update request.
 type UpdateWorkoutExerciseRequest struct {
-	ID                       *uuid.UUID `json:"id,omitempty" validate:"omitempty,uuid"`
+	ID                       *uuid.UUID `json:"id" validate:"omitempty,uuid"`
 	ExerciseID               uuid.UUID  `json:"exercise_id" validate:"required,uuid"`
-	WorkoutOrder             *uint      `json:"order,omitempty" validate:"omitempty,min=1"`
-	Sets                     *uint      `json:"sets,omitempty" validate:"omitempty,min=0"`
-	Weight                   *float64   `json:"weight,omitempty" validate:"omitempty,min=0"`
-	Reps                     *uint      `json:"reps,omitempty" validate:"omitempty,min=0"`
-	ExerciseInstanceID       *uuid.UUID `json:"exercise_instance_id,omitempty" validate:"omitempty,uuid"`
-	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id,omitempty"`
+	WorkoutOrder             *uint      `json:"order" validate:"omitempty,min=1"`
+	Sets                     *uint      `json:"sets" validate:"omitempty,min=0"`
+	Weight                   *float64   `json:"weight" validate:"omitempty,min=0"`
+	Reps                     *uint      `json:"reps" validate:"omitempty,min=0"`
+	ExerciseInstanceID       *uuid.UUID `json:"exercise_instance_id" validate:"omitempty,uuid"`
+	ExerciseInstanceClientID *string    `json:"exercise_instance_client_id"`
 }

@@ -15,7 +15,7 @@ type Workout struct {
 	Name      string     `db:"name" json:"name"`
 	CreatedAt time.Time  `db:"created_at" json:"createdAt"`           // From custommixin.Timestamps
 	UpdatedAt time.Time  `db:"updated_at" json:"updatedAt"`           // From custommixin.Timestamps
-	DeletedAt *time.Time `db:"deleted_at" json:"deletedAt,omitempty"` // From custommixin.Timestamps (for soft deletes), nullable
+	DeletedAt *time.Time `db:"deleted_at" json:"deletedAt"` // From custommixin.Timestamps (for soft deletes), nullable
 }
 
 // NOTE ON EDGES (Relationships):

@@ -29,7 +29,7 @@ type BaseUserResponse struct {
 	ID              uuid.UUID  `json:"id"`
 	Name            string     `json:"name"`
 	Email           string     `json:"email"`
-	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
 	CreatedAt       string     `json:"created_at"` // Using string for formatted time
 	UpdatedAt       string     `json:"updated_at"` // Using string for formatted time
 }
@@ -37,7 +37,7 @@ type BaseUserResponse struct {
 // UserWithProfileResponse embeds BaseUserResponse and includes the Profile.
 type UserWithProfileResponse struct {
 	BaseUserResponse
-	Profile *ProfileResponse `json:"profile,omitempty"`
+	Profile *ProfileResponse `json:"profile"`
 }
 
 // RegisterResponse represents the response body for a successful registration.
