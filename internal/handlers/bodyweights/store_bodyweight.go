@@ -4,7 +4,6 @@ import (
 	"database/sql" // Import for sql.DB, sql.Null* types, sql.ErrNoRows
 	"errors"       // Import errors for errors.Is
 	"net/http"
-	"strconv"
 	"time"
 
 	"rtglabs-go/dto"
@@ -37,20 +36,11 @@ func (h *BodyweightHandler) StoreBodyweight(c echo.Context) error {
 	newBodyweightID := uuid.New() // Generate a new UUID for the bodyweight record
 	currentTime := time.Now()     // Get current time for CreatedAt and UpdatedAt
 
-	// DTO's Unit is *int, model's Unit is string. Convert.
-	unitString := ""
-	if req.Unit != nil {
-		unitString = strconv.Itoa(*req.Unit)
-	} else {
-		// This case should ideally be caught by validation (`validate:"required"`).
-		// Add a redundant check for safety, or rely solely on validation.
-		return echo.NewHTTPError(http.StatusBadRequest, "Unit is required and cannot be nil")
-	}
-
 	// 3. Insert the new bodyweight record into the database using squirrel.
+	// Removed "unit" column and unitString from values.
 	insertQuery, insertArgs, err := h.sq.Insert("bodyweights"). // Table name
-									Columns("id", "user_id", "weight", "unit", "created_at", "updated_at").            // Columns to insert
-									Values(newBodyweightID, userID, req.Weight, unitString, currentTime, currentTime). // Values
+									Columns("id", "user_id", "weight", "created_at", "updated_at").        // Columns to insert
+									Values(newBodyweightID, userID, req.Weight, currentTime, currentTime). // Values
 									ToSql()
 	if err != nil {
 		c.Logger().Errorf("StoreBodyweight: Failed to build insert query: %v", err)
@@ -70,7 +60,8 @@ func (h *BodyweightHandler) StoreBodyweight(c echo.Context) error {
 	var createdBodyweight model.Bodyweight
 	var nullDeletedAt sql.NullTime // Use sql.NullTime for the nullable DeletedAt field
 
-	fetchQuery, fetchArgs, err := h.sq.Select("id", "user_id", "weight", "unit", "created_at", "updated_at", "deleted_at").
+	// Removed "unit" from the SELECT columns
+	fetchQuery, fetchArgs, err := h.sq.Select("id", "user_id", "weight", "created_at", "updated_at", "deleted_at").
 		From("bodyweights").
 		Where(squirrel.Eq{"id": newBodyweightID}). // Fetch by the ID we just inserted
 		ToSql()
@@ -81,11 +72,11 @@ func (h *BodyweightHandler) StoreBodyweight(c echo.Context) error {
 
 	row := h.DB.QueryRowContext(ctx, fetchQuery, fetchArgs...)
 
+	// Removed &createdBodyweight.Unit from the Scan arguments
 	err = row.Scan(
 		&createdBodyweight.ID,
 		&createdBodyweight.UserID,
 		&createdBodyweight.Weight,
-		&createdBodyweight.Unit,
 		&createdBodyweight.CreatedAt,
 		&createdBodyweight.UpdatedAt,
 		&nullDeletedAt, // Scan into sql.NullTime

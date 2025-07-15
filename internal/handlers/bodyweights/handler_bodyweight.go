@@ -2,13 +2,11 @@ package handlers
 
 import (
 	"database/sql" // Import for sql.DB, sql.Null* types, sql.ErrNoRows
-	"fmt"
-	"strconv"
 	"time"
 
 	"rtglabs-go/dto"
 	"rtglabs-go/model" // Import your model package
-	// REMOVE: "rtglabs-go/ent" // Remove Ent import
+
 	"github.com/Masterminds/squirrel" // Import squirrel
 )
 
@@ -39,24 +37,11 @@ func toBodyweightResponse(bw *model.Bodyweight) dto.BodyweightResponse {
 		deletedAt = bw.DeletedAt
 	}
 
-	// Assuming Unit in model.Bodyweight is string based on your DDL,
-	// and needs to be converted to int for DTO.
-	// If model.Bodyweight.Unit is already int, remove strconv.Atoi
-	unit, err := strconv.Atoi(bw.Unit)
-	if err != nil {
-		// Log the error if the database value is not a valid integer.
-		// Or handle it based on your application's error strategy.
-		// For now, default to 0.
-		// You might want to remove this conversion if your DB 'unit' column is INTEGER.
-		fmt.Printf("Warning: Could not convert Bodyweight.Unit '%s' to int: %v\n", bw.Unit, err)
-		unit = 0
-	}
-
+	// Removed all 'Unit' related conversion and assignment
 	return dto.BodyweightResponse{
 		ID:        bw.ID,
 		UserID:    bw.UserID, // Direct access to UserID from model.Bodyweight
 		Weight:    bw.Weight,
-		Unit:      unit,
 		CreatedAt: bw.CreatedAt, // Assuming CreatedAt is already time.Time in model
 		UpdatedAt: bw.UpdatedAt, // Assuming UpdatedAt is already time.Time in model
 		DeletedAt: deletedAt,

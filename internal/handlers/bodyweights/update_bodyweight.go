@@ -4,7 +4,6 @@ import (
 	"database/sql" // Import for sql.DB, sql.Null* types, sql.ErrNoRows
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"rtglabs-go/dto"
@@ -40,21 +39,20 @@ func (h *BodyweightHandler) UpdateBodyweight(c echo.Context) error {
 	ctx := c.Request().Context()
 	currentTime := time.Now() // Time for UpdatedAt
 
-	// DTO's Unit is *int, model's Unit is string. Convert.
-	unitString := ""
-	if req.Unit != nil {
-		unitString = strconv.Itoa(*req.Unit)
-	} else {
-		// This should be caught by validation, but defensively add check.
-		return echo.NewHTTPError(http.StatusBadRequest, "Unit is required and cannot be nil")
-	}
+	// Removed DTO's Unit conversion and validation check
+	// unitString := ""
+	// if req.Unit != nil {
+	// 	unitString = strconv.Itoa(*req.Unit)
+	// } else {
+	// 	return echo.NewHTTPError(http.StatusBadRequest, "Unit is required and cannot be nil")
+	// }
 
 	// 4. Update the record using squirrel, ensuring it belongs to the authenticated user.
 	updateQuery, updateArgs, err := h.sq.Update("bodyweights"). // Table name
 									Set("weight", req.Weight).
-									Set("unit", unitString).
-									Set("updated_at", currentTime).
-									Where(
+		// Removed Set("unit", unitString).
+		Set("updated_at", currentTime).
+		Where(
 			squirrel.Eq{"id": id},
 			squirrel.Eq{"user_id": userID}, // Ensure user owns the record
 			squirrel.Eq{"deleted_at": nil}, // Only update non-deleted records
@@ -89,7 +87,7 @@ func (h *BodyweightHandler) UpdateBodyweight(c echo.Context) error {
 	var nullDeletedAt sql.NullTime // For nullable DeletedAt field
 
 	fetchQuery, fetchArgs, err := h.sq.Select(
-		"id", "user_id", "weight", "unit", "created_at", "updated_at", "deleted_at",
+		"id", "user_id", "weight", "created_at", "updated_at", "deleted_at", // Removed "unit"
 	).
 		From("bodyweights").
 		Where(
@@ -109,7 +107,7 @@ func (h *BodyweightHandler) UpdateBodyweight(c echo.Context) error {
 		&updatedBodyweight.ID,
 		&updatedBodyweight.UserID,
 		&updatedBodyweight.Weight,
-		&updatedBodyweight.Unit,
+		// Removed &updatedBodyweight.Unit,
 		&updatedBodyweight.CreatedAt,
 		&updatedBodyweight.UpdatedAt,
 		&nullDeletedAt, // Scan into sql.NullTime
@@ -139,4 +137,3 @@ func (h *BodyweightHandler) UpdateBodyweight(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response)
 }
-
