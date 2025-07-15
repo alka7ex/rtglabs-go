@@ -25,7 +25,6 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-
 	query := `
 		SELECT
 			wl.id, wl.workout_id, wl.user_id, wl.started_at, wl.finished_at, wl.status,
@@ -59,9 +58,10 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 	defer rows.Close()
 
 	var workoutLog dto.WorkoutLogResponse
-	exerciseInstanceMap := make(map[uuid.UUID]dto.LoggedExerciseInstanceLog)
-
+	var exerciseInstances []dto.LoggedExerciseInstanceLog
+	exerciseInstanceMap := make(map[uuid.UUID]int) // Maps UUID to slice index
 	found := false
+
 	for rows.Next() {
 		found = true
 		var (
@@ -139,18 +139,21 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 				}
 			} else {
 				// If the workout template itself is null/deleted, initialize Workout with zero values
-				// or handle as an error if a workout log must always have a valid workout template.
-				// For now, setting to zero values if not valid.
 				workoutLog.Workout = dto.WorkoutResponse{}
 			}
-			workoutLog.LoggedExerciseInstances = []dto.LoggedExerciseInstanceLog{} // Initialize slice
+
+			// Initialize the slice - will be populated below
+			exerciseInstances = []dto.LoggedExerciseInstanceLog{}
 		}
 
+		// Handle logged exercise instances
 		if leiID.Valid {
 			leiUUID := leiID.V
-			lei, exists := exerciseInstanceMap[leiUUID]
+			index, exists := exerciseInstanceMap[leiUUID]
+
 			if !exists {
-				lei = dto.LoggedExerciseInstanceLog{
+				// Create new exercise instance
+				lei := dto.LoggedExerciseInstanceLog{
 					ID:           leiUUID,
 					WorkoutLogID: leiWorkoutLogID.V,
 					ExerciseID:   leiExerciseID.V,
@@ -166,27 +169,30 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 					},
 					ExerciseSets: []dto.ExerciseSetResponse{},
 				}
-				exerciseInstanceMap[leiUUID] = lei // Store the newly created entry
+				exerciseInstances = append(exerciseInstances, lei)
+				exerciseInstanceMap[leiUUID] = len(exerciseInstances) - 1
+				index = len(exerciseInstances) - 1
 			}
 
+			// Handle exercise sets
 			if esID.Valid {
-				// Get the existing (or newly created) lei from the map
-				tempLei := exerciseInstanceMap[leiUUID]
-				tempLei.ExerciseSets = append(tempLei.ExerciseSets, dto.ExerciseSetResponse{
-					ID:                       esID.V,
-					WorkoutLogID:             esWorkoutLogID.V,
-					ExerciseID:               esExerciseID.V,
-					LoggedExerciseInstanceID: esLeiID.V, // Directly assign esLeiID.V
-					SetNumber:                provider.NullInt64ToIntPtr(esSetNumber),
-					Weight:                   provider.NullFloat64ToFloat64(esWeight),
-					Reps:                     provider.NullInt64ToIntPtr(esReps),
-					FinishedAt:               provider.NullTimeToTimePtr(esFinishedAt),
-					Status:                   provider.NullInt64ToInt(esStatus),
-					CreatedAt:                esCreatedAt.Time,
-					UpdatedAt:                esUpdatedAt.Time,
-					DeletedAt:                provider.NullTimeToTimePtr(esDeletedAt),
-				})
-				exerciseInstanceMap[leiUUID] = tempLei // Update the map with the modified entry
+				// Add exercise set to the correct instance
+				exerciseInstances[index].ExerciseSets = append(
+					exerciseInstances[index].ExerciseSets,
+					dto.ExerciseSetResponse{
+						ID:                       esID.V,
+						WorkoutLogID:             esWorkoutLogID.V,
+						ExerciseID:               esExerciseID.V,
+						LoggedExerciseInstanceID: esLeiID.V,
+						SetNumber:                provider.NullInt64ToIntPtr(esSetNumber),
+						Weight:                   provider.NullFloat64ToFloat64(esWeight),
+						Reps:                     provider.NullInt64ToIntPtr(esReps),
+						FinishedAt:               provider.NullTimeToTimePtr(esFinishedAt),
+						Status:                   provider.NullInt64ToInt(esStatus),
+						CreatedAt:                esCreatedAt.Time,
+						UpdatedAt:                esUpdatedAt.Time,
+						DeletedAt:                provider.NullTimeToTimePtr(esDeletedAt),
+					})
 			}
 		}
 	}
@@ -200,10 +206,9 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Workout log not found or not accessible.")
 	}
 
-	// Iterate through the map and append to the slice
-	for _, lei := range exerciseInstanceMap {
-		workoutLog.LoggedExerciseInstances = append(workoutLog.LoggedExerciseInstances, lei)
-	}
+	// Assign the ordered slice to the workout log
+	workoutLog.LoggedExerciseInstances = exerciseInstances
 
 	return c.JSON(http.StatusOK, workoutLog)
 }
+

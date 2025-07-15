@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings" // Import for strings.ToLower and strings.Join
 
 	"rtglabs-go/dto"
 	"rtglabs-go/model"    // Import your model package (e.g., model.Bodyweight)
@@ -38,11 +39,39 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 	offset := (page - 1) * limit
 	// --- End Pagination Parameters ---
 
+	// --- Sorting Parameters ---
+	sort := c.QueryParam("sort")   // e.g., "weight", "createdAt"
+	order := c.QueryParam("order") // e.g., "asc", "desc"
+
+	// Define allowed sortable columns
+	allowedSortColumns := map[string]string{
+		"weight":    "weight",
+		"createdAt": "created_at",
+		"updatedAt": "updated_at",
+		// Add other sortable columns here if needed
+	}
+
+	// Default sort column and order
+	defaultSortColumn := "created_at"
+	defaultOrder := "DESC"
+
+	// Validate and sanitize sort column
+	if dbCol, ok := allowedSortColumns[sort]; ok {
+		sort = dbCol // Use the actual database column name
+	} else {
+		sort = defaultSortColumn // Fallback to default
+	}
+
+	// Validate and sanitize order
+	order = strings.ToUpper(order) // Convert to uppercase for consistency
+	if order != "ASC" && order != "DESC" {
+		order = defaultOrder // Fallback to default
+	}
+	// --- End Sorting Parameters ---
+
 	ctx := c.Request().Context()
 
 	// 2. Get total count BEFORE applying limit and offset.
-	// This query only needs to count the relevant records.
-
 	countQuery, countArgs, err := h.sq.Select("COUNT(*)").
 		From("bodyweights").
 		Where(squirrel.And{
@@ -55,7 +84,7 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 		c.Logger().Errorf("IndexBodyweight: Failed to build count query: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve records count")
 	}
-	fmt.Printf("--- DIAGNOSTIC: IndexBodyweight Count Query Start ---\nSQL Count Query: %s\nArgs: %v\n--- DIAGNOSTIC: IndexBodyweight Count Query End ---\n", countQuery, countArgs) // Add this line
+	fmt.Printf("--- DIAGNOSTIC: IndexBodyweight Count Query Start ---\nSQL Count Query: %s\nArgs: %v\n--- DIAGNOSTIC: IndexBodyweight Count Query End ---\n", countQuery, countArgs)
 
 	var totalCount int
 	err = h.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&totalCount)
@@ -65,18 +94,21 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 	}
 
 	// 3. Fetch the paginated and sorted bodyweight records.
-	// We need to select all columns that are part of model.Bodyweight
-
-	selectQuery, selectArgs, err := h.sq.Select(
+	// Start building the select query
+	qb := h.sq.Select(
 		"id", "user_id", "weight", "unit", "created_at", "updated_at", "deleted_at",
 	).
 		From("bodyweights").
 		Where(squirrel.And{
 			squirrel.Eq{"user_id": userID},
 			squirrel.Expr("deleted_at IS NULL"),
-		}).
-		OrderBy("created_at DESC").
-		Limit(uint64(limit)).
+		})
+
+	// Apply sorting
+	qb = qb.OrderBy(fmt.Sprintf("%s %s", sort, order)) // Use the sanitized sort and order
+
+	// Apply pagination
+	selectQuery, selectArgs, err := qb.Limit(uint64(limit)).
 		Offset(uint64(offset)).
 		ToSql()
 
@@ -137,12 +169,11 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 
 	// 5. Use the new pagination utility function
 	baseURL := c.Request().URL.Path
-	queryParams := c.Request().URL.Query()
+	queryParams := c.Request().URL.Query() // This already contains "sort" and "order"
 
 	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
 
 	// Adjust the 'To' field in paginationData based on the actual number of items returned
-	// The 'From' field calculation is already handled inside GeneratePaginationData to be 1-based index
 	actualItemsCount := len(dtoBodyweights)
 	if actualItemsCount > 0 {
 		tempTo := offset + actualItemsCount
@@ -158,3 +189,4 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 		PaginationResponse: paginationData, // Embed the generated pagination data
 	})
 }
+

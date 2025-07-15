@@ -28,7 +28,7 @@ templ Header(props HeaderProps) {
 	<nav class="fixed z-50 h-[60px] w-full bg-white transition-all duration-300 top-0">
 		<div class="container flex h-full items-center">
 			<nav class="hidden w-full items-center justify-between lg:flex">
-				<div class="flex w-full items-center justify-between gap-6">
+				<div class="flex w-full items-center justify-between gap-6 mx-16">
 					<a href={ templ.URL(props.Logo.URL) } class="group flex items-center gap-1.5 font-semibold">
 						<img src={ templ.URL(props.Logo.Src) } class="w-6 transition-opacity duration-300 group-hover:opacity-65" alt={ props.Logo.Alt }/>
 						<span class="flex items-center gap-1 text-[16px] tracking-[-1px] transition-opacity duration-300 group-hover:opacity-65">
@@ -89,7 +89,7 @@ templ Header(props HeaderProps) {
 					</div>
 				</div>
 			</nav>
-			<div class="flex w-full items-center justify-between lg:hidden">
+			<div class="flex w-full items-center justify-between lg:hidden ml-4">
 				<a href={ templ.URL(props.Logo.URL) } class="group flex items-center gap-1.5 font-semibold">
 					<img src={ templ.URL(props.Logo.Src) } class="w-6 transition-opacity duration-300 group-hover:opacity-65" alt={ props.Logo.Alt }/>
 					<span class="flex items-center gap-1 text-[16px] tracking-[-1px] transition-opacity duration-300 group-hover:opacity-65">

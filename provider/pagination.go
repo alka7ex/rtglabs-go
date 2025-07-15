@@ -65,13 +65,25 @@ func GeneratePaginationData(totalCount, page, limit int, path string, queryParam
 			return nil
 		}
 		q := make(url.Values)
+		// Copy existing query parameters
 		for k, v := range queryParams {
+			// Exclude "page" and "limit" from the direct copy, as they will be set explicitly
 			if k != "page" && k != "limit" {
 				q[k] = v
 			}
 		}
+
+		// Set the "page" and "limit" parameters
 		q.Set("page", strconv.Itoa(p))
 		q.Set("limit", strconv.Itoa(limit))
+
+		// Add "sort" and "order" if they exist in the original queryParams
+		if sort := queryParams.Get("sort"); sort != "" {
+			q.Set("sort", sort)
+		}
+		if order := queryParams.Get("order"); order != "" {
+			q.Set("order", order)
+		}
 
 		fullURL := fmt.Sprintf("%s?%s", baseURL, q.Encode())
 		return &fullURL
@@ -174,3 +186,4 @@ func GeneratePaginationData(totalCount, page, limit int, path string, queryParam
 		Total:        totalCount,
 	}
 }
+
