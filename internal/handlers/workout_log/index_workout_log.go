@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"rtglabs-go/dto"
-	"rtglabs-go/provider" // For NullUUID and NullTimeToTimePtr, etc.
+	"rtglabs-go/provider"
 )
 
 func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
@@ -42,29 +42,28 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
 	}
 
-	// Use the potentially updated values from req directly
 	page := req.Page
 	limit := req.Limit
 	offset := (page - 1) * limit
 
 	ctx := c.Request().Context()
 
-	// --- Build Base Query Conditions ---
-	baseWhere := squirrel.And{
+	// --- Build Base Query Conditions for WorkoutLogs ---
+	wlWhere := squirrel.And{
 		squirrel.Eq{"wl.deleted_at": nil}, // Workout log not soft-deleted
 		squirrel.Eq{"wl.user_id": userID}, // Owned by the current user
 	}
 
-	// --- Add Query Param Filtering ---
+	// --- Add Query Param Filtering for WorkoutLogs ---
 	if req.WorkoutID != nil && *req.WorkoutID != uuid.Nil {
-		baseWhere = append(baseWhere, squirrel.Eq{"wl.workout_id": *req.WorkoutID})
+		wlWhere = append(wlWhere, squirrel.Eq{"wl.workout_id": *req.WorkoutID})
 	}
 	if req.Status != nil {
-		baseWhere = append(baseWhere, squirrel.Eq{"wl.status": *req.Status})
+		wlWhere = append(wlWhere, squirrel.Eq{"wl.status": *req.Status})
 	}
 
-	// --- 1. Count Total Workout Logs ---
-	countBuilder := h.sq.Select("COUNT(DISTINCT wl.id)").From("workout_logs AS wl").Where(baseWhere)
+	// --- 1. Count Total Workout Logs (DISTINCT) ---
+	countBuilder := h.sq.Select("COUNT(wl.id)").From("workout_logs AS wl").Where(wlWhere)
 	countQuery, countArgs, err := countBuilder.ToSql()
 	if err != nil {
 		c.Logger().Errorf("IndexWorkoutLog: Failed to build count query: %v", err)
@@ -78,11 +77,84 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count workout logs")
 	}
 
+	// If no workout logs found, return early
+	if totalCount == 0 {
+		paginationData := provider.GeneratePaginationData(totalCount, page, limit, c.Request().URL.Path, c.Request().URL.Query())
+		return c.JSON(http.StatusOK, dto.ListWorkoutLogResponse{
+			Data:               []dto.WorkoutLogResponse{},
+			PaginationResponse: paginationData,
+		})
+	}
+
+	// --- 2. Select PAGINATED Workout Log IDs ---
+	// This query will only select the IDs of the workout logs for the current page.
+	wlIDsBuilder := h.sq.Select("wl.id").From("workout_logs AS wl").Where(wlWhere)
+
+	// Apply sorting to the primary workout logs
+	if req.SortBy != "" {
+		order := "ASC"
+		if req.Order != "" && (req.Order == "desc" || req.Order == "DESC") {
+			order = "DESC"
+		}
+		switch req.SortBy {
+		case "created_at":
+			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.created_at " + order)
+		case "started_at":
+			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.started_at " + order)
+		case "status":
+			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.status " + order)
+		default:
+			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.created_at DESC") // Default sort
+		}
+	} else {
+		wlIDsBuilder = wlIDsBuilder.OrderBy("wl.created_at DESC") // Default sort
+	}
+
+	wlIDsBuilder = wlIDsBuilder.Limit(uint64(limit)).Offset(uint64(offset))
+
+	wlIDsQuery, wlIDsArgs, err := wlIDsBuilder.ToSql()
+	if err != nil {
+		c.Logger().Errorf("IndexWorkoutLog: Failed to build workout log IDs query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout log IDs")
+	}
+
+	// Use a new variable for the rows of the first query
+	wlIDsRows, err := h.DB.QueryContext(ctx, wlIDsQuery, wlIDsArgs...)
+	if err != nil {
+		c.Logger().Errorf("IndexWorkoutLog: Failed to query workout log IDs: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout log IDs")
+	}
+	defer wlIDsRows.Close()
+
+	var workoutLogIDs []uuid.UUID
+	for wlIDsRows.Next() { // Use wlIDsRows here
+		var id uuid.UUID
+		if err := wlIDsRows.Scan(&id); err != nil { // Use wlIDsRows here
+			c.Logger().Errorf("IndexWorkoutLog: Failed to scan workout log ID: %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout log IDs")
+		}
+		workoutLogIDs = append(workoutLogIDs, id)
+	}
+	if err = wlIDsRows.Err(); err != nil { // Use wlIDsRows here
+		c.Logger().Errorf("IndexWorkoutLog: Rows iteration error for workout log IDs: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout log IDs")
+	}
+
+	// If no IDs were retrieved for the current page (e.g., page beyond total), return empty
+	if len(workoutLogIDs) == 0 {
+		paginationData := provider.GeneratePaginationData(totalCount, page, limit, c.Request().URL.Path, c.Request().URL.Query())
+		return c.JSON(http.StatusOK, dto.ListWorkoutLogResponse{
+			Data:               []dto.WorkoutLogResponse{},
+			PaginationResponse: paginationData,
+		})
+	}
+
+	// --- 3. Fetch all data for the retrieved Workout Log IDs ---
+	// This struct is fine as is for scanning from the joined query
 	type joinedWorkoutLogResult struct {
-		// WorkoutLog fields
 		ID                         uuid.UUID
 		UserID                     uuid.UUID
-		WorkoutID                  uuid.NullUUID // Use NullUUID for nullable FK
+		WorkoutID                  uuid.NullUUID
 		StartedAt                  sql.NullTime
 		FinishedAt                 sql.NullTime
 		Status                     int
@@ -92,7 +164,6 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		UpdatedAt                  time.Time
 		DeletedAt                  sql.NullTime
 
-		// Workout fields (template)
 		WID        uuid.NullUUID
 		WUserID    uuid.NullUUID
 		WName      sql.NullString
@@ -100,7 +171,6 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		WUpdatedAt sql.NullTime
 		WDeletedAt sql.NullTime
 
-		// LoggedExerciseInstance fields (aliased as lei)
 		LEIID           uuid.NullUUID
 		LEIWorkoutLogID uuid.NullUUID
 		LEIExerciseID   uuid.NullUUID
@@ -108,18 +178,16 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		LEIUpdatedAt    sql.NullTime
 		LEIDeletedAt    sql.NullTime
 
-		// Exercise fields for LEI's exercise relationship (aliased as ex)
 		ExID        uuid.NullUUID
 		ExName      sql.NullString
 		ExCreatedAt sql.NullTime
 		ExUpdatedAt sql.NullTime
 		ExDeletedAt sql.NullTime
 
-		// ExerciseSet fields (aliased as es)
 		ESID                       uuid.NullUUID
 		ESWorkoutLogID             uuid.NullUUID
 		ESExerciseID               uuid.NullUUID
-		ESLoggedExerciseInstanceID uuid.NullUUID // Now links to logged_exercise_instances
+		ESLoggedExerciseInstanceID uuid.NullUUID
 		ESWeight                   sql.NullFloat64
 		ESReps                     sql.NullInt64
 		ESSetNumber                sql.NullInt64
@@ -129,93 +197,58 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		ESUpdatedAt                sql.NullTime
 		ESDeletedAt                sql.NullTime
 	}
-	// Update the SELECT statement to use 'logged_exercise_instances' and its alias 'lei'
-	selectBuilder := h.sq.Select(
-		// WorkoutLog fields (aliased as wl)
+
+	// Build the main data query using the fetched workoutLogIDs
+	mainSelectBuilder := h.sq.Select(
 		"wl.id", "wl.user_id", "wl.workout_id", "wl.started_at", "wl.finished_at", "wl.status",
 		"wl.total_active_duration_seconds", "wl.total_pause_duration_seconds",
 		"wl.created_at", "wl.updated_at", "wl.deleted_at",
-		// Workout fields (aliased as w) - selected with distinct aliases
 		"w.id AS w_id", "w.user_id AS w_user_id", "w.name AS w_name",
 		"w.created_at AS w_created_at", "w.updated_at AS w_updated_at", "w.deleted_at AS w_deleted_at",
-		// LoggedExerciseInstance fields (aliased as lei)
 		"lei.id AS lei_id", "lei.workout_log_id AS lei_workout_log_id", "lei.exercise_id AS lei_exercise_id",
 		"lei.created_at AS lei_created_at", "lei.updated_at AS lei_updated_at", "lei.deleted_at AS lei_deleted_at",
-		// Exercise fields (aliased as ex) for the *logged instance's* exercise
 		"ex.id AS ex_id", "ex.name AS ex_name", "ex.created_at AS ex_created_at", "ex.updated_at AS ex_updated_at", "ex.deleted_at AS ex_deleted_at",
-		// ExerciseSet fields (aliased as es) - now linked to logged_exercise_instances
 		"es.id AS es_id", "es.workout_log_id AS es_workout_log_id", "es.exercise_id AS es_exercise_id", "es.logged_exercise_instance_id AS es_logged_exercise_instance_id",
 		"es.weight AS es_weight", "es.reps AS es_reps", "es.set_number AS es_set_number", "es.finished_at AS es_finished_at", "es.status AS es_status",
 		"es.created_at AS es_created_at", "es.updated_at AS es_updated_at", "es.deleted_at AS es_deleted_at",
 	).
 		From("workout_logs AS wl").
 		LeftJoin("workouts AS w ON wl.workout_id = w.id").
-		// Corrected join: now joining to 'logged_exercise_instances'
 		LeftJoin("logged_exercise_instances AS lei ON wl.id = lei.workout_log_id AND lei.deleted_at IS NULL").
-		// Exercise for the logged instance
 		LeftJoin("exercises AS ex ON lei.exercise_id = ex.id AND ex.deleted_at IS NULL").
-		// Sets for the logged instance - ExerciseSet needs FK to logged_exercise_instances
 		LeftJoin("exercise_sets AS es ON lei.id = es.logged_exercise_instance_id AND es.deleted_at IS NULL").
-		Where(baseWhere)
+		// Crucially, filter by the IDs we just paginated
+		Where(squirrel.Eq{"wl.id": workoutLogIDs}).
+		// Maintain ordering for consistent aggregation
+		OrderBy("wl.created_at DESC", "lei.created_at ASC", "es.set_number ASC")
 
-	// Apply sorting
-	if req.SortBy != "" {
-		order := "ASC"
-		if req.Order != "" && (req.Order == "desc" || req.Order == "DESC") {
-			order = "DESC"
-		}
-		switch req.SortBy {
-		case "created_at":
-			selectBuilder = selectBuilder.OrderBy("wl.created_at " + order)
-		case "started_at":
-			selectBuilder = selectBuilder.OrderBy("wl.started_at " + order)
-		case "status":
-			selectBuilder = selectBuilder.OrderBy("wl.status " + order)
-		default:
-			selectBuilder = selectBuilder.OrderBy("wl.created_at DESC") // Default sort
-		}
-	} else {
-		selectBuilder = selectBuilder.OrderBy("wl.created_at DESC") // Default sort
-	}
-
-	// Add secondary ordering for consistent nested results (crucial for aggregation)
-	selectBuilder = selectBuilder.OrderBy("lei.created_at ASC", "es.set_number ASC") // Sort by logged instance then set number
-
-	selectBuilder = selectBuilder.Limit(uint64(limit)).Offset(uint64(offset))
-
-	selectQuery, selectArgs, err := selectBuilder.ToSql()
+	mainQuery, mainArgs, err := mainSelectBuilder.ToSql()
 	if err != nil {
-		c.Logger().Errorf("IndexWorkoutLog: Failed to build select query: %v", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout logs")
+		c.Logger().Errorf("IndexWorkoutLog: Failed to build main select query: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout logs details")
 	}
 
-	rows, err := h.DB.QueryContext(ctx, selectQuery, selectArgs...)
+	// Use a new variable for the rows of the main data query
+	mainDataRows, err := h.DB.QueryContext(ctx, mainQuery, mainArgs...)
 	if err != nil {
-		c.Logger().Errorf("IndexWorkoutLog: Failed to query workout logs: %v", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout logs")
+		c.Logger().Errorf("IndexWorkoutLog: Failed to query workout logs details: %v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout logs details")
 	}
-	defer rows.Close()
+	defer mainDataRows.Close()
 
 	// Map to reconstruct the nested structure: WorkoutLog -> ExerciseInstanceLog -> ExerciseSet
 	workoutLogsMap := make(map[uuid.UUID]*dto.WorkoutLogResponse)
-	// No need for a separate map for loggedExerciseInstancesMap in this structure
-	// We will create/retrieve it directly from workoutLogsMap entry's slice.
 
-	for rows.Next() {
+	for mainDataRows.Next() { // Use mainDataRows here
 		var jwlr joinedWorkoutLogResult
 
-		err := rows.Scan(
-			// WorkoutLog fields
+		err := mainDataRows.Scan( // Use mainDataRows here
 			&jwlr.ID, &jwlr.UserID, &jwlr.WorkoutID, &jwlr.StartedAt, &jwlr.FinishedAt, &jwlr.Status,
 			&jwlr.TotalActiveDurationSeconds, &jwlr.TotalPauseDurationSeconds,
 			&jwlr.CreatedAt, &jwlr.UpdatedAt, &jwlr.DeletedAt,
-			// Workout fields (from JOIN)
 			&jwlr.WID, &jwlr.WUserID, &jwlr.WName, &jwlr.WCreatedAt, &jwlr.WUpdatedAt, &jwlr.WDeletedAt,
-			// LoggedExerciseInstance fields (from JOIN)
 			&jwlr.LEIID, &jwlr.LEIWorkoutLogID, &jwlr.LEIExerciseID, &jwlr.LEICreatedAt, &jwlr.LEIUpdatedAt, &jwlr.LEIDeletedAt,
-			// Exercise fields (from JOIN)
 			&jwlr.ExID, &jwlr.ExName, &jwlr.ExCreatedAt, &jwlr.ExUpdatedAt, &jwlr.ExDeletedAt,
-			// ExerciseSet fields (from JOIN)
 			&jwlr.ESID, &jwlr.ESWorkoutLogID, &jwlr.ESExerciseID, &jwlr.ESLoggedExerciseInstanceID,
 			&jwlr.ESWeight, &jwlr.ESReps, &jwlr.ESSetNumber, &jwlr.ESFinishedAt, &jwlr.ESStatus,
 			&jwlr.ESCreatedAt, &jwlr.ESUpdatedAt, &jwlr.ESDeletedAt,
@@ -332,15 +365,18 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		}
 	}
 
-	if err = rows.Err(); err != nil {
+	if err = mainDataRows.Err(); err != nil { // Use mainDataRows here
 		c.Logger().Errorf("IndexWorkoutLog: Rows iteration error: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout logs")
 	}
 
-	// Convert map values to slice for final response
-	dtoWorkoutLogs := make([]dto.WorkoutLogResponse, 0, len(workoutLogsMap))
-	for _, wl := range workoutLogsMap {
-		dtoWorkoutLogs = append(dtoWorkoutLogs, *wl)
+	// Convert map values to slice for final response.
+	// IMPORTANT: Iterate over the workoutLogIDs slice to maintain the original pagination order.
+	dtoWorkoutLogs := make([]dto.WorkoutLogResponse, 0, len(workoutLogIDs))
+	for _, id := range workoutLogIDs {
+		if wl, ok := workoutLogsMap[id]; ok {
+			dtoWorkoutLogs = append(dtoWorkoutLogs, *wl)
+		}
 	}
 
 	baseURL := c.Request().URL.Path
@@ -361,16 +397,6 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	}
 
 	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)
-
-	// Update the 'To' field based on the actual number of items in the current response
-	actualItemsCount := len(dtoWorkoutLogs)
-	if actualItemsCount > 0 {
-		tempTo := offset + actualItemsCount
-		paginationData.To = &tempTo
-	} else {
-		zero := 0 // If no items, 'to' should be 0 or nil
-		paginationData.To = &zero
-	}
 
 	return c.JSON(http.StatusOK, dto.ListWorkoutLogResponse{
 		Data:               dtoWorkoutLogs,
