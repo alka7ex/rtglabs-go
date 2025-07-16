@@ -4,14 +4,17 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
-	"time"
+	"strings" // Import for strings.ToLower and strings.Contains
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"rtglabs-go/dto"
 	"rtglabs-go/provider"
+	"time" // Ensure time is imported
 )
+
+// Ensure your WorkoutLogHandler struct has a squirrel.StatementBuilderType field, e.g., `sq squirrel.StatementBuilderType`
 
 func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	userID, ok := c.Get("user_id").(uuid.UUID)
@@ -62,8 +65,24 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		wlWhere = append(wlWhere, squirrel.Eq{"wl.status": *req.Status})
 	}
 
+	// --- NEW: Handle filtering by workout name ---
+	// If `name` filter is present, we need to join the `workouts` table
+	// in both the count and ID selection queries.
+	var nameFilterActive bool
+	if req.Name != nil && strings.TrimSpace(*req.Name) != "" {
+		// Use ILIKE for case-insensitive partial match for PostgreSQL, or LIKE for MySQL/SQLite
+		// For cross-database compatibility, convert the search term to lowercase and use LIKE.
+		// Alternatively, if you know your DB, use specific functions like LOWER() or COLLATE.
+		wlWhere = append(wlWhere, squirrel.Like{"LOWER(w.name)": "%" + strings.ToLower(strings.TrimSpace(*req.Name)) + "%"})
+		nameFilterActive = true
+	}
+
 	// --- 1. Count Total Workout Logs (DISTINCT) ---
 	countBuilder := h.sq.Select("COUNT(wl.id)").From("workout_logs AS wl").Where(wlWhere)
+	if nameFilterActive { // Only join if name filter is active
+		countBuilder = countBuilder.LeftJoin("workouts AS w ON wl.workout_id = w.id AND w.deleted_at IS NULL")
+	}
+
 	countQuery, countArgs, err := countBuilder.ToSql()
 	if err != nil {
 		c.Logger().Errorf("IndexWorkoutLog: Failed to build count query: %v", err)
@@ -87,28 +106,37 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	}
 
 	// --- 2. Select PAGINATED Workout Log IDs ---
-	// This query will only select the IDs of the workout logs for the current page.
 	wlIDsBuilder := h.sq.Select("wl.id").From("workout_logs AS wl").Where(wlWhere)
+	if nameFilterActive { // Only join if name filter is active
+		wlIDsBuilder = wlIDsBuilder.LeftJoin("workouts AS w ON wl.workout_id = w.id AND w.deleted_at IS NULL")
+	}
 
 	// Apply sorting to the primary workout logs
+	orderCol := "wl.created_at" // Default sort column
+	orderDir := "DESC"          // Default sort direction
+
 	if req.SortBy != "" {
-		order := "ASC"
-		if req.Order != "" && (req.Order == "desc" || req.Order == "DESC") {
-			order = "DESC"
-		}
-		switch req.SortBy {
+		switch strings.ToLower(req.SortBy) {
 		case "created_at":
-			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.created_at " + order)
+			orderCol = "wl.created_at"
 		case "started_at":
-			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.started_at " + order)
+			orderCol = "wl.started_at"
 		case "status":
-			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.status " + order)
+			orderCol = "wl.status"
+		case "name": // NEW: Sort by workout name
+			orderCol = "w.name"
+			if !nameFilterActive { // If sorting by name, we MUST join even if not filtering by name
+				wlIDsBuilder = wlIDsBuilder.LeftJoin("workouts AS w ON wl.workout_id = w.id AND w.deleted_at IS NULL")
+			}
 		default:
-			wlIDsBuilder = wlIDsBuilder.OrderBy("wl.created_at DESC") // Default sort
+			orderCol = "wl.created_at" // Fallback to default
 		}
-	} else {
-		wlIDsBuilder = wlIDsBuilder.OrderBy("wl.created_at DESC") // Default sort
 	}
+
+	if req.Order != "" && (strings.ToLower(req.Order) == "asc" || strings.ToLower(req.Order) == "desc") {
+		orderDir = strings.ToUpper(req.Order)
+	}
+	wlIDsBuilder = wlIDsBuilder.OrderBy(orderCol + " " + orderDir)
 
 	wlIDsBuilder = wlIDsBuilder.Limit(uint64(limit)).Offset(uint64(offset))
 
@@ -118,7 +146,6 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout log IDs")
 	}
 
-	// Use a new variable for the rows of the first query
 	wlIDsRows, err := h.DB.QueryContext(ctx, wlIDsQuery, wlIDsArgs...)
 	if err != nil {
 		c.Logger().Errorf("IndexWorkoutLog: Failed to query workout log IDs: %v", err)
@@ -127,15 +154,15 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	defer wlIDsRows.Close()
 
 	var workoutLogIDs []uuid.UUID
-	for wlIDsRows.Next() { // Use wlIDsRows here
+	for wlIDsRows.Next() {
 		var id uuid.UUID
-		if err := wlIDsRows.Scan(&id); err != nil { // Use wlIDsRows here
+		if err := wlIDsRows.Scan(&id); err != nil {
 			c.Logger().Errorf("IndexWorkoutLog: Failed to scan workout log ID: %v", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout log IDs")
 		}
 		workoutLogIDs = append(workoutLogIDs, id)
 	}
-	if err = wlIDsRows.Err(); err != nil { // Use wlIDsRows here
+	if err = wlIDsRows.Err(); err != nil {
 		c.Logger().Errorf("IndexWorkoutLog: Rows iteration error for workout log IDs: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout log IDs")
 	}
@@ -199,6 +226,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	}
 
 	// Build the main data query using the fetched workoutLogIDs
+	// We always join 'workouts' here because we need its data for the response DTO
 	mainSelectBuilder := h.sq.Select(
 		"wl.id", "wl.user_id", "wl.workout_id", "wl.started_at", "wl.finished_at", "wl.status",
 		"wl.total_active_duration_seconds", "wl.total_pause_duration_seconds",
@@ -213,14 +241,14 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		"es.created_at AS es_created_at", "es.updated_at AS es_updated_at", "es.deleted_at AS es_deleted_at",
 	).
 		From("workout_logs AS wl").
-		LeftJoin("workouts AS w ON wl.workout_id = w.id").
+		LeftJoin("workouts AS w ON wl.workout_id = w.id AND w.deleted_at IS NULL"). // Always join for main data query
 		LeftJoin("logged_exercise_instances AS lei ON wl.id = lei.workout_log_id AND lei.deleted_at IS NULL").
 		LeftJoin("exercises AS ex ON lei.exercise_id = ex.id AND ex.deleted_at IS NULL").
 		LeftJoin("exercise_sets AS es ON lei.id = es.logged_exercise_instance_id AND es.deleted_at IS NULL").
 		// Crucially, filter by the IDs we just paginated
 		Where(squirrel.Eq{"wl.id": workoutLogIDs}).
 		// Maintain ordering for consistent aggregation
-		OrderBy("wl.created_at DESC", "lei.created_at ASC", "es.set_number ASC")
+		OrderBy(orderCol+" "+orderDir, "lei.created_at ASC", "es.set_number ASC") // Apply same primary order as ID query
 
 	mainQuery, mainArgs, err := mainSelectBuilder.ToSql()
 	if err != nil {
@@ -228,7 +256,6 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout logs details")
 	}
 
-	// Use a new variable for the rows of the main data query
 	mainDataRows, err := h.DB.QueryContext(ctx, mainQuery, mainArgs...)
 	if err != nil {
 		c.Logger().Errorf("IndexWorkoutLog: Failed to query workout logs details: %v", err)
@@ -239,10 +266,10 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	// Map to reconstruct the nested structure: WorkoutLog -> ExerciseInstanceLog -> ExerciseSet
 	workoutLogsMap := make(map[uuid.UUID]*dto.WorkoutLogResponse)
 
-	for mainDataRows.Next() { // Use mainDataRows here
+	for mainDataRows.Next() {
 		var jwlr joinedWorkoutLogResult
 
-		err := mainDataRows.Scan( // Use mainDataRows here
+		err := mainDataRows.Scan(
 			&jwlr.ID, &jwlr.UserID, &jwlr.WorkoutID, &jwlr.StartedAt, &jwlr.FinishedAt, &jwlr.Status,
 			&jwlr.TotalActiveDurationSeconds, &jwlr.TotalPauseDurationSeconds,
 			&jwlr.CreatedAt, &jwlr.UpdatedAt, &jwlr.DeletedAt,
@@ -365,7 +392,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		}
 	}
 
-	if err = mainDataRows.Err(); err != nil { // Use mainDataRows here
+	if err = mainDataRows.Err(); err != nil {
 		c.Logger().Errorf("IndexWorkoutLog: Rows iteration error: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch workout logs")
 	}
@@ -382,7 +409,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
 
-	// Ensure the query parameters are included in the pagination links
+	// Ensure all relevant query parameters are included in the pagination links
 	if req.WorkoutID != nil {
 		queryParams.Set("workout_id", req.WorkoutID.String())
 	}
@@ -394,6 +421,9 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 	}
 	if req.Order != "" {
 		queryParams.Set("order", req.Order)
+	}
+	if req.Name != nil && strings.TrimSpace(*req.Name) != "" { // NEW: Add name to query params for pagination
+		queryParams.Set("name", *req.Name)
 	}
 
 	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)

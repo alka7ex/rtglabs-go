@@ -17,6 +17,7 @@ type ListWorkoutLogRequest struct {
 	Order     string     `query:"order"`      // "asc" or "desc"
 	WorkoutID *uuid.UUID `query:"workout_id"` // Optional: filter by workout template ID
 	Status    *int       `query:"status"`     // Optional: filter by workout log status
+	Name      *string    `query:"name"`       // New: Optional: filter by workout name (from the associated workout template)
 }
 
 // CreateWorkoutLogRequest defines the request body for creating a workout log.
