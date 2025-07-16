@@ -2,18 +2,22 @@ package handler
 
 import (
 	"database/sql" // For sql.DB, sql.Null* types
+	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
+
+	"rtglabs-go/dto"
+	"rtglabs-go/model"    // Import your model package
+	"rtglabs-go/provider" // Import your pagination provider and NullInt64ToIntPtr
 
 	"github.com/Masterminds/squirrel" // Import squirrel
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"rtglabs-go/dto"
-	"rtglabs-go/model"    // Import your model package
-	"rtglabs-go/provider" // Import your pagination provider and NullInt64ToIntPtr
 )
 
-// IndexWorkout retrieves a paginated list of workouts for a specific user, with optional filtering.
+// IndexWorkout retrieves a paginated list of workouts for a specific user, with optional filtering and sorting.
 func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 	userID, ok := c.Get("user_id").(uuid.UUID)
 	if !ok {
@@ -48,6 +52,30 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		// Apply a case-insensitive 'contains' filter on the 'name' field of the workout
 		// Using ILike for case-insensitive LIKE
 		baseWhere = append(baseWhere, squirrel.ILike{"w.name": "%" + searchName + "%"})
+	}
+
+	// --- Add Query Param Sorting ---
+	sortBy := c.QueryParam("sort")
+	orderBy := c.QueryParam("order")
+
+	// Define allowed sortable columns and their corresponding SQL expressions
+	// Map frontend sort names to database column names (with aliases if applicable)
+	allowedSortColumns := map[string]string{
+		"name":       "w.name",
+		"created_at": "w.created_at",
+		"updated_at": "w.updated_at", // Added updated_at as a sortable column
+	}
+
+	// Default sorting for SQL query
+	sqlSortClause := []string{"w.created_at DESC", "w.id ASC"} // Default sort by creation descending, then ID ascending for stability
+
+	if sqlColumn, ok := allowedSortColumns[sortBy]; ok {
+		orderDirection := "ASC"
+		if strings.ToLower(orderBy) == "desc" {
+			orderDirection = "DESC"
+		}
+		// When dynamically sorting, ensure the secondary sort (w.id ASC) is always present for consistent pagination
+		sqlSortClause = []string{fmt.Sprintf("%s %s", sqlColumn, orderDirection), "w.id ASC"}
 	}
 
 	// --- 1. Count Total Workouts ---
@@ -112,7 +140,7 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		LeftJoin("exercises AS e ON we.exercise_id = e.id").
 		LeftJoin("exercise_instances AS ei ON we.exercise_instance_id = ei.id").
 		Where(baseWhere).
-		OrderBy("w.created_at DESC", "we.workout_order ASC", "we.created_at ASC"). // Order by workout, then workout exercises
+		OrderBy(sqlSortClause...). // Apply dynamic SQL sorting
 		Limit(uint64(limit)).
 		Offset(uint64(offset))
 
@@ -154,11 +182,7 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		}
 
 		// Handle nullable fields for Workout
-		if workoutDeletedAt.Valid {
-			jwr.DeletedAt = &workoutDeletedAt.Time
-		} else {
-			jwr.DeletedAt = nil
-		}
+		jwr.DeletedAt = provider.NullTimeToTimePtr(workoutDeletedAt)
 
 		// Get or create the Workout DTO
 		workoutDTO, exists := workoutsMap[jwr.ID]
@@ -181,29 +205,21 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 			weModel.ID = jwr.WEID.UUID
 			weModel.WorkoutID = jwr.WEWorkoutID.UUID
 			weModel.ExerciseID = jwr.WEExerciseID.UUID
-			if jwr.WEExerciseInstanceID.Valid {
-				weModel.ExerciseInstanceID = &jwr.WEExerciseInstanceID.UUID
-			} else {
-				weModel.ExerciseInstanceID = nil
-			}
-			// --- FIX START ---
+			weModel.ExerciseInstanceID = provider.NullUUIDToUUIDPtr(jwr.WEExerciseInstanceID) // Using a provider helper for NullUUID
+
 			weModel.WorkoutOrder = provider.NullInt64ToIntPtr(jwr.WEOrder)
 			weModel.Sets = provider.NullInt64ToIntPtr(jwr.WESets)
-			weModel.Weight = provider.NullFloat64ToFloat64Ptr(jwr.WEWeight) // Already correct
+			weModel.Weight = provider.NullFloat64ToFloat64Ptr(jwr.WEWeight)
 			weModel.Reps = provider.NullInt64ToIntPtr(jwr.WEReps)
-			// --- FIX END ---
 
 			weModel.CreatedAt = jwr.WECreatedAt.Time
-			if jwr.WEUpdatedAt.Valid { // Ensure UpdatedAt is handled correctly
+			// UpdatedAt for WorkoutExercise can be null in DB, ensure it's handled properly
+			if jwr.WEUpdatedAt.Valid {
 				weModel.UpdatedAt = jwr.WEUpdatedAt.Time
 			} else {
 				weModel.UpdatedAt = jwr.WECreatedAt.Time // Fallback if UpdatedAt is null in DB
 			}
-			if jwr.WEDeletedAt.Valid {
-				weModel.DeletedAt = &jwr.WEDeletedAt.Time
-			} else {
-				weModel.DeletedAt = nil
-			}
+			weModel.DeletedAt = provider.NullTimeToTimePtr(jwr.WEDeletedAt)
 
 			var exModel model.Exercise
 			// Check if exercise fields are present (from LEFT JOIN)
@@ -212,30 +228,21 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 				exModel.Name = jwr.ExName.String
 				exModel.CreatedAt = jwr.ExCreatedAt.Time
 				exModel.UpdatedAt = jwr.ExUpdatedAt.Time
-				if jwr.ExDeletedAt.Valid {
-					exModel.DeletedAt = &jwr.ExDeletedAt.Time
-				} else {
-					exModel.DeletedAt = nil
-				}
+				exModel.DeletedAt = provider.NullTimeToTimePtr(jwr.ExDeletedAt)
 			}
 
 			var eiModel model.ExerciseInstance
 			// Check if exercise_instance fields are present (from LEFT JOIN)
 			if jwr.EiID.Valid {
 				eiModel.ID = jwr.EiID.UUID
-				if jwr.EiWorkoutLogID.Valid {
-					eiModel.WorkoutLogID = &jwr.EiWorkoutLogID.UUID
-				} else {
-					eiModel.WorkoutLogID = nil
-				}
-				eiModel.ExerciseID = jwr.EiExerciseID.UUID // Assuming always valid if EiID is valid
+				eiModel.WorkoutLogID = provider.NullUUIDToUUIDPtr(jwr.EiWorkoutLogID) // Using a provider helper for NullUUID
+				eiModel.ExerciseID = jwr.EiExerciseID.UUID                            // Assuming always valid if EiID is valid
 				eiModel.CreatedAt = jwr.EiCreatedAt.Time
-				eiModel.UpdatedAt = jwr.EiUpdatedAt.Time
-				if jwr.EiDeletedAt.Valid {
-					eiModel.DeletedAt = &jwr.EiDeletedAt.Time
-				} else {
-					eiModel.DeletedAt = nil
+				eiModel.UpdatedAt = eiModel.CreatedAt // Fallback if UpdatedAt is null in DB
+				if jwr.EiUpdatedAt.Valid {            // Handle actual UpdatedAt
+					eiModel.UpdatedAt = jwr.EiUpdatedAt.Time
 				}
+				eiModel.DeletedAt = provider.NullTimeToTimePtr(jwr.EiDeletedAt)
 			}
 
 			// Convert to WorkoutExerciseResponse DTO with nested Exercise and ExerciseInstance
@@ -270,20 +277,68 @@ func (h *WorkoutHandler) IndexWorkout(c echo.Context) error {
 		dtoWorkouts = append(dtoWorkouts, *w)
 	}
 
-	// Sort the final slice by workout ID to ensure consistent pagination ordering
-	// (since the map iteration order is not guaranteed)
-	// This might be redundant if your SQL ORDER BY is robust enough.
-	// For simplicity, let's assume the SQL ORDER BY is sufficient if `w.created_at DESC`
-	// is unique enough, or you can add a secondary sort column.
-	// If you want to strictly match Ent's behavior, you might need a secondary sort field or
-	// sort the `dtoWorkouts` slice here. For now, we rely on SQL.
+	// --- IMPORTANT: In-memory sorting after map reconstruction ---
+	// The map iteration order is NOT guaranteed. We must sort the final slice
+	// based on the requested sort parameters.
+	sort.Slice(dtoWorkouts, func(i, j int) bool {
+		a := dtoWorkouts[i]
+		b := dtoWorkouts[j]
+
+		// Apply sorting based on sortBy and orderBy
+		if sortBy == "name" {
+			if orderBy == "desc" {
+				return a.Name > b.Name
+			}
+			return a.Name < b.Name
+		} else if sortBy == "created_at" {
+			if orderBy == "desc" {
+				return a.CreatedAt.After(b.CreatedAt)
+			}
+			return a.CreatedAt.Before(b.CreatedAt)
+		} else if sortBy == "updated_at" {
+			// Handle nulls for updated_at carefully.
+			// If both are null, consider them equal.
+			// If one is null, the non-null one comes first (for asc) or last (for desc).
+			// This logic might need adjustment based on specific null handling requirements.
+			if a.UpdatedAt.IsZero() && b.UpdatedAt.IsZero() {
+				return false // Considered equal if both are zero/null
+			}
+			if a.UpdatedAt.IsZero() { // a is null, b is not
+				return orderBy == "desc" // If desc, null (a) goes last, so false (a not less than b)
+			}
+			if b.UpdatedAt.IsZero() { // b is null, a is not
+				return orderBy == "asc" // If asc, null (b) goes last, so true (a less than b)
+			}
+			if orderBy == "desc" {
+				return a.UpdatedAt.After(b.UpdatedAt)
+			}
+			return a.UpdatedAt.Before(b.UpdatedAt)
+		}
+
+		// Fallback to default sort if sortBy is not recognized or not provided
+		// Default: created_at DESC, then id ASC
+		if a.CreatedAt.After(b.CreatedAt) {
+			return true
+		}
+		if a.CreatedAt.Before(b.CreatedAt) {
+			return false
+		}
+		// If CreatedAt is the same, sort by ID for stability
+		return a.ID.String() < b.ID.String()
+	})
 
 	baseURL := c.Request().URL.Path
 	queryParams := c.Request().URL.Query()
 
-	// Ensure the 'name' query parameter is included in the queryParams for pagination links
+	// Ensure filtering and sorting query parameters are included in the queryParams for pagination links
 	if searchName != "" {
 		queryParams.Set("name", searchName)
+	}
+	if sortBy != "" {
+		queryParams.Set("sort", sortBy)
+	}
+	if orderBy != "" {
+		queryParams.Set("order", orderBy)
 	}
 
 	paginationData := provider.GeneratePaginationData(totalCount, page, limit, baseURL, queryParams)

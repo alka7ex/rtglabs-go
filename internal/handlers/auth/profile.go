@@ -33,10 +33,9 @@ func (h *AuthHandler) GetProfile(c echo.Context) error {
 
 	// --- Query User and Profile Data with LEFT JOIN ---
 	// Select all columns needed from both users and profiles tables.
-	// Note: We are NOT selecting 'p.weight' here as it will come from bodyweights.
 	sqlQuery, args, err := h.sq.Select(
 		"u.id", "u.name", "u.email", "u.email_verified_at", "u.created_at", "u.updated_at",
-		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.created_at", "p.updated_at", "p.deleted_at", // Exclude p.weight
+		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.created_at", "p.updated_at", "p.deleted_at",
 	).
 		From("users u").
 		LeftJoin("profiles p ON u.id = p.user_id").
@@ -97,10 +96,9 @@ func (h *AuthHandler) GetProfile(c echo.Context) error {
 
 	// --- Query the Latest Bodyweight ---
 	var latestBodyweightValue sql.NullFloat64 // This will hold the weight value, can be NULL
-	var latestBodyweightUnit sql.NullString   // Optional: if you also want the unit
 
 	latestBWQuery, latestBWArgs, err := h.sq.Select(
-		"weight", "unit",
+		"weight", // Removed "unit" from here
 	).
 		From("bodyweights").
 		Where(squirrel.And{
@@ -118,7 +116,8 @@ func (h *AuthHandler) GetProfile(c echo.Context) error {
 
 	bwRow := h.DB.QueryRowContext(ctx, latestBWQuery, latestBWArgs...)
 
-	err = bwRow.Scan(&latestBodyweightValue, &latestBodyweightUnit)
+	// Only scan for weight, not unit
+	err = bwRow.Scan(&latestBodyweightValue)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		c.Logger().Errorf("GetProfile: Database query error for latest bodyweight: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to retrieve latest bodyweight")
@@ -127,30 +126,24 @@ func (h *AuthHandler) GetProfile(c echo.Context) error {
 	// --- Build the Profile DTO ---
 	var profileResponse *dto.ProfileResponse
 	if entProfile.ID != uuid.Nil || latestBodyweightValue.Valid {
-		// Create a profile response. If entProfile is nil, it means no profile table entry,
-		// but we still want to potentially show the weight.
 		profileResponse = &dto.ProfileResponse{}
 
 		// Populate fields from the 'profiles' table (if a profile existed)
 		if entProfile.ID != uuid.Nil {
 			profileResponse.ID = entProfile.ID
 			profileResponse.UserID = entProfile.UserID
-			profileResponse.Units = entProfile.Units
+			profileResponse.Units = entProfile.Units // Get units from profile table
 			profileResponse.Gender = entProfile.Gender
 			profileResponse.Age = entProfile.Age
 			profileResponse.Height = entProfile.Height
 			profileResponse.CreatedAt = entProfile.CreatedAt.Format(time.RFC3339Nano)
 			profileResponse.UpdatedAt = entProfile.UpdatedAt.Format(time.RFC3339Nano)
-			// Note: entProfile.Weight is not set because it's sourced from bodyweights
 		}
 
 		// Always populate Weight from the latest bodyweight if available
 		if latestBodyweightValue.Valid {
 			profileResponse.Weight = latestBodyweightValue.Float64
-			// You might also want to add a Unit field to ProfileResponse if it's relevant here
-			// profileResponse.WeightUnit = latestBodyweightUnit.String // Example if you add WeightUnit to ProfileResponse DTO
 		} else {
-			// If no latest bodyweight, set weight to nil/zero value
 			profileResponse.Weight = 0.0 // Or nil if Weight is a pointer in DTO
 		}
 	}
@@ -180,6 +173,10 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid input: "+err.Error())
 	}
+	// Add validation for UpdateProfileRequest if you have a `c.Validate` middleware
+	if err := c.Validate(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
 
 	ctx := c.Request().Context()
 	tx, err := h.DB.BeginTx(ctx, nil) // Start a transaction for atomicity
@@ -208,7 +205,6 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 		// --- Create a new profile if one doesn't exist ---
 		fmt.Println("Profile not found, creating a new one for user:", userID.String())
 
-		// Note: 'Weight' is NOT included in the INSERT for 'profiles' table
 		insertProfileQuery, insertProfileArgs, err := h.sq.Insert("profiles").
 			Columns("id", "user_id", "units", "age", "height", "gender").
 			Values(uuid.New(), userID, req.Units, req.Age, req.Height, req.Gender).
@@ -231,7 +227,6 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 		// --- Update the existing profile if it was found ---
 		fmt.Println("Existing profile found, updating it for user:", userID.String())
 
-		// Note: 'Weight' is NOT included in the UPDATE for 'profiles' table
 		updateProfileQuery, updateProfileArgs, err := h.sq.Update("profiles").
 			Set("units", req.Units).
 			Set("age", req.Age).
@@ -256,8 +251,8 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 	// It's good practice to ensure weight is a positive value if applicable for your domain.
 	if req.Weight > 0 { // Only insert if weight is provided and valid (e.g., > 0)
 		insertBodyweightQuery, insertBodyweightArgs, err := h.sq.Insert("bodyweights").
-			Columns("id", "user_id", "weight", "unit").   // Assuming a default unit or you'll get it from request
-			Values(uuid.New(), userID, req.Weight, "kg"). // TODO: Determine default unit or pass from req
+			Columns("id", "user_id", "weight", "created_at", "updated_at"). // Removed "unit" from columns
+			Values(uuid.New(), userID, req.Weight, time.Now(), time.Now()). // Removed "kg" or any unit value
 			ToSql()
 		if err != nil {
 			c.Logger().Errorf("UpdateProfile: Failed to build insert bodyweight query: %v", err)
@@ -280,3 +275,4 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 	// Re-fetch and return the updated profile (which will now correctly include the new latest weight)
 	return h.GetProfile(c)
 }
+

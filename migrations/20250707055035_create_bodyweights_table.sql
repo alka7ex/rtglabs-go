@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS bodyweights (
     id UUID UNIQUE PRIMARY KEY,
     user_id UUID NOT NULL,      -- Foreign Key to users.id, UNIQUE due to Ent schema
     weight REAL NOT NULL,               -- Use NUMERIC(10, 2) or DECIMAL(10, 2) if higher precision is needed
-    unit VARCHAR(50) NOT NULL,          -- Assuming a reasonable length for unit string
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE NULL,

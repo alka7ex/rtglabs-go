@@ -96,7 +96,7 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 	// 3. Fetch the paginated and sorted bodyweight records.
 	// Start building the select query
 	qb := h.sq.Select(
-		"id", "user_id", "weight", "unit", "created_at", "updated_at", "deleted_at",
+		"id", "user_id", "weight", "created_at", "updated_at", "deleted_at",
 	).
 		From("bodyweights").
 		Where(squirrel.And{
@@ -136,7 +136,6 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 			&bw.ID,
 			&bw.UserID,
 			&bw.Weight,
-			&bw.Unit,
 			&bw.CreatedAt,
 			&bw.UpdatedAt,
 			&nullDeletedAt, // Scan into sql.NullTime
@@ -189,4 +188,3 @@ func (h *BodyweightHandler) IndexBodyweight(c echo.Context) error {
 		PaginationResponse: paginationData, // Embed the generated pagination data
 	})
 }
-

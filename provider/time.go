@@ -72,3 +72,9 @@ func Float64PtrToFloat64(p *float64, defaultValue float64) float64 {
 	return defaultValue
 }
 
+func NullUUIDToUUIDPtr(nu uuid.NullUUID) *uuid.UUID {
+	if nu.Valid {
+		return &nu.UUID
+	}
+	return nil
+}

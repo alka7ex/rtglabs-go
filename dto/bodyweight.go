@@ -14,13 +14,11 @@ import (
 // for security and to prevent users from creating records for other users.
 type CreateBodyweightRequest struct {
 	Weight float64 `json:"weight" validate:"required,gt=0"`
-	// Removed Unit field
 }
 
 // UpdateBodyweightRequest defines the request body for updating an existing bodyweight record.
 type UpdateBodyweightRequest struct {
 	Weight float64 `json:"weight" validate:"required,gt=0"`
-	// Removed Unit field
 }
 
 // --- Response DTOs ---
@@ -28,10 +26,9 @@ type UpdateBodyweightRequest struct {
 // BodyweightResponse is the base DTO for a single bodyweight record.
 // It is used in show, create, and update responses.
 type BodyweightResponse struct {
-	ID     uuid.UUID `json:"id"`
-	UserID uuid.UUID `json:"user_id"`
-	Weight float64   `json:"weight"`
-	// Removed Unit field
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	Weight    float64    `json:"weight"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"` // Use a pointer for nullable field
