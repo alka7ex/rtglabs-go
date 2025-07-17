@@ -75,15 +75,16 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 		Where("id = ? AND user_id = ? AND deleted_at IS NULL", workoutLogID, userID)
 
 	if req.FinishedAt != nil {
-		updateWLBuilder = updateWLBuilder.Set("finished_at", req.FinishedAt).Set("status", model.WorkoutLogStatusCompleted) // Assuming status update
+		// If FinishedAt is provided, set it and mark as completed
+		updateWLBuilder = updateWLBuilder.Set("finished_at", req.FinishedAt).Set("status", model.WorkoutLogStatusCompleted)
 	} else {
-		// If FinishedAt is explicitly set to null (client sends null), set status back to in progress if needed
-		// Or handle based on your specific business logic for resetting status
-		// For now, if FinishedAt is nil, we assume it's still in progress or status isn't being explicitly changed
-		updateWLBuilder = updateWLBuilder.Set("status", model.WorkoutLogStatusInProgress) // Default to in progress if not finished
+		// If FinishedAt is nil, explicitly set it to NULL in the database
+		// and set the status to InProgress
+		updateWLBuilder = updateWLBuilder.Set("finished_at", nil).Set("status", model.WorkoutLogStatusInProgress)
 	}
 
 	updateWLQuery, argsWL, buildErr := updateWLBuilder.ToSql()
+	// ... rest of your code ...
 	if buildErr != nil {
 		c.Logger().Errorf("UpdateWorkoutLog: Failed to build workout log update query: %v", buildErr)
 		err = echo.NewHTTPError(http.StatusInternalServerError, "Failed to prepare workout log update")
