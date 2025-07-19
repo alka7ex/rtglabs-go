@@ -16,7 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Storeegister handles user registration
+// StoreRegister handles user registration
 func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	var req dto.RegisterRequest
 	if err := c.Bind(&req); err != nil {
@@ -62,7 +62,8 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 	// The order here must match the order in Scan.
 	fetchUserQuery, fetchUserArgs, err := h.sq.Select(
 		"u.id", "u.name", "u.email", "u.email_verified_at", "u.created_at", "u.updated_at",
-		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.weight", "p.created_at", "p.updated_at", "p.deleted_at",
+		// REMOVED 'p.weight' from here as it no longer exists in the 'profiles' table
+		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.created_at", "p.updated_at", "p.deleted_at",
 	).
 		From("users u").
 		LeftJoin("profiles p ON u.id = p.user_id").
@@ -77,13 +78,13 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 
 	// Variables for scanning potentially NULL profile fields from LEFT JOIN
 	var (
-		profileID        sql.NullString
-		profileUserID    sql.NullString
-		profileUnits     sql.NullInt64
-		profileAge       sql.NullInt64
-		profileHeight    sql.NullFloat64
-		profileGender    sql.NullInt64
-		profileWeight    sql.NullFloat64
+		profileID     sql.NullString
+		profileUserID sql.NullString
+		profileUnits  sql.NullInt64
+		profileAge    sql.NullInt64
+		profileHeight sql.NullFloat64
+		profileGender sql.NullInt64
+		// REMOVED profileWeight as it's no longer scanned from the profiles table
 		profileCreatedAt sql.NullTime
 		profileUpdatedAt sql.NullTime
 		profileDeletedAt sql.NullTime
@@ -91,13 +92,15 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 
 	err = row.Scan(
 		&entUser.ID, &entUser.Name, &entUser.Email, &entUser.EmailVerifiedAt, &entUser.CreatedAt, &entUser.UpdatedAt,
-		&profileID, &profileUserID, &profileUnits, &profileAge, &profileHeight, &profileGender, &profileWeight, &profileCreatedAt, &profileUpdatedAt, &profileDeletedAt,
+		&profileID, &profileUserID, &profileUnits, &profileAge, &profileHeight, &profileGender, // REMOVED profileWeight from scan list
+		&profileCreatedAt, &profileUpdatedAt, &profileDeletedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.Logger().Errorf("StoreRegister: Created user not found immediately after insert (possible race condition or DB issue): %v", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch created user (user not found)")
 		}
+		// This is the line that would have caused the "column p.weight does not exist" error
 		c.Logger().Errorf("StoreRegister: Database query error fetching created user: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch created user")
 	}
@@ -110,7 +113,6 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 		entProfile.Age = int(profileAge.Int64)
 		entProfile.Height = profileHeight.Float64
 		entProfile.Gender = int(profileGender.Int64)
-		entProfile.Weight = profileWeight.Float64
 		entProfile.CreatedAt = profileCreatedAt.Time
 		entProfile.UpdatedAt = profileUpdatedAt.Time
 		if profileDeletedAt.Valid {
@@ -159,13 +161,13 @@ func (h *AuthHandler) StoreRegister(c echo.Context) error {
 
 	if entProfile.ID != uuid.Nil {
 		responseUser.Profile = &dto.ProfileResponse{
-			ID:        entProfile.ID,
-			UserID:    entProfile.UserID,
-			Units:     entProfile.Units,
-			Gender:    entProfile.Gender,
-			Age:       entProfile.Age,
-			Height:    entProfile.Height,
-			Weight:    entProfile.Weight,
+			ID:     entProfile.ID,
+			UserID: entProfile.UserID,
+			Units:  entProfile.Units,
+			Gender: entProfile.Gender,
+			Age:    entProfile.Age,
+			Height: entProfile.Height,
+			// Weight is not included here, as it's handled by the bodyweights table and fetched separately in GetProfile
 			CreatedAt: entProfile.CreatedAt.Format(time.RFC3339Nano),
 			UpdatedAt: entProfile.UpdatedAt.Format(time.RFC3339Nano),
 		}

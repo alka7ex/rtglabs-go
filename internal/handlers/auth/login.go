@@ -31,7 +31,7 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 	// 1. Query User and their Profile using a LEFT JOIN
 	userQuery := h.sq.Select(
 		"u.id", "u.name", "u.email", "u.password", "u.email_verified_at", "u.created_at", "u.updated_at",
-		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.weight", "p.created_at", "p.updated_at", "p.deleted_at",
+		"p.id", "p.user_id", "p.units", "p.age", "p.height", "p.gender", "p.created_at", "p.updated_at", "p.deleted_at",
 	).
 		From("users u").
 		LeftJoin("profiles p ON u.id = p.user_id").
@@ -47,13 +47,13 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 	row := h.DB.QueryRowContext(ctx, sqlQuery, args...)
 
 	var (
-		profileID        sql.NullString
-		profileUserID    sql.NullString
-		profileUnits     sql.NullInt64
-		profileAge       sql.NullInt64
-		profileHeight    sql.NullFloat64
-		profileGender    sql.NullInt64
-		profileWeight    sql.NullFloat64
+		profileID     sql.NullString
+		profileUserID sql.NullString
+		profileUnits  sql.NullInt64
+		profileAge    sql.NullInt64
+		profileHeight sql.NullFloat64
+		profileGender sql.NullInt64
+		// REMOVED profileWeight as it's no longer scanned from the profiles table
 		profileCreatedAt sql.NullTime
 		profileUpdatedAt sql.NullTime
 		profileDeletedAt sql.NullTime
@@ -61,13 +61,15 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 
 	err = row.Scan(
 		&entUser.ID, &entUser.Name, &entUser.Email, &entUser.Password, &entUser.EmailVerifiedAt, &entUser.CreatedAt, &entUser.UpdatedAt,
-		&profileID, &profileUserID, &profileUnits, &profileAge, &profileHeight, &profileGender, &profileWeight, &profileCreatedAt, &profileUpdatedAt, &profileDeletedAt,
+		&profileID, &profileUserID, &profileUnits, &profileAge, &profileHeight, &profileGender, // REMOVED profileWeight from scan list
+		&profileCreatedAt, &profileUpdatedAt, &profileDeletedAt,
 	)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid email or password")
 		}
+		// This line is where the error was logging: StoreLogin: Database query error: pq: column p.weight does not exist
 		c.Logger().Errorf("StoreLogin: Database query error: %v", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to authenticate")
 	}
@@ -79,7 +81,6 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 		entProfile.Age = int(profileAge.Int64)
 		entProfile.Height = profileHeight.Float64
 		entProfile.Gender = int(profileGender.Int64)
-		entProfile.Weight = profileWeight.Float64
 		entProfile.CreatedAt = profileCreatedAt.Time
 		entProfile.UpdatedAt = profileUpdatedAt.Time
 		if profileDeletedAt.Valid {
@@ -104,6 +105,7 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 	currentTime := time.Now() // Get current time for created_at
 
 	// --- FIX START: REMOVED "updated_at" from Columns and Values ---
+	// (This section was already correct based on your previous logs/fixes)
 	insertSessionQuery, insertSessionArgs, err := h.sq.Insert("sessions").
 		Columns("id", "token", "expires_at", "user_id", "created_at"). // Removed "updated_at"
 		Values(newSessionID, token, expiry, entUser.ID, currentTime).  // Removed currentTime for "updated_at"
@@ -135,13 +137,13 @@ func (h *AuthHandler) StoreLogin(c echo.Context) error {
 
 	if entProfile.ID != uuid.Nil {
 		responseUser.Profile = &dto.ProfileResponse{
-			ID:        entProfile.ID,
-			UserID:    entProfile.UserID,
-			Units:     entProfile.Units,
-			Gender:    entProfile.Gender,
-			Age:       entProfile.Age,
-			Height:    entProfile.Height,
-			Weight:    entProfile.Weight,
+			ID:     entProfile.ID,
+			UserID: entProfile.UserID,
+			Units:  entProfile.Units,
+			Gender: entProfile.Gender,
+			Age:    entProfile.Age,
+			Height: entProfile.Height,
+			// Weight is not part of the profile DTO here, as it's dynamically fetched from bodyweights in GetProfile
 			CreatedAt: entProfile.CreatedAt.Format(time.RFC3339Nano),
 			UpdatedAt: entProfile.UpdatedAt.Format(time.RFC3339Nano),
 		}
