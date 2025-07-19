@@ -8,6 +8,7 @@ import (
 
 	page "rtglabs-go/cmd/web/page"
 	page_auth "rtglabs-go/cmd/web/page/auth"
+	auth_handlers "rtglabs-go/internal/handlers/auth"
 	handlers "rtglabs-go/internal/handlers/auth"
 
 	"github.com/a-h/templ"
@@ -18,7 +19,7 @@ import (
 func (s *Server) registerPublicRoutes() {
 	// ... (your existing handlers initialization)
 	forgotPasswordHandler := handlers.NewForgotPasswordHandler(s.sqlDB, s.emailSender, s.appBaseURL)
-	authHandler := handlers.NewAuthHandler(s.sqlDB)
+	authHandler := auth_handlers.NewAuthHandler(s.sqlDB, os.Getenv("GOOGLE_WEB_CLIENT_ID"))
 
 	// --- MODIFIED STATIC FILE SERVER FOR DEVELOPMENT ---
 	// Determine the path to your 'assets' directory relative to the executable.
@@ -50,6 +51,7 @@ func (s *Server) registerPublicRoutes() {
 	// Auth routes (public for registration/login)
 	s.echo.POST("/api/register", authHandler.StoreRegister)
 	s.echo.POST("/api/login", authHandler.StoreLogin)
+	s.echo.POST("/api/google-login", authHandler.StoreGoogleLogin)
 
 	s.echo.POST("/api/forgot-password", forgotPasswordHandler.ForgotPassword)
 	s.echo.POST("/api/reset-password", forgotPasswordHandler.ResetPassword)

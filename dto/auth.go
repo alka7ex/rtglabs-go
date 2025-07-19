@@ -21,6 +21,28 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=6"`
 }
 
+// GoogleLoginRequest represents the payload for Google login.
+type GoogleLoginRequest struct {
+	IDToken string `json:"id_token" validate:"required"` // Google ID token (JWT)
+}
+
+// ForgotPasswordRequest for the forgot password endpoint
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// ResetPasswordRequest for the reset password endpoint
+type ResetPasswordRequest struct {
+	Token              string `json:"token" validate:"required"`
+	NewPassword        string `json:"new_password" validate:"required,min=8"` // Example validation
+	ConfirmNewPassword string `json:"confirm_new_password" validate:"required,eqfield=NewPassword"`
+}
+
+// LogoutRequest represents the request body for logging out a specific session.
+type LogoutRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
 // --- Responses ---
 
 // BaseUserResponse represents the core user data fields for a response.
@@ -57,21 +79,12 @@ type LoginResponse struct {
 	ExpiresAt string                  `json:"expires_at"` // Using a string to format the time
 }
 
-// ForgotPasswordRequest for the forgot password endpoint
-type ForgotPasswordRequest struct {
-	Email string `json:"email" validate:"required,email"`
-}
-
-// ResetPasswordRequest for the reset password endpoint
-type ResetPasswordRequest struct {
-	Token              string `json:"token" validate:"required"`
-	NewPassword        string `json:"new_password" validate:"required,min=8"` // Example validation
-	ConfirmNewPassword string `json:"confirm_new_password" validate:"required,eqfield=NewPassword"`
-}
-
-// LogoutRequest represents the request body for logging out a specific session.
-type LogoutRequest struct {
-	Token string `json:"token" validate:"required"`
+// GoogleLoginResponse represents the full response body for a successful Google login.
+type GoogleLoginResponse struct {
+	Message   string                  `json:"message"`    // e.g. "Login successful"
+	User      UserWithProfileResponse `json:"user"`       // Full user object
+	Token     string                  `json:"token"`      // JWT or session token
+	ExpiresAt string                  `json:"expires_at"` // Expiration time as string (e.g., ISO 8601)
 }
 
 // LogoutResponse represents the response body for a successful logout.

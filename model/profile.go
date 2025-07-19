@@ -14,8 +14,9 @@ type Profile struct {
 	Age       int        `db:"age" json:"age"`
 	Height    float64    `db:"height" json:"height"` // float64 is suitable for DECIMAL/NUMERIC types
 	Gender    int        `db:"gender" json:"gender"`
-	Weight    float64    `db:"weight" json:"weight"`                  // float64 is suitable for DECIMAL/NUMERIC types
-	CreatedAt time.Time  `db:"created_at" json:"createdAt"`           // From custommixin.Timestamps
-	UpdatedAt time.Time  `db:"updated_at" json:"updatedAt"`           // From custommixin.Timestamps
+	Weight    float64    `db:"weight" json:"weight"`        // float64 is suitable for DECIMAL/NUMERIC types
+	CreatedAt time.Time  `db:"created_at" json:"createdAt"` // From custommixin.Timestamps
+	UpdatedAt time.Time  `db:"updated_at" json:"updatedAt"` // From custommixin.Timestamps
 	DeletedAt *time.Time `db:"deleted_at" json:"deletedAt"` // From custommixin.Timestamps (for soft deletes), nullable
+	AvatarURL *string    `db:"avatar_url" json:"avatar_url"`
 }

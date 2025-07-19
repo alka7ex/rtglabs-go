@@ -21,24 +21,24 @@ type User struct {
 
 // AuthHandler holds the standard SQL DB client.
 type AuthHandler struct {
-	DB *sql.DB
-	sq squirrel.StatementBuilderType
+	DB             *sql.DB
+	sq             squirrel.StatementBuilderType
+	GoogleClientID string
 	// ... potentially a logger, or other dependencies
 }
 
 // NewAuthHandler creates a new AuthHandler instance.
 // It now accepts a *sql.DB instance.
-func NewAuthHandler(db *sql.DB) *AuthHandler {
+func NewAuthHandler(db *sql.DB, googleClientID string) *AuthHandler {
 	// FIX: Use squirrel.Dollar for PostgreSQL
 	sq := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) // <--- CHANGED THIS LINE
 
 	return &AuthHandler{
-		DB: db,
-		sq: sq,
+		DB:             db,
+		sq:             sq,
+		GoogleClientID: googleClientID, // ✅ set it here
 	}
-}
-
-// ValidateToken checks if the token is valid and not expired.
+} // ValidateToken checks if the token is valid and not expired.
 // It returns the user ID if valid, or an error otherwise.
 // This function is intended to be used by middleware.
 func (h *AuthHandler) ValidateToken(token string) (uuid.UUID, error) {

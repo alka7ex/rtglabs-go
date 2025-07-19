@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"os"
 
 	auth_handlers "rtglabs-go/internal/handlers/auth"      // <-- Explicit alias
 	bw_handlers "rtglabs-go/internal/handlers/bodyweights" // <-- Explicit alias
@@ -19,7 +20,7 @@ func (s *Server) registerPrivateRoutes() {
 	// entClient := database.NewEntClient() // REMOVE THIS LINE
 
 	// Create the auth handler instance, passing s.sqlDB
-	authHandler := auth_handlers.NewAuthHandler(s.sqlDB) // Change to s.sqlDB
+	authHandler := auth_handlers.NewAuthHandler(s.sqlDB, os.Getenv("GOOGLE_WEB_CLIENT_ID"))
 
 	// Create the bodyweight handler instance, passing s.sqlDB
 	bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB) // Change to s.sqlDB

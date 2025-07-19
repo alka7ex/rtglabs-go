@@ -19,19 +19,3 @@ type Session struct {
 	// as they are not defined in this specific Session schema's Fields()
 	// and no Timestamps mixin is applied to Session.
 }
-
-// How to handle the 1:1 relationship with User:
-// To get the user for a session, you'd typically perform a JOIN:
-//
-// SELECT
-//     s.id AS session_id, s.token AS session_token, -- etc.
-//     u.id AS user_id, u.name AS user_name -- etc.
-// FROM
-//     sessions s
-// JOIN
-//     users u ON s.user_id = u.id
-// WHERE
-//     s.id = 'some-session-uuid';
-//
-// You would then scan the results into a custom struct that holds
-// both session and user fields, or into separate model.Session and model.User structs.
