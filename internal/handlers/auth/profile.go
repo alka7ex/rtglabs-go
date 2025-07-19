@@ -206,7 +206,7 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 		fmt.Println("Profile not found, creating a new one for user:", userID.String())
 
 		insertProfileQuery, insertProfileArgs, err := h.sq.Insert("profiles").
-			Columns("id", "user_id", "units", "age", "height", "gender").
+			Columns("id", "user_id", "units", "age", "height", "gender"). // <-- NO "weight" here, which is correct after schema change
 			Values(uuid.New(), userID, req.Units, req.Age, req.Height, req.Gender).
 			ToSql()
 		if err != nil {
@@ -251,8 +251,8 @@ func (h *AuthHandler) UpdateProfile(c echo.Context) error {
 	// It's good practice to ensure weight is a positive value if applicable for your domain.
 	if req.Weight > 0 { // Only insert if weight is provided and valid (e.g., > 0)
 		insertBodyweightQuery, insertBodyweightArgs, err := h.sq.Insert("bodyweights").
-			Columns("id", "user_id", "weight", "created_at", "updated_at"). // Removed "unit" from columns
-			Values(uuid.New(), userID, req.Weight, time.Now(), time.Now()). // Removed "kg" or any unit value
+			Columns("id", "user_id", "weight", "created_at", "updated_at"). // Correctly inserts into bodyweights
+			Values(uuid.New(), userID, req.Weight, time.Now(), time.Now()).
 			ToSql()
 		if err != nil {
 			c.Logger().Errorf("UpdateProfile: Failed to build insert bodyweight query: %v", err)
