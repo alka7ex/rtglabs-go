@@ -22,7 +22,7 @@ type ListWorkoutLogRequest struct {
 
 // CreateWorkoutLogRequest defines the request body for creating a workout log.
 type CreateWorkoutLogRequest struct {
-	WorkoutID uuid.UUID `json:"workout_id" validate:"required,uuid"` // The ID of the workout template to base this log on
+	WorkoutID *uuid.UUID `json:"workout_id" validate:"omitempty,uuid"` // The ID of the workout template to base this log on
 }
 
 // UpdateWorkoutLogRequest defines the request body for updating a workout log.
