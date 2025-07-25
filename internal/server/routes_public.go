@@ -12,6 +12,7 @@ import (
 	handlers "rtglabs-go/internal/handlers/auth"
 
 	"github.com/a-h/templ"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 )
 
@@ -47,6 +48,7 @@ func (s *Server) registerPublicRoutes() {
 	s.echo.GET("/", echo.WrapHandler(templ.Handler(page.HomePage())))
 
 	s.echo.GET("/health", s.healthHandler)
+	s.echo.GET("/metrics", echoprometheus.NewHandler())
 
 	// Auth routes (public for registration/login)
 	s.echo.POST("/api/register", authHandler.StoreRegister)

@@ -15,6 +15,7 @@ import (
 	"rtglabs-go/config/database"
 	mail "rtglabs-go/provider"
 
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
@@ -26,10 +27,10 @@ type Server struct {
 	port        int
 	db          database.Service
 	echo        *echo.Echo
-	logger      *zap.Logger
+	logger      *zap.Logger // Assumed to be initialized by NewPrettyLogger() from elsewhere
 	emailSender mail.EmailSender
 	appBaseURL  string
-	appConfig   *config.AppConfig
+	appConfig   *config.AppConfig // Consider removing if not used
 	sqlDB       *sql.DB
 }
 
@@ -47,7 +48,7 @@ func NewServer() *http.Server {
 	log.Printf("APP ENV: %s", os.Getenv("APP_ENV"))
 	log.Printf("PORT: %s", os.Getenv("PORT"))
 	log.Printf("APP_BASE_URL: %s", os.Getenv("APP_BASE_URL"))
-	log.Printf("DATABASE_URL: %s", os.Getenv("DATABASE_URL"))
+	// log.Printf("DATABASE_URL: %s", os.Getenv("DATABASE_URL")) // Avoid logging sensitive DB URL in production
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -81,19 +82,22 @@ func NewServer() *http.Server {
 
 	s := &Server{
 		port:        port,
-		db:          database.New(),
+		db:          database.New(), // Consider removing `db` field if `database.New()` is unused or sqlDB is sufficient
 		echo:        echo.New(),
-		logger:      NewPrettyLogger(),
+		logger:      NewPrettyLogger(), // Calls the actual NewPrettyLogger() from where it's defined
 		emailSender: emailSender,
 		appBaseURL:  appBaseURL,
 		sqlDB:       sqlDB,
 	}
 
 	s.setupMiddleware()
-	s.RegisterRoutes()
+	s.RegisterRoutes() // This will now handle the /metrics route
 
-	// --- NEW: Set custom HTTPErrorHandler for 404s ---
+	// --- Set custom HTTPErrorHandler for 404s ---
 	s.echo.HTTPErrorHandler = s.customHTTPErrorHandler
+
+	// --- REMOVED: Duplicate Prometheus /metrics endpoint registration from here ---
+	// It's now handled by s.RegisterRoutes() -> s.registerPublicRoutes()
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", s.port),
@@ -148,12 +152,25 @@ func (s *Server) setupMiddleware() {
 
 	s.echo.Pre(middleware.RemoveTrailingSlash())
 
+	// --- Add Prometheus middleware for HTTP requests ---
+	s.echo.Use(echoprometheus.NewMiddleware("myapp"))
+
+	// OPTIONAL: If you have Gzip middleware, ensure it skips the /metrics endpoint.
+	// This prevents the metrics endpoint from being compressed, which Prometheus
+	// might not expect or handle correctly by default.
+	s.echo.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Skipper: func(c echo.Context) bool {
+			return c.Path() == "/metrics"
+		},
+	}))
+
 	s.echo.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
 		LogStatus: true,
 		LogHost:   true,
 		LogMethod: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			// This calls colorizeStatus from where it's actually defined/accessible
 			coloredStatus := colorizeStatus(v.Status)
 			s.logger.Info(fmt.Sprintf("| %-6s | %s | %s | status: %s",
 				v.Method,
@@ -188,8 +205,12 @@ func (s *Server) PrintRoutes() {
 
 // RegisterRoutes registers all public and private routes.
 func (s *Server) RegisterRoutes() {
-	s.registerPublicRoutes()
-	s.registerPrivateRoutes()
+	// Example: Adding the /health route for Prometheus to monitor
+	s.echo.GET("/health", s.healthHandler)
+	s.echo.GET("/", s.HelloWorldHandler) // Keep your existing root handler
+
+	s.registerPublicRoutes()  // This method now contains the /metrics route
+	s.registerPrivateRoutes() // Assuming these are defined elsewhere
 }
 
 // HelloWorldHandler is a simple handler for the "/" route.
@@ -214,27 +235,3 @@ func (s *Server) healthHandler(c echo.Context) error {
 	})
 }
 
-// You need to define `colorizeStatus` somewhere, likely in `logger.go` as you mentioned.
-// For demonstration, I'll include a placeholder if it's not provided elsewhere.
-// Assuming colorizeStatus is in logger.go, no need to duplicate it here.
-// If it's not, you'd need something like:
-/*
-import (
-	"github.com/fatih/color"
-)
-
-func colorizeStatus(status int) string {
-	switch {
-	case status >= 200 && status < 300:
-		return color.GreenString("%d", status)
-	case status >= 300 && status < 400:
-		return color.YellowString("%d", status)
-	case status >= 400 && status < 500:
-		return color.RedString("%d", status)
-	case status >= 500:
-		return color.MagentaString("%d", status)
-	default:
-		return fmt.Sprintf("%d", status)
-	}
-}
-*/
