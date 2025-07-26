@@ -81,6 +81,7 @@ type WorkoutLogResponse struct {
 	ID                         uuid.UUID                   `json:"id"`
 	WorkoutID                  uuid.UUID                   `json:"workout_id"` // **Matches Zod (non-nullable)**
 	UserID                     uuid.UUID                   `json:"user_id"`
+	Name                       string                      `json:"name"`    // 👈 Add this
 	Workout                    WorkoutResponse             `json:"workout"` // Nested workout object
 	StartedAt                  *time.Time                  `json:"started_at"`
 	FinishedAt                 *time.Time                  `json:"finished_at"`

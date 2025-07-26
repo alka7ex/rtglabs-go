@@ -193,7 +193,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 
 		WID        uuid.NullUUID
 		WUserID    uuid.NullUUID
-		WName      sql.NullString
+		WName      sql.NullString // <--- This holds the workout name
 		WCreatedAt sql.NullTime
 		WUpdatedAt sql.NullTime
 		WDeletedAt sql.NullTime
@@ -231,7 +231,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		"wl.id", "wl.user_id", "wl.workout_id", "wl.started_at", "wl.finished_at", "wl.status",
 		"wl.total_active_duration_seconds", "wl.total_pause_duration_seconds",
 		"wl.created_at", "wl.updated_at", "wl.deleted_at",
-		"w.id AS w_id", "w.user_id AS w_user_id", "w.name AS w_name",
+		"w.id AS w_id", "w.user_id AS w_user_id", "w.name AS w_name", // <--- Select w.name
 		"w.created_at AS w_created_at", "w.updated_at AS w_updated_at", "w.deleted_at AS w_deleted_at",
 		"lei.id AS lei_id", "lei.workout_log_id AS lei_workout_log_id", "lei.exercise_id AS lei_exercise_id",
 		"lei.created_at AS lei_created_at", "lei.updated_at AS lei_updated_at", "lei.deleted_at AS lei_deleted_at",
@@ -273,7 +273,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 			&jwlr.ID, &jwlr.UserID, &jwlr.WorkoutID, &jwlr.StartedAt, &jwlr.FinishedAt, &jwlr.Status,
 			&jwlr.TotalActiveDurationSeconds, &jwlr.TotalPauseDurationSeconds,
 			&jwlr.CreatedAt, &jwlr.UpdatedAt, &jwlr.DeletedAt,
-			&jwlr.WID, &jwlr.WUserID, &jwlr.WName, &jwlr.WCreatedAt, &jwlr.WUpdatedAt, &jwlr.WDeletedAt,
+			&jwlr.WID, &jwlr.WUserID, &jwlr.WName, &jwlr.WCreatedAt, &jwlr.WUpdatedAt, &jwlr.WDeletedAt, // <--- Scan w.name here
 			&jwlr.LEIID, &jwlr.LEIWorkoutLogID, &jwlr.LEIExerciseID, &jwlr.LEICreatedAt, &jwlr.LEIUpdatedAt, &jwlr.LEIDeletedAt,
 			&jwlr.ExID, &jwlr.ExName, &jwlr.ExCreatedAt, &jwlr.ExUpdatedAt, &jwlr.ExDeletedAt,
 			&jwlr.ESID, &jwlr.ESWorkoutLogID, &jwlr.ESExerciseID, &jwlr.ESLoggedExerciseInstanceID,
@@ -311,7 +311,7 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 				workoutLogDTO.WorkoutID = uuid.Nil // Assign zero UUID if DB value is NULL
 			}
 
-			// Handle nested Workout DTO
+			// Handle nested Workout DTO and top-level Name
 			if jwlr.WID.Valid { // Check if workout was joined successfully
 				workoutLogDTO.Workout = dto.WorkoutResponse{
 					ID:        jwlr.WID.UUID,
@@ -321,9 +321,11 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 					UpdatedAt: jwlr.WUpdatedAt.Time,
 					DeletedAt: provider.NullTimeToTimePtr(jwlr.WDeletedAt),
 				}
+				workoutLogDTO.Name = jwlr.WName.String // <--- Assign workout name to top-level Name
 			} else {
-				// If no workout is associated, set Workout to its zero value.
+				// If no workout is associated, set Workout to its zero value and Name to empty string.
 				workoutLogDTO.Workout = dto.WorkoutResponse{}
+				workoutLogDTO.Name = "" // Set to empty string if no workout is associated
 			}
 
 			workoutLogsMap[jwlr.ID] = workoutLogDTO
@@ -433,3 +435,4 @@ func (h *WorkoutLogHandler) IndexWorkoutLog(c echo.Context) error {
 		PaginationResponse: paginationData,
 	})
 }
+
