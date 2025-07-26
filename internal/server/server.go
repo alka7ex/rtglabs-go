@@ -13,25 +13,28 @@ import (
 
 	"rtglabs-go/config"
 	"rtglabs-go/config/database"
+	"rtglabs-go/provider"
 	mail "rtglabs-go/provider"
 
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
+	"github.com/typesense/typesense-go/typesense"
 	"go.uber.org/zap"
 )
 
 // Server holds the server configuration and dependencies.
 type Server struct {
-	port        int
-	db          database.Service
-	echo        *echo.Echo
-	logger      *zap.Logger // Assumed to be initialized by NewPrettyLogger() from elsewhere
-	emailSender mail.EmailSender
-	appBaseURL  string
-	appConfig   *config.AppConfig // Consider removing if not used
-	sqlDB       *sql.DB
+	port            int
+	db              database.Service
+	echo            *echo.Echo
+	logger          *zap.Logger // Assumed to be initialized by NewPrettyLogger() from elsewhere
+	emailSender     mail.EmailSender
+	appBaseURL      string
+	appConfig       *config.AppConfig // Consider removing if not used
+	sqlDB           *sql.DB
+	typesenseClient *typesense.Client // 👈 Add this line
 }
 
 // NewServer initializes and returns a new HTTP server.
@@ -80,14 +83,19 @@ func NewServer() *http.Server {
 
 	appBaseURL := os.Getenv("APP_BASE_URL")
 
+	tsClient := provider.NewTypesenseClient(
+		os.Getenv("TYPESENSE_HOST"),
+		os.Getenv("TYPESENSE_API_KEY"),
+	).Client
 	s := &Server{
-		port:        port,
-		db:          database.New(), // Consider removing `db` field if `database.New()` is unused or sqlDB is sufficient
-		echo:        echo.New(),
-		logger:      NewPrettyLogger(), // Calls the actual NewPrettyLogger() from where it's defined
-		emailSender: emailSender,
-		appBaseURL:  appBaseURL,
-		sqlDB:       sqlDB,
+		port:            port,
+		db:              database.New(), // Consider removing `db` field if `database.New()` is unused or sqlDB is sufficient
+		echo:            echo.New(),
+		logger:          NewPrettyLogger(), // Calls the actual NewPrettyLogger() from where it's defined
+		emailSender:     emailSender,
+		appBaseURL:      appBaseURL,
+		sqlDB:           sqlDB,
+		typesenseClient: tsClient, // 👈 Save it here
 	}
 
 	s.setupMiddleware()
@@ -234,4 +242,3 @@ func (s *Server) healthHandler(c echo.Context) error {
 		"status": "healthy",
 	})
 }
-

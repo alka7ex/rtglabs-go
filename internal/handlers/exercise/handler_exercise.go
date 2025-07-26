@@ -1,27 +1,26 @@
 package handlers
 
 import (
-	"database/sql" // Import for *sql.DB
+	"database/sql"
+	"rtglabs-go/dto"
+	"rtglabs-go/model"
 	"time"
 
-	"rtglabs-go/dto"
-	// "rtglabs-go/ent" // We will remove this import as we are moving away from ent
-	"github.com/Masterminds/squirrel" // Import squirrel
-	"rtglabs-go/model"                // We'll assume you have a model.Exercise struct now
+	"github.com/Masterminds/squirrel"
+	"github.com/typesense/typesense-go/v3/typesense"
 )
 
-// ExerciseHandler holds the database client and squirrel statement builder.
 type ExerciseHandler struct {
-	DB *sql.DB
-	sq squirrel.StatementBuilderType
+	DB              *sql.DB
+	sq              squirrel.StatementBuilderType
+	TypesenseClient *typesense.Client
 }
 
-// NewExerciseHandler creates and returns a new ExerciseHandler.
-// It now takes *sql.DB and initializes squirrel with the appropriate placeholder format.
-func NewExerciseHandler(db *sql.DB) *ExerciseHandler {
+func NewExerciseHandler(db *sql.DB, tsClient *typesense.Client) *ExerciseHandler {
 	return &ExerciseHandler{
-		DB: db,
-		sq: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar), // Or squirrel.Question for '?' placeholders
+		DB:              db,
+		sq:              squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
+		TypesenseClient: tsClient,
 	}
 }
 
