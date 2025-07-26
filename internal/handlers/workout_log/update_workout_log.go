@@ -84,7 +84,6 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 	}
 
 	updateWLQuery, argsWL, buildErr := updateWLBuilder.ToSql()
-	// ... rest of your code ...
 	if buildErr != nil {
 		c.Logger().Errorf("UpdateWorkoutLog: Failed to build workout log update query: %v", buildErr)
 		err = echo.NewHTTPError(http.StatusInternalServerError, "Failed to prepare workout log update")
@@ -130,13 +129,6 @@ func (h *WorkoutLogHandler) UpdateWorkoutLog(c echo.Context) error {
 		err = echo.NewHTTPError(http.StatusInternalServerError, "Failed to update workout log (rows error existing LEI)")
 		return err
 	}
-
-	// This map will store the mapping from client_id to actual DB UUID for NEW LEIs created in this transaction
-	// This is important if you want sets to refer to a new LEI created earlier in the *same* request.
-	// However, given your current DTO structure where sets are nested directly under their parent LEI,
-	// this map isn't strictly necessary for *this* current code, but it's good practice for more complex scenarios.
-	// For this specific setup, `newLEIID` (the direct UUID generated for the new LEI) is what's passed to `processExerciseSets`.
-	// So, we'll keep `logged_exercise_instance_client_id` just for binding in the DTO, not for complex mapping in the handler here.
 
 	requestedLEIIDs := make(map[uuid.UUID]struct{})
 	for _, leiReq := range req.LoggedExerciseInstances {
@@ -277,7 +269,7 @@ func (h *WorkoutLogHandler) processExerciseSets(tx *sql.Tx, ctx context.Context,
 			// if setReq.ExerciseID != uuid.Nil {
 			// 	 finalExerciseID = setReq.ExerciseID
 			// } else if exerciseID != nil {
-			//   finalExerciseID = *exerciseID // Fallback to parent LEI's exerciseID
+			//    finalExerciseID = *exerciseID // Fallback to parent LEI's exerciseID
 			// }
 
 			insertESBuilder := h.sq.Insert("exercise_sets").
@@ -541,20 +533,22 @@ func (h *WorkoutLogHandler) fetchWorkoutLogDetails(ctx context.Context, logger e
 				workoutLog.Workout = dto.WorkoutResponse{
 					ID:        wID.V,
 					UserID:    wUserID.V,
-					Name:      wName.String,
+					Name:      wName.String, // Assign wName.String to the nested WorkoutResponse.Name
 					CreatedAt: wCreatedAt.Time,
 					UpdatedAt: wUpdatedAt.Time,
 					DeletedAt: provider.NullTimeToTimePtr(wDeletedAt),
 				}
+				workoutLog.Name = wName.String // Assign wName.String to the top-level WorkoutLogResponse.Name
 			} else {
 				workoutLog.Workout = dto.WorkoutResponse{
 					ID:        uuid.Nil,
 					UserID:    uuid.Nil,
-					Name:      "",
+					Name:      "", // Set to empty string if no workout is associated
 					CreatedAt: time.Time{},
 					UpdatedAt: time.Time{},
 					DeletedAt: nil,
 				}
+				workoutLog.Name = "" // Set top-level Name to empty string too
 			}
 		}
 

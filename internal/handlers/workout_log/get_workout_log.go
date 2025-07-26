@@ -127,7 +127,7 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 			workoutLog.UpdatedAt = wlUpdatedAt.Time
 			workoutLog.DeletedAt = provider.NullTimeToTimePtr(wlDeletedAt)
 
-			// Populate nested WorkoutResponse
+			// Populate nested WorkoutResponse and the top-level Name field
 			if wID.Valid {
 				workoutLog.Workout = dto.WorkoutResponse{
 					ID:        wID.V,
@@ -137,9 +137,12 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 					UpdatedAt: wUpdatedAt.Time,
 					DeletedAt: provider.NullTimeToTimePtr(wDeletedAt),
 				}
+				workoutLog.Name = wName.String // Assign the workout name to the top-level Name
 			} else {
 				// If the workout template itself is null/deleted, initialize Workout with zero values
+				// and set the top-level Name to an empty string.
 				workoutLog.Workout = dto.WorkoutResponse{}
+				workoutLog.Name = "" // Set to empty string if no workout is associated
 			}
 
 			// Initialize the slice - will be populated below
@@ -211,4 +214,3 @@ func (h *WorkoutLogHandler) ShowWorkoutLog(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, workoutLog)
 }
-
