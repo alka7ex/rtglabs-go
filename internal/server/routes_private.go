@@ -69,18 +69,17 @@ func (s *Server) registerPrivateRoutes() {
 
 	// Protected Exercise routes
 	g.GET("/exercise", exerciseHandler.IndexExercise)
-	// g.POST("/exercise", exerciseHandler.StoreExercise)
+	g.POST("/exercise", exerciseHandler.StoreExercise)
 	// Protected Workout routes
 	g.POST("/workouts", workoutHandler.StoreWorkout)
-	// g.GET("/workouts", workoutHandler.IndexWorkout)
-	// g.GET("/workouts/:id", workoutHandler.GetWorkout)
+	g.GET("/workouts", workoutHandler.IndexWorkout)
+	g.GET("/workouts/:id", workoutHandler.GetWorkout)
 	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
 	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
 	//
-	// g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
-	// g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
-	// g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
-	// g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
+	g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
+	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
+	g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
+	g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
 	g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
 }
-
