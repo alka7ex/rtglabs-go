@@ -15,23 +15,20 @@ import (
 
 // registerPrivateRoutes registers all routes that require authentication.
 func (s *Server) registerPrivateRoutes() {
-	// Instead of initializing Ent Client here, we use s.sqlDB which is
-	// already initialized in NewServer().
-	// entClient := database.NewEntClient() // REMOVE THIS LINE
-
 	// Create the auth handler instance, passing s.sqlDB
 	authHandler := auth_handlers.NewAuthHandler(s.sqlDB, os.Getenv("GOOGLE_WEB_CLIENT_ID"))
 
 	// Create the bodyweight handler instance, passing s.sqlDB
-	bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB) // Change to s.sqlDB
+	bwHandler := bw_handlers.NewBodyweightHandler(s.sqlDB)
 
-	exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB) // Change to s.sqlDB
+	// --- FIXED: Pass the Typesense client to ExerciseHandler ---
+	exerciseHandler := exercise_handler.NewExerciseHandler(s.sqlDB, s.typesenseClient)
 	//
-	workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB) // Change to s.sqlDB
+	workoutHandler := workout_handler.NewWorkoutHandler(s.sqlDB)
 	//
-	workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB) // Change to s.sqlDB
+	workoutLogHandler := workout_log_handler.NewWorkoutLogHandler(s.sqlDB)
 
-	// FIX 1: Create the group from the server's Echo instance.
+	// Create the group from the server's Echo instance.
 	g := s.echo.Group("/api")
 
 	// Middleware for protected routes
@@ -50,13 +47,13 @@ func (s *Server) registerPrivateRoutes() {
 				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid or expired token")
 			}
 
-			// FIX 2: Set the correct key "user_id" for the handlers to retrieve.
+			// Set the correct key "user_id" for the handlers to retrieve.
 			c.Set("user_id", userID)
 			return next(c)
 		}
 	})
 
-	g.POST("/logout", authHandler.DestroySession)           // Or DELETE /auth/session/:token if you prefer
+	g.POST("/logout", authHandler.DestroySession)
 	g.GET("/validate-session", authHandler.ValidateSession) // New endpoint
 
 	// Protected Profile routes
@@ -72,17 +69,18 @@ func (s *Server) registerPrivateRoutes() {
 
 	// Protected Exercise routes
 	g.GET("/exercise", exerciseHandler.IndexExercise)
-	g.POST("/exercise", exerciseHandler.StoreExercise)
-	// // Protected Workout routes
+	// g.POST("/exercise", exerciseHandler.StoreExercise)
+	// Protected Workout routes
 	g.POST("/workouts", workoutHandler.StoreWorkout)
-	g.GET("/workouts", workoutHandler.IndexWorkout)
-	g.GET("/workouts/:id", workoutHandler.GetWorkout)
+	// g.GET("/workouts", workoutHandler.IndexWorkout)
+	// g.GET("/workouts/:id", workoutHandler.GetWorkout)
 	g.PUT("/workouts/:id", workoutHandler.UpdateWorkout)
 	g.DELETE("/workouts/:id", workoutHandler.DestroyWorkout)
 	//
-	g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
-	g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
-	g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
-	g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
+	// g.GET("/workout-logs", workoutLogHandler.IndexWorkoutLog)
+	// g.POST("/workout-logs", workoutLogHandler.StoreWorkoutLog)
+	// g.GET("/workout-logs/:id", workoutLogHandler.ShowWorkoutLog)
+	// g.PUT("/workout-logs/:id", workoutLogHandler.UpdateWorkoutLog)
 	g.DELETE("/workout-logs/:id", workoutLogHandler.DestroyWorkoutLog)
 }
+

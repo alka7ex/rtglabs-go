@@ -14,13 +14,13 @@ import (
 	"rtglabs-go/config"
 	"rtglabs-go/config/database"
 	"rtglabs-go/provider"
-	mail "rtglabs-go/provider"
+	mail "rtglabs-go/provider" // Renamed to avoid conflict with provider package name if needed
 
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
-	"github.com/typesense/typesense-go/typesense"
+	"github.com/typesense/typesense-go/v3/typesense" // <--- FIXED: Ensure this is v3
 	"go.uber.org/zap"
 )
 
@@ -34,7 +34,7 @@ type Server struct {
 	appBaseURL      string
 	appConfig       *config.AppConfig // Consider removing if not used
 	sqlDB           *sql.DB
-	typesenseClient *typesense.Client // 👈 Add this line
+	typesenseClient *typesense.Client // Correctly typed *typesense.Client
 }
 
 // NewServer initializes and returns a new HTTP server.
@@ -83,10 +83,12 @@ func NewServer() *http.Server {
 
 	appBaseURL := os.Getenv("APP_BASE_URL")
 
+	// Initialize Typesense Client using your provider
 	tsClient := provider.NewTypesenseClient(
 		os.Getenv("TYPESENSE_HOST"),
 		os.Getenv("TYPESENSE_API_KEY"),
-	).Client
+	).Client // Access the underlying *typesense.Client from the provider's wrapper
+
 	s := &Server{
 		port:            port,
 		db:              database.New(), // Consider removing `db` field if `database.New()` is unused or sqlDB is sufficient
@@ -95,7 +97,7 @@ func NewServer() *http.Server {
 		emailSender:     emailSender,
 		appBaseURL:      appBaseURL,
 		sqlDB:           sqlDB,
-		typesenseClient: tsClient, // 👈 Save it here
+		typesenseClient: tsClient, // Save the *typesense.Client here
 	}
 
 	s.setupMiddleware()
@@ -103,9 +105,6 @@ func NewServer() *http.Server {
 
 	// --- Set custom HTTPErrorHandler for 404s ---
 	s.echo.HTTPErrorHandler = s.customHTTPErrorHandler
-
-	// --- REMOVED: Duplicate Prometheus /metrics endpoint registration from here ---
-	// It's now handled by s.RegisterRoutes() -> s.registerPublicRoutes()
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", s.port),

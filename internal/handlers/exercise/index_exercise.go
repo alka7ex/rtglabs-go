@@ -1,25 +1,23 @@
+// handlers/exercise.go
 package handlers
 
 import (
 	"context"
-	"database/sql"
+	"fmt" // Keep fmt for debugging output
 	"net/http"
 	"rtglabs-go/dto"
-	"rtglabs-go/model"
 	"rtglabs-go/provider"
-	"strconv"
+	"strconv" // <--- Ensure strconv is imported for Atoi
 	"strings"
+	"time"
 
-	"github.com/Masterminds/squirrel"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/typesense/typesense-go/v3/typesense/api"
 	"github.com/typesense/typesense-go/v3/typesense/api/pointer"
 )
 
+// IndexExercise handler
 func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
-	ctx := c.Request().Context()
-
 	// --- Pagination Parameters ---
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	if page < 1 {
@@ -37,153 +35,122 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 
 	searchName := strings.TrimSpace(c.QueryParam("name"))
 
-	// If search is present, use Typesense
-	if searchName != "" {
-		// --- Typesense Search ---
-		searchParams := &api.SearchCollectionParams{
-			Q:       pointer.String(searchName),
-			QueryBy: pointer.String("name"),
-			Page:    pointer.Int(page),
-			PerPage: pointer.Int(limit),
-		}
+	var pagination provider.PaginationResponse
 
-		tsClient := h.TypesenseClient // Assumes you've added this to your handler
-		searchRes, err := tsClient.Collection("exercises").Documents().Search(context.Background(), searchParams)
-		if err != nil {
-			c.Logger().Errorf("Typesense search failed: %v", err)
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to search exercises")
-		}
+	// --- Always use Typesense for search or general listing ---
+	searchParams := &api.SearchCollectionParams{
+		Q:       pointer.String(searchName),
+		QueryBy: pointer.String("name,description"), // Query both name and description
+		Page:    pointer.Int(page),
+		PerPage: pointer.Int(limit),
+	}
 
-		// Parse IDs from hits
-		var ids []uuid.UUID
-		idIndex := make(map[uuid.UUID]int) // for ordering
-		for i, hit := range searchRes.Hits {
-			rawID := hit.Document["id"].(string)
-			uid, err := uuid.Parse(rawID)
-			if err != nil {
-				c.Logger().Warnf("Invalid UUID in Typesense doc: %s", rawID)
-				continue
-			}
-			ids = append(ids, uid)
-			idIndex[uid] = i
-		}
+	if searchName == "" {
+		searchParams.SortBy = pointer.String("created_at:desc")
+	}
 
-		if len(ids) == 0 {
-			// No results
-			return c.JSON(http.StatusOK, dto.ListExerciseResponse{
-				Data:               []dto.ExerciseResponse{},
-				PaginationResponse: provider.GeneratePaginationData(0, page, limit, c.Request().URL.Path, c.QueryParams()),
-			})
-		}
+	tsClient := h.TypesenseClient
+	searchRes, err := tsClient.Collection("exercises").Documents().Search(context.Background(), searchParams)
+	if err != nil {
+		fmt.Printf("ERROR: Typesense search failed: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to search exercises")
+	}
 
-		// Query DB to get full rows
-		query, args, err := h.sq.
-			Select("id", "name", "created_at", "updated_at", "deleted_at").
-			From("exercises").
-			Where(squirrel.And{
-				squirrel.Expr("id IN (?)", ids),
-				squirrel.Expr("deleted_at IS NULL"),
-			}).
-			ToSql()
-		if err != nil {
-			c.Logger().Errorf("Failed to build DB query for exercises: %v", err)
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch exercises")
-		}
+	fmt.Printf("DEBUG: Typesense search successful. Total found: %d\n", *searchRes.Found)
+	fmt.Printf("DEBUG: Number of hits returned: %d\n", len(*searchRes.Hits))
 
-		rows, err := h.DB.QueryContext(ctx, query, args...)
-		if err != nil {
-			c.Logger().Errorf("Failed to query exercises: %v", err)
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch exercises")
-		}
-		defer rows.Close()
-
-		exMap := map[uuid.UUID]model.Exercise{}
-		for rows.Next() {
-			var ex model.Exercise
-			var nullDeletedAt sql.NullTime
-			if err := rows.Scan(&ex.ID, &ex.Name, &ex.CreatedAt, &ex.UpdatedAt, &nullDeletedAt); err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to read result row")
-			}
-			if nullDeletedAt.Valid {
-				ex.DeletedAt = &nullDeletedAt.Time
-			}
-			exMap[ex.ID] = ex
-		}
-
-		// Preserve order based on Typesense hit order
-		var ordered []dto.ExerciseResponse
-		for _, id := range ids {
-			if ex, ok := exMap[id]; ok {
-				ordered = append(ordered, toExerciseResponse(&ex))
-			}
-		}
-
-		// Pagination Response
-		pagination := provider.GeneratePaginationData(int(*searchRes.Found), page, limit, c.Request().URL.Path, c.QueryParams())
-		to := offset + len(ordered)
-		pagination.To = &to
-
+	if searchRes.Hits == nil || len(*searchRes.Hits) == 0 {
+		fmt.Println("DEBUG: searchRes.Hits is nil or empty, returning empty response.")
+		pagination = provider.GeneratePaginationData(int(*searchRes.Found), page, limit, c.Request().URL.Path, c.QueryParams())
+		zero := 0
+		pagination.To = &zero
 		return c.JSON(http.StatusOK, dto.ListExerciseResponse{
-			Data:               ordered,
+			Data:               []dto.ExerciseResponse{},
 			PaginationResponse: pagination,
 		})
 	}
 
-	// --- Fallback: Original SQL path (no search) ---
-	where := squirrel.And{squirrel.Expr("deleted_at IS NULL")}
+	var exercisesResponse []dto.ExerciseResponse
+	for i, hit := range *searchRes.Hits {
+		fmt.Printf("DEBUG: Processing hit %d. Raw document: %+v\n", i, *hit.Document)
 
-	// 1. Count
-	countQuery, countArgs, err := h.sq.Select("COUNT(*)").
-		From("exercises").
-		Where(where).
-		ToSql()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count exercises")
-	}
-	var totalCount int
-	if err := h.DB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&totalCount); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to count exercises")
-	}
+		document := *hit.Document
 
-	// 2. Select
-	selectQuery, selectArgs, err := h.sq.Select("id", "name", "created_at", "updated_at", "deleted_at").
-		From("exercises").
-		Where(where).
-		OrderBy("created_at DESC").
-		Limit(uint64(limit)).
-		Offset(uint64(offset)).
-		ToSql()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to build select query")
-	}
-
-	rows, err := h.DB.QueryContext(ctx, selectQuery, selectArgs...)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to query exercises")
-	}
-	defer rows.Close()
-
-	var exercises []model.Exercise
-	for rows.Next() {
-		var ex model.Exercise
-		var nullDeletedAt sql.NullTime
-		if err := rows.Scan(&ex.ID, &ex.Name, &ex.CreatedAt, &ex.UpdatedAt, &nullDeletedAt); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to scan row")
+		// --- ID Extraction (MODIFIED AGAIN: Convert string to int) ---
+		idStr, ok := document["id"].(string) // Still get it as string from Typesense JSON
+		if !ok {
+			fmt.Printf("WARN: Hit %d: 'id' missing or not string. Value: %+v\n", i, document["id"])
+			continue // Skip this malformed document
 		}
-		if nullDeletedAt.Valid {
-			ex.DeletedAt = &nullDeletedAt.Time
+		// Convert the string ID to an int
+		idInt, err := strconv.Atoi(idStr)
+		if err != nil {
+			fmt.Printf("WARN: Hit %d (ID string: %s): failed to convert 'id' to int. Error: %v\n", i, idStr, err)
+			continue // Skip this document if ID cannot be converted
 		}
-		exercises = append(exercises, ex)
+
+		// --- Name Extraction ---
+		name, ok := document["name"].(string)
+		if !ok {
+			fmt.Printf("WARN: Hit %d (ID: %d): 'name' missing or not string. Value: %+v\n", i, idInt, document["name"])
+			continue
+		}
+
+		// --- Timestamps (no changes needed here as they were already float64 assertion) ---
+		createdAtUnix, ok := document["created_at"].(float64)
+		var createdAt time.Time
+		if ok {
+			createdAt = time.Unix(int64(createdAtUnix), 0)
+		} else {
+			if val, exists := document["created_at"]; exists {
+				fmt.Printf("WARN: Hit %d (ID: %d): 'created_at' not float64. Actual type: %T, Value: %+v\n", i, idInt, val, val)
+			} else {
+				fmt.Printf("WARN: Hit %d (ID: %d): 'created_at' missing.\n", i, idInt)
+			}
+		}
+
+		updatedAtUnix, ok := document["updated_at"].(float64)
+		var updatedAt time.Time
+		if ok {
+			updatedAt = time.Unix(int64(updatedAtUnix), 0)
+		} else {
+			if val, exists := document["updated_at"]; exists {
+				fmt.Printf("WARN: Hit %d (ID: %d): 'updated_at' not float64. Actual type: %T, Value: %+v\n", i, idInt, val, val)
+			} else {
+				fmt.Printf("WARN: Hit %d (ID: %d): 'updated_at' missing.\n", i, idInt)
+			}
+		}
+
+		var deletedAt *time.Time
+		if deletedAtUnix, ok := document["deleted_at"].(float64); ok && deletedAtUnix > 0 {
+			t := time.Unix(int64(deletedAtUnix), 0)
+			deletedAt = &t
+		} else {
+			if val, exists := document["deleted_at"]; exists {
+				fmt.Printf("DEBUG: Hit %d (ID: %d): 'deleted_at' not float64 or 0. Actual type: %T, Value: %+v\n", i, idInt, val, val)
+			} else {
+				fmt.Printf("DEBUG: Hit %d (ID: %d): 'deleted_at' missing or nil.\n", i, idInt)
+			}
+		}
+
+		exercisesResponse = append(exercisesResponse, dto.ExerciseResponse{
+			ID:        idInt, // <--- Assign the converted int ID
+			Name:      name,
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
+			DeletedAt: deletedAt,
+		})
+		fmt.Printf("DEBUG: Successfully added doc %d (ID: %d) to response slice.\n", i, idInt)
 	}
 
-	dtoExercises := make([]dto.ExerciseResponse, len(exercises))
-	for i, ex := range exercises {
-		dtoExercises[i] = toExerciseResponse(&ex)
+	totalCount := 0
+	if searchRes.Found != nil {
+		totalCount = int(*searchRes.Found)
 	}
+	pagination = provider.GeneratePaginationData(totalCount, page, limit, c.Request().URL.Path, c.QueryParams())
 
-	pagination := provider.GeneratePaginationData(totalCount, page, limit, c.Request().URL.Path, c.QueryParams())
-	if len(dtoExercises) > 0 {
-		tempTo := offset + len(dtoExercises)
+	if len(exercisesResponse) > 0 {
+		tempTo := offset + len(exercisesResponse)
 		pagination.To = &tempTo
 	} else {
 		zero := 0
@@ -191,7 +158,7 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, dto.ListExerciseResponse{
-		Data:               dtoExercises,
+		Data:               exercisesResponse,
 		PaginationResponse: pagination,
 	})
 }

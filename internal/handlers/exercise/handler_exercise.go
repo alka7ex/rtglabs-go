@@ -10,12 +10,14 @@ import (
 	"github.com/typesense/typesense-go/v3/typesense"
 )
 
+// ExerciseHandler struct (no change)
 type ExerciseHandler struct {
 	DB              *sql.DB
 	sq              squirrel.StatementBuilderType
 	TypesenseClient *typesense.Client
 }
 
+// NewExerciseHandler function (no change)
 func NewExerciseHandler(db *sql.DB, tsClient *typesense.Client) *ExerciseHandler {
 	return &ExerciseHandler{
 		DB:              db,
@@ -24,11 +26,8 @@ func NewExerciseHandler(db *sql.DB, tsClient *typesense.Client) *ExerciseHandler
 	}
 }
 
-// --- Helper Functions ---
-
-// toExerciseResponse converts a model.Exercise entity to a dto.ExerciseResponse DTO.
-// This function will now accept model.Exercise, not ent.Exercise.
-func toExerciseResponse(ex *model.Exercise) dto.ExerciseResponse { // Changed parameter type
+// toExerciseResponse (no change, assuming it's correctly defined elsewhere or here)
+func toExerciseResponse(ex *model.Exercise) dto.ExerciseResponse {
 	var deletedAt *time.Time
 	if ex.DeletedAt != nil {
 		deletedAt = ex.DeletedAt

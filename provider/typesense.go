@@ -11,8 +11,9 @@ type TypesenseClient struct {
 func NewTypesenseClient(host, apiKey string) *TypesenseClient {
 	return &TypesenseClient{
 		Client: typesense.NewClient(
-			typesense.WithServer("https://"+host+":443"),
+			typesense.WithServer("http://"+host+":80"), // <-- Issue is likely here
 			typesense.WithAPIKey(apiKey),
 		),
 	}
 }
+

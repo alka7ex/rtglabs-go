@@ -3,14 +3,13 @@ package dto
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"rtglabs-go/provider" // Assuming this contains your PaginationResponse
 )
 
 // ExerciseResponse represents the response structure for a single exercise.
 // This is the authoritative definition for ExerciseResponse.
 type ExerciseResponse struct {
-	ID        uuid.UUID  `json:"id"`
+	ID        int        `json:"id"`
 	Name      string     `json:"name"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
