@@ -3,14 +3,15 @@ package handlers
 
 import (
 	"context"
-	"fmt" // Keep fmt for debugging output
+	"fmt"
 	"net/http"
 	"rtglabs-go/dto"
 	"rtglabs-go/provider"
-	"strconv" // <--- Ensure strconv is imported for Atoi
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/typesense/typesense-go/v3/typesense/api"
 	"github.com/typesense/typesense-go/v3/typesense/api/pointer"
@@ -18,7 +19,7 @@ import (
 
 // IndexExercise handler
 func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
-	// --- Pagination Parameters ---
+	// ... (pagination parameters and searchName extraction - no change)
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	if page < 1 {
 		page = 1
@@ -31,16 +32,14 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 		limit = 100
 	}
 	offset := (page - 1) * limit
-	// --- End Pagination Parameters ---
 
-	searchName := strings.TrimSpace(c.QueryParam("name"))
+	searchName := strings.TrimSpace(c.QueryParam("q"))
 
 	var pagination provider.PaginationResponse
 
-	// --- Always use Typesense for search or general listing ---
 	searchParams := &api.SearchCollectionParams{
 		Q:       pointer.String(searchName),
-		QueryBy: pointer.String("name,description"), // Query both name and description
+		QueryBy: pointer.String("name,description"),
 		Page:    pointer.Int(page),
 		PerPage: pointer.Int(limit),
 	}
@@ -76,36 +75,46 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 
 		document := *hit.Document
 
-		// --- ID Extraction (MODIFIED AGAIN: Convert string to int) ---
-		idStr, ok := document["id"].(string) // Still get it as string from Typesense JSON
+		// --- UUID Extraction ---
+		uuidStr, ok := document["uuid"].(string)
 		if !ok {
-			fmt.Printf("WARN: Hit %d: 'id' missing or not string. Value: %+v\n", i, document["id"])
-			continue // Skip this malformed document
+			fmt.Printf("WARN: Hit %d: 'uuid' field missing or not a string. Value: %+v\n", i, document["uuid"])
+			continue
 		}
-		// Convert the string ID to an int
-		idInt, err := strconv.Atoi(idStr)
+		uid, err := uuid.Parse(uuidStr)
 		if err != nil {
-			fmt.Printf("WARN: Hit %d (ID string: %s): failed to convert 'id' to int. Error: %v\n", i, idStr, err)
-			continue // Skip this document if ID cannot be converted
+			fmt.Printf("WARN: Hit %d: Invalid UUID string '%s'. Error: %v\n", i, uuidStr, err)
+			continue
 		}
 
 		// --- Name Extraction ---
 		name, ok := document["name"].(string)
 		if !ok {
-			fmt.Printf("WARN: Hit %d (ID: %d): 'name' missing or not string. Value: %+v\n", i, idInt, document["name"])
+			fmt.Printf("WARN: Hit %d (UUID: %s): 'name' missing or not string. Value: %+v\n", i, uuidStr, document["name"])
 			continue
 		}
 
-		// --- Timestamps (no changes needed here as they were already float64 assertion) ---
+		// --- NEW FIELD EXTRACTION ---
+		// Use empty string as default if field is missing or not a string
+		description, _ := document["description"].(string)
+		position, _ := document["position"].(string)
+		forceType, _ := document["force_type"].(string)
+		difficulty, _ := document["difficulty"].(string)
+		movementType, _ := document["movement_type"].(string)
+		muscleGroup, _ := document["muscle_group"].(string)
+		equipment, _ := document["equipment"].(string)
+		bodypart, _ := document["bodypart"].(string)
+
+		// --- Timestamps ---
 		createdAtUnix, ok := document["created_at"].(float64)
 		var createdAt time.Time
 		if ok {
 			createdAt = time.Unix(int64(createdAtUnix), 0)
 		} else {
 			if val, exists := document["created_at"]; exists {
-				fmt.Printf("WARN: Hit %d (ID: %d): 'created_at' not float64. Actual type: %T, Value: %+v\n", i, idInt, val, val)
+				fmt.Printf("WARN: Hit %d (UUID: %s): 'created_at' not float64. Actual type: %T, Value: %+v\n", i, uuidStr, val, val)
 			} else {
-				fmt.Printf("WARN: Hit %d (ID: %d): 'created_at' missing.\n", i, idInt)
+				fmt.Printf("WARN: Hit %d (UUID: %s): 'created_at' missing.\n", i, uuidStr)
 			}
 		}
 
@@ -115,9 +124,9 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 			updatedAt = time.Unix(int64(updatedAtUnix), 0)
 		} else {
 			if val, exists := document["updated_at"]; exists {
-				fmt.Printf("WARN: Hit %d (ID: %d): 'updated_at' not float64. Actual type: %T, Value: %+v\n", i, idInt, val, val)
+				fmt.Printf("WARN: Hit %d (UUID: %s): 'updated_at' not float64. Actual type: %T, Value: %+v\n", i, uuidStr, val, val)
 			} else {
-				fmt.Printf("WARN: Hit %d (ID: %d): 'updated_at' missing.\n", i, idInt)
+				fmt.Printf("WARN: Hit %d (UUID: %s): 'updated_at' missing.\n", i, uuidStr)
 			}
 		}
 
@@ -127,20 +136,28 @@ func (h *ExerciseHandler) IndexExercise(c echo.Context) error {
 			deletedAt = &t
 		} else {
 			if val, exists := document["deleted_at"]; exists {
-				fmt.Printf("DEBUG: Hit %d (ID: %d): 'deleted_at' not float64 or 0. Actual type: %T, Value: %+v\n", i, idInt, val, val)
+				fmt.Printf("DEBUG: Hit %d (UUID: %s): 'deleted_at' not float64 or 0. Actual type: %T, Value: %+v\n", i, uuidStr, val, val)
 			} else {
-				fmt.Printf("DEBUG: Hit %d (ID: %d): 'deleted_at' missing or nil.\n", i, idInt)
+				fmt.Printf("DEBUG: Hit %d (UUID: %s): 'deleted_at' missing or nil.\n", i, uuidStr)
 			}
 		}
 
 		exercisesResponse = append(exercisesResponse, dto.ExerciseResponse{
-			ID:        idInt, // <--- Assign the converted int ID
-			Name:      name,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
-			DeletedAt: deletedAt,
+			ID:           uid,
+			Name:         name,
+			Description:  description,  // <--- ASSIGN THIS
+			Position:     position,     // <--- ASSIGN THIS
+			ForceType:    forceType,    // <--- ASSIGN THIS
+			Difficulty:   difficulty,   // <--- ASSIGN THIS
+			MovementType: movementType, // <--- ASSIGN THIS
+			MuscleGroup:  muscleGroup,  // <--- ASSIGN THIS
+			Equipment:    equipment,    // <--- ASSIGN THIS
+			Bodypart:     bodypart,     // <--- ASSIGN THIS
+			CreatedAt:    createdAt,
+			UpdatedAt:    updatedAt,
+			DeletedAt:    deletedAt,
 		})
-		fmt.Printf("DEBUG: Successfully added doc %d (ID: %d) to response slice.\n", i, idInt)
+		fmt.Printf("DEBUG: Successfully added doc %d (UUID: %s) to response slice.\n", i, uuidStr)
 	}
 
 	totalCount := 0
